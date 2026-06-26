@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnikaLang wxPython — Build Desktop Apps in Plain English</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --surface3: #21262d;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #58a6ff;
+            --accent2: #7ee787;
+            --accent3: #d2a8ff;
+            --accent4: #ffa657;
+            --accent5: #ff7b72;
+            --accent6: #79c0ff;
+            --gradient-primary: linear-gradient(135deg, #58a6ff 0%, #d2a8ff 50%, #7ee787 100%);
+            --gradient-hero: linear-gradient(135deg, #1a1f35 0%, #0d1117 50%, #1a2332 100%);
+            --gradient-card: linear-gradient(135deg, #161b22 0%, #1c2333 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 14px 0;
+        }
+
+        .nav-inner {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.2em;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #000;
+            font-weight: 900;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.95em;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text); }
+
+        .nav-cta {
+            background: var(--accent);
+            color: #000 !important;
+            padding: 8px 18px !important;
+            border-radius: 8px;
+            font-weight: 600 !important;
+            transition: all 0.2s !important;
+        }
+
+        .nav-cta:hover {
+            background: #79b8ff;
+            transform: translateY(-1px);
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            background: var(--gradient-hero);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 24px 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(88, 166, 255, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(210, 168, 255, 0.08) 0%, transparent 50%);
+            animation: drift 20s ease-in-out infinite;
+        }
+
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-5%, 3%); }
+        }
+
+        .hero-content {
+            max-width: 1100px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: var(--accent);
+            margin-bottom: 24px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent2);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5em, 6vw, 4.5em);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s ease-out 0.1s both;
+        }
+
+        .hero h1 .gradient {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.1em, 2vw, 1.4em);
+            color: var(--text-dim);
+            max-width: 750px;
+            margin: 0 auto 40px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #79b8ff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(88, 166, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface2);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 48px;
+            justify-content: center;
+            margin-top: 60px;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 2.5em;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-stat-label {
+            color: var(--text-dim);
+            font-size: 0.9em;
+            margin-top: 4px;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sections */
+        section {
+            padding: 100px 24px;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-tag {
+            display: inline-block;
+            color: var(--accent);
+            font-size: 0.9em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: clamp(2em, 4vw, 3em);
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            color: var(--text-dim);
+            font-size: 1.15em;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 32px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .feature-card:hover::before { transform: scaleX(1); }
+
+        .feature-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6em;
+            margin-bottom: 20px;
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+        }
+
+        .feature-card h3 {
+            font-size: 1.25em;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .feature-card p {
+            color: var(--text-dim);
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        /* Code Showcase */
+        .code-showcase {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .code-header {
+            background: var(--surface2);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .code-dot.red { background: #ff5f56; }
+        .code-dot.yellow { background: #ffbd2e; }
+        .code-dot.green { background: #27c93f; }
+
+        .code-filename {
+            color: var(--text-dim);
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        .code-body {
+            padding: 24px;
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .code-line {
+            display: flex;
+            gap: 16px;
+        }
+
+        .code-line-num {
+            color: var(--text-muted);
+            user-select: none;
+            min-width: 24px;
+            text-align: right;
+        }
+
+        .code-line-content { flex: 1; }
+
+        .code-kw { color: var(--accent3); font-weight: 600; }
+        .code-fn { color: var(--accent); }
+        .code-str { color: var(--accent2); }
+        .code-num { color: var(--accent4); }
+        .code-cmt { color: var(--text-muted); font-style: italic; }
+        .code-var { color: var(--accent6); }
+
+        /* Capabilities */
+        .capabilities {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 40px;
+        }
+
+        .cap-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.2s;
+        }
+
+        .cap-item:hover {
+            border-color: var(--accent);
+            background: var(--surface2);
+        }
+
+        .cap-icon {
+            font-size: 1.8em;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .cap-info h4 {
+            font-size: 1em;
+            margin-bottom: 2px;
+        }
+
+        .cap-info p {
+            color: var(--text-dim);
+            font-size: 0.85em;
+        }
+
+        /* Use Cases */
+        .usecases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .usecase {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+
+        .usecase:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+        }
+
+        .usecase-emoji {
+            font-size: 2.5em;
+            margin-bottom: 16px;
+        }
+
+        .usecase h3 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .usecase p {
+            color: var(--text-dim);
+            font-size: 0.95em;
+            margin-bottom: 16px;
+        }
+
+        .usecase-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .usecase-tag {
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--accent);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            border: 1px solid rgba(88, 166, 255, 0.2);
+        }
+
+        /* Comparison */
+        .comparison {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .comparison-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            background: var(--surface2);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .comparison-row:hover { background: var(--surface2); }
+        .comparison-row:last-child { border-bottom: none; }
+
+        .comparison-row .feature-name {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .check { color: var(--accent2); font-size: 1.3em; }
+        .cross { color: var(--text-muted); font-size: 1.3em; }
+        .partial { color: var(--accent4); font-size: 0.9em; }
+
+        .comparison-highlight {
+            background: rgba(88, 166, 255, 0.05);
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Install */
+        .install-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 32px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .install-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .install-step {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content { flex: 1; }
+
+        .step-content h4 {
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .step-code {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            color: var(--accent2);
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        /* Testimonials / Quotes */
+        .quotes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .quote {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px;
+            position: relative;
+        }
+
+        .quote::before {
+            content: '"';
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 4em;
+            color: var(--accent);
+            opacity: 0.2;
+            font-family: Georgia, serif;
+            line-height: 1;
+        }
+
+        .quote-text {
+            color: var(--text);
+            font-size: 1.05em;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            font-style: italic;
+            position: relative;
+            z-index: 1;
+        }
+
+        .quote-author {
+            color: var(--text-dim);
+            font-size: 0.9em;
+        }
+
+        .quote-author strong { color: var(--accent); }
+
+        /* CTA Section */
+        .cta-section {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 80px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(88, 166, 255, 0.1) 0%, transparent 50%);
+        }
+
+        .cta-section > * { position: relative; z-index: 1; }
+
+        .cta-section h2 {
+            font-size: clamp(2em, 4vw, 3em);
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            color: var(--text-dim);
+            font-size: 1.2em;
+            margin-bottom: 32px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 60px 24px 40px;
+            margin-top: 80px;
+        }
+
+        .footer-inner {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+        }
+
+        .footer-brand p {
+            color: var(--text-dim);
+            margin-top: 12px;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .footer-col h4 {
+            color: var(--text);
+            margin-bottom: 16px;
+            font-size: 0.95em;
+        }
+
+        .footer-col a {
+            display: block;
+            color: var(--text-dim);
+            text-decoration: none;
+            padding: 4px 0;
+            font-size: 0.9em;
+            transition: color 0.2s;
+        }
+
+        .footer-col a:hover { color: var(--accent); }
+
+        .footer-bottom {
+            max-width: 1300px;
+            margin: 40px auto 0;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero-stats { gap: 24px; }
+            .hero-stat-value { font-size: 2em; }
+            .comparison-header, .comparison-row {
+                grid-template-columns: 2fr 1fr 1fr 1fr;
+                font-size: 0.85em;
+            }
+            .footer-inner {
+                grid-template-columns: 1fr 1fr;
+            }
+            section { padding: 60px 20px; }
+        }
+
+        /* Scroll animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="#" class="logo">
+            <div class="logo-icon">A</div>
+            <span>AnikaLang</span>
+        </a>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#capabilities">Capabilities</a>
+            <a href="#examples">Examples</a>
+            <a href="#usecases">Use Cases</a>
+            <a href="documentation.html">Reference</a>
+			<a href="tutorial.html">Tutorial</a>
+            <a href="#install" class="nav-cta">Download</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            <span>v1 — Now with 450+ Built-in Functions</span>
+        </div>
+        <h1>
+            Build Desktop Apps<br>
+            in <span class="gradient">Plain English</span>
+        </h1>
+        <p class="hero-subtitle">
+            AnikaLang is a beginner-friendly scripting language with a powerful wxPython GUI framework.
+            Create professional desktop applications with a syntax anyone can read.
+        </p>
+        <div class="hero-ctas">
+            <a href="#install" class="btn btn-primary">
+                ⚡ Get Started Free
+            </a>
+            <a href="#examples" class="btn btn-secondary">
+                📖 See Examples
+            </a>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value">450+</div>
+                <div class="hero-stat-label">Built-in Functions</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">39</div>
+                <div class="hero-stat-label">Feature Categories</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">23</div>
+                <div class="hero-stat-label">Simple Keywords</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">∞</div>
+                <div class="hero-stat-label">Possibilities</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+    <div class="section-header reveal">
+        <div class="section-tag">Why AnikaLang</div>
+        <h2 class="section-title">Everything You Need,<br>Nothing You Don't</h2>
+        <p class="section-subtitle">
+            A complete toolkit for building real desktop applications without the complexity of traditional languages.
+        </p>
+    </div>
+    <div class="features-grid">
+        <div class="feature-card reveal">
+            <div class="feature-icon">📝</div>
+            <h3>English-Like Syntax</h3>
+            <p>Read and write code like plain English. <code>SET name TO "Alice"</code> is instantly understandable by anyone.</p>
+        </div>
+        <div class="feature-card reveal">
+            <div class="feature-icon">🪟</div>
+            <h3>Native GUI Framework</h3>
+            <p>Build real desktop apps with buttons, menus, text fields, and more — powered by wxPython's native widgets.</p>
+        </div>
+        <div class="feature-card reveal">
+            <div class="feature-icon">📊</div>
+            <h3>ML & Statistics</h3>
+            <p>Train machine learning models, run statistical tests, and create beautiful graphs — all with simple functions.</p>
+        </div>
+        <div class="feature-card reveal">
+            <div class="feature-icon">🗄️</div>
+            <h3>Database Built-In</h3>
+            <p>SQLite support out of the box. Create tables, run queries, and manage data without external libraries.</p>
+        </div>
+        <div class="feature-card reveal">
+            <div class="feature-icon">📄</div>
+            <h3>Office Documents</h3>
+            <p>Create and edit Word (.docx), PowerPoint (.pptx), and Excel (.xlsx) files programmatically.</p>
+        </div>
+        <div class="feature-card reveal">
+            <div class="feature-icon">🌐</div>
+            <h3>Web & Email</h3>
+            <p>HTTP requests, email sending/fetching, HTML rendering — full internet capabilities built in.</p>
+        </div>
+        <div class="feature-card reveal">
+            <div class="feature-icon">🔊</div>
+            <h3>Text-to-Speech</h3>
+            <p>Convert text to speech with 100+ languages. Save as MP3 or play directly using system voices.</p>
+        </div>
+        <div class="feature-card reveal">
+            <div class="feature-icon">🌍</div>
+            <h3>Translation</h3>
+            <p>Google Translate integration with batch translation, language detection, and 100+ language support.</p>
+        </div>
+        <div class="feature-card reveal">
+            <div class="feature-icon">⚡</div>
+            <h3>Instant Feedback</h3>
+            <p>Run scripts directly, see errors with source context, and debug with built-in variable inspection.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Code Example -->
+<section id="examples">
+    <div class="section-header reveal">
+        <div class="section-tag">See It In Action</div>
+        <h2 class="section-title">Readable. Powerful. Real.</h2>
+        <p class="section-subtitle">
+            A complete desktop application in just a few lines. No boilerplate, no complexity.
+        </p>
+    </div>
+    <div class="code-showcase reveal">
+        <div class="code-header">
+            <div class="code-dots">
+                <span class="code-dot red"></span>
+                <span class="code-dot yellow"></span>
+                <span class="code-dot green"></span>
+            </div>
+            <div class="code-filename">counter_app.fms</div>
+        </div>
+        <div class="code-body">
+            <div class="code-line"><span class="code-line-num">1</span><span class="code-line-content"><span class="code-cmt"># A complete counter application</span></span></div>
+            <div class="code-line"><span class="code-line-num">2</span><span class="code-line-content"><span class="code-kw">SET</span> count <span class="code-kw">TO</span> <span class="code-num">0</span></span></div>
+            <div class="code-line"><span class="code-line-num">3</span><span class="code-line-content"><span class="code-kw">SET</span> display <span class="code-kw">TO</span> <span class="code-var">NULL</span></span></div>
+            <div class="code-line"><span class="code-line-num">4</span><span class="code-line-content"></span></div>
+            <div class="code-line"><span class="code-line-num">5</span><span class="code-line-content"><span class="code-kw">FUNCTION</span> <span class="code-fn">increment</span>()</span></div>
+            <div class="code-line"><span class="code-line-num">6</span><span class="code-line-content">    <span class="code-kw">SET</span> count <span class="code-kw">TO</span> count + <span class="code-num">1</span></span></div>
+            <div class="code-line"><span class="code-line-num">7</span><span class="code-line-content">    <span class="code-fn">UI_SET</span>(display, <span class="code-str">"Count: "</span> & <span class="code-fn">STR</span>(count))</span></div>
+            <div class="code-line"><span class="code-line-num">8</span><span class="code-line-content"><span class="code-kw">END FUNCTION</span></span></div>
+            <div class="code-line"><span class="code-line-num">9</span><span class="code-line-content"></span></div>
+            <div class="code-line"><span class="code-line-num">10</span><span class="code-line-content"><span class="code-cmt"># Build the UI</span></span></div>
+            <div class="code-line"><span class="code-line-num">11</span><span class="code-line-content"><span class="code-kw">SET</span> win <span class="code-kw">TO</span> <span class="code-fn">UI_WINDOW</span>(<span class="code-str">"Counter App"</span>, <span class="code-num">300</span>, <span class="code-num">200</span>)</span></div>
+            <div class="code-line"><span class="code-line-num">12</span><span class="code-line-content"><span class="code-kw">SET</span> display <span class="code-kw">TO</span> <span class="code-fn">UI_LABEL</span>(win, <span class="code-str">"Count: 0"</span>, <span class="code-num">100</span>, <span class="code-num">50</span>, <span class="code-num">100</span>, <span class="code-num">30</span>)</span></div>
+            <div class="code-line"><span class="code-line-num">13</span><span class="code-line-content"><span class="code-fn">UI_BUTTON</span>(win, <span class="code-str">"+1"</span>, <span class="code-str">"increment"</span>, <span class="code-num">110</span>, <span class="code-num">100</span>, <span class="code-num">80</span>, <span class="code-num">30</span>)</span></div>
+            <div class="code-line"><span class="code-line-num">14</span><span class="code-line-content"></span></div>
+            <div class="code-line"><span class="code-line-num">15</span><span class="code-line-content"><span class="code-fn">UI_MAINLOOP</span>(win)</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- Capabilities -->
+<section id="capabilities">
+    <div class="section-header reveal">
+        <div class="section-tag">Complete Toolkit</div>
+        <h2 class="section-title">39 Categories.<br>450+ Functions.</h2>
+        <p class="section-subtitle">
+            From basic math to machine learning, AnikaLang has everything built in.
+        </p>
+    </div>
+    <div class="capabilities">
+        <div class="cap-item reveal"><div class="cap-icon">🧮</div><div class="cap-info"><h4>Math</h4><p>28 functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📝</div><div class="cap-info"><h4>Strings</h4><p>17 functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📊</div><div class="cap-info"><h4>Statistics</h4><p>28 functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📈</div><div class="cap-info"><h4>Graphs</h4><p>12 chart types</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">🤖</div><div class="cap-info"><h4>Machine Learning</h4><p>22 algorithms</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">🪟</div><div class="cap-info"><h4>UI Widgets</h4><p>100+ widgets</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📄</div><div class="cap-info"><h4>Word Docs</h4><p>20 DOCX functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📽️</div><div class="cap-info"><h4>PowerPoint</h4><p>17 PPTX functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📊</div><div class="cap-info"><h4>Excel</h4><p>17 XLSX functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">🗄️</div><div class="cap-info"><h4>Database</h4><p>SQLite + FTS5</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">🌐</div><div class="cap-info"><h4>Network</h4><p>HTTP + Email</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">🌍</div><div class="cap-info"><h4>Translation</h4><p>100+ languages</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">🔊</div><div class="cap-info"><h4>Text-to-Speech</h4><p>12 TTS functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📅</div><div class="cap-info"><h4>Date/Time</h4><p>6 functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📁</div><div class="cap-info"><h4>File I/O</h4><p>20 path functions</p></div></div>
+        <div class="cap-item reveal"><div class="cap-icon">📋</div><div class="cap-info"><h4>CSV</h4><p>5 functions</p></div></div>
+    </div>
+</section>
+
+<!-- Use Cases -->
+<section id="usecases">
+    <div class="section-header reveal">
+        <div class="section-tag">Build Anything</div>
+        <h2 class="section-title">What Will You Create?</h2>
+        <p class="section-subtitle">
+            From simple utilities to full-featured applications — AnikaLang scales with your ideas.
+        </p>
+    </div>
+    <div class="usecases">
+        <div class="usecase reveal">
+            <div class="usecase-emoji">📝</div>
+            <h3>Word Processor</h3>
+            <p>Build a full-featured word processor with rich text editing, formatting, and document export.</p>
+            <div class="usecase-tags">
+                <span class="usecase-tag">RichText</span>
+                <span class="usecase-tag">File I/O</span>
+                <span class="usecase-tag">Menus</span>
+            </div>
+        </div>
+        <div class="usecase reveal">
+            <div class="usecase-emoji">📊</div>
+            <h3>Data Dashboard</h3>
+            <p>Create interactive dashboards with charts, tables, and real-time data visualization.</p>
+            <div class="usecase-tags">
+                <span class="usecase-tag">Graphs</span>
+                <span class="usecase-tag">Excel</span>
+                <span class="usecase-tag">Database</span>
+            </div>
+        </div>
+        <div class="usecase reveal">
+            <div class="usecase-emoji">🤖</div>
+            <h3>ML Analyzer</h3>
+            <p>Train classification models, cluster data, and generate reports with beautiful graphs.</p>
+            <div class="usecase-tags">
+                <span class="usecase-tag">scikit-learn</span>
+                <span class="usecase-tag">matplotlib</span>
+                <span class="usecase-tag">pandas</span>
+            </div>
+        </div>
+        <div class="usecase reveal">
+            <div class="usecase-emoji">📧</div>
+            <h3>Email Client</h3>
+            <p>Fetch, read, and send emails with a beautiful GUI. Filter and organize your inbox.</p>
+            <div class="usecase-tags">
+                <span class="usecase-tag">IMAP</span>
+                <span class="usecase-tag">SMTP</span>
+                <span class="usecase-tag">HTML</span>
+            </div>
+        </div>
+        <div class="usecase reveal">
+            <div class="usecase-emoji">📚</div>
+            <h3>Note Taking App</h3>
+            <p>Markdown editor with live preview, tags, search, and export to multiple formats.</p>
+            <div class="usecase-tags">
+                <span class="usecase-tag">Markdown</span>
+                <span class="usecase-tag">WebView</span>
+                <span class="usecase-tag">SQLite</span>
+            </div>
+        </div>
+        <div class="usecase reveal">
+            <div class="usecase-emoji">⏱️</div>
+            <h3>Productivity Tools</h3>
+            <p>Timers, calendars, task managers, and custom utilities tailored to your workflow.</p>
+            <div class="usecase-tags">
+                <span class="usecase-tag">Timers</span>
+                <span class="usecase-tag">Notifications</span>
+                <span class="usecase-tag">TTS</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison -->
+<section>
+    <div class="section-header reveal">
+        <div class="section-tag">How We Compare</div>
+        <h2 class="section-title">AnikaLang vs. Others</h2>
+        <p class="section-subtitle">
+            See why AnikaLang is the fastest path from idea to working desktop application.
+        </p>
+    </div>
+    <div class="comparison reveal">
+        <div class="comparison-header">
+            <div>Feature</div>
+            <div>AnikaLang</div>
+            <div>Python + Tk</div>
+            <div>C# / WinForms</div>
+        </div>
+        <div class="comparison-row comparison-highlight">
+            <div class="feature-name">English-like syntax</div>
+            <div class="check">✓</div>
+            <div class="cross">✗</div>
+            <div class="cross">✗</div>
+        </div>
+        <div class="comparison-row">
+            <div class="feature-name">Built-in GUI framework</div>
+            <div class="check">✓</div>
+            <div class="partial">Partial</div>
+            <div class="check">✓</div>
+        </div>
+        <div class="comparison-row">
+            <div class="feature-name">ML & Statistics built-in</div>
+            <div class="check">✓</div>
+            <div class="cross">✗</div>
+            <div class="cross">✗</div>
+        </div>
+        <div class="comparison-row">
+            <div class="feature-name">Office docs (DOCX/PPTX/XLSX)</div>
+            <div class="check">✓</div>
+            <div class="cross">✗</div>
+            <div class="partial">Partial</div>
+        </div>
+        <div class="comparison-row">
+            <div class="feature-name">Text-to-speech</div>
+            <div class="check">✓</div>
+            <div class="cross">✗</div>
+            <div class="cross">✗</div>
+        </div>
+        <div class="comparison-row">
+            <div class="feature-name">Translation (100+ langs)</div>
+            <div class="check">✓</div>
+            <div class="cross">✗</div>
+            <div class="cross">✗</div>
+        </div>
+        <div class="comparison-row">
+            <div class="feature-name">Zero setup required</div>
+            <div class="check">✓</div>
+            <div class="cross">✗</div>
+            <div class="cross">✗</div>
+        </div>
+        <div class="comparison-row">
+            <div class="feature-name">Beginner-friendly errors</div>
+            <div class="check">✓</div>
+            <div class="partial">Partial</div>
+            <div class="partial">Partial</div>
+        </div>
+    </div>
+</section>
+
+<!-- Install -->
+<section id="install">
+    <div class="section-header reveal">
+        <div class="section-tag">Get Started</div>
+        <h2 class="section-title">Up and Running in 60 Seconds</h2>
+        <p class="section-subtitle">
+            No complex setup. No configuration hell. Just install and start building.
+        </p>
+    </div>
+    <div class="install-box reveal">
+        <div class="install-steps">
+            <div class="install-step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Install wxPython</h4>
+                    <div class="step-code">pip install wxPython</div>
+                </div>
+            </div>
+            <div class="install-step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Create your first script</h4>
+                    <div class="step-code">echo 'UI_ALERT("Hello World!")' > hello.fms</div>
+                </div>
+            </div>
+            <div class="install-step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Run it</h4>
+                    <div class="step-code">python anikawx.py hello.fms</div>
+                </div>
+            </div>
+            <div class="install-step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>Optional: Install extras</h4>
+                    <div class="step-code">pip install scikit-learn matplotlib openpyxl python-docx python-pptx</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials -->
+<section>
+    <div class="section-header reveal">
+        <div class="section-tag">What People Say</div>
+        <h2 class="section-title">Loved by Builders</h2>
+    </div>
+    <div class="quotes">
+        <div class="quote reveal">
+            <p class="quote-text">I built a complete word processor in AnikaLang in one afternoon. The syntax is so intuitive that I barely had to look at the docs.</p>
+            <div class="quote-author">— <strong>Desktop App Developer</strong></div>
+        </div>
+        <div class="quote reveal">
+            <p class="quote-text">Finally, a language that lets me do ML, stats, and GUI in one place. No more juggling between Python, R, and separate GUI frameworks.</p>
+            <div class="quote-author">— <strong>Data Scientist</strong></div>
+        </div>
+        <div class="quote reveal">
+            <p class="quote-text">My students pick up AnikaLang in minutes. The English-like syntax removes all the barriers that used to make programming intimidating.</p>
+            <div class="quote-author">— <strong>Computer Science Educator</strong></div>
+        </div>
+    </div>
+</section>
+
+<!-- Final CTA -->
+<section>
+    <div class="cta-section reveal">
+        <h2>Ready to Build Something Amazing?</h2>
+        <p>Join the growing community of AnikaLang developers creating beautiful desktop applications.</p>
+        <div class="hero-ctas">
+            <a href="#install" class="btn btn-primary">⚡ Get Started Free</a>
+            <a href="#" class="btn btn-secondary">📚 Read the Docs</a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <a href="#" class="logo">
+                <div class="logo-icon">A</div>
+                <span>AnikaLang</span>
+            </a>
+            <p>A beginner-friendly scripting language with a powerful wxPython GUI framework. Build desktop apps in plain English.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Product</h4>
+            <a href="#features">Features</a>
+            <a href="#capabilities">Capabilities</a>
+            <a href="#examples">Examples</a>
+            <a href="#install">Installation</a>
+        </div>
+        <div class="footer-col">
+            <h4>Resources</h4>
+            <a href="documentation.html">Reference</a>
+            <a href="tutorial.html">Tutorial</a>
+        </div>
+        <div class="footer-col">
+            <h4>Community</h4>
+            <a href="#">GitHub</a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>© 2026 AnikaLang. Built with ❤️ for builders everywhere.</p>
+    </div>
+</footer>
+
+<script>
+    // Scroll reveal animation
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    // Nav background on scroll
+    window.addEventListener('scroll', () => {
+        const nav = document.querySelector('.nav');
+        if (window.scrollY > 50) {
+            nav.style.background = 'rgba(13, 17, 23, 0.95)';
+        } else {
+            nav.style.background = 'rgba(13, 17, 23, 0.85)';
+        }
+    });
+</script>
+
+</body>
+</html>
