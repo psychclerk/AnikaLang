@@ -1,0 +1,2180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnikaLang wxPython — Beginner's Tutorial</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --surface3: #21262d;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #58a6ff;
+            --accent2: #7ee787;
+            --accent3: #d2a8ff;
+            --accent4: #ffa657;
+            --accent5: #ff7b72;
+            --accent6: #79c0ff;
+            --gradient-primary: linear-gradient(135deg, #58a6ff 0%, #d2a8ff 50%, #7ee787 100%);
+            --gradient-hero: linear-gradient(135deg, #1a1f35 0%, #0d1117 50%, #1a2332 100%);
+            --gradient-card: linear-gradient(135deg, #161b22 0%, #1c2333 100%);
+            --tip-bg: rgba(126, 231, 135, 0.08);
+            --tip-border: #7ee787;
+            --warn-bg: rgba(255, 166, 87, 0.08);
+            --warn-border: #ffa657;
+            --danger-bg: rgba(255, 123, 114, 0.08);
+            --danger-border: #ff7b72;
+            --info-bg: rgba(88, 166, 255, 0.08);
+            --info-border: #58a6ff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 14px 0;
+        }
+
+        .nav-inner {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.2em;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #000;
+            font-weight: 900;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.95em;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text); }
+
+        .nav-cta {
+            background: var(--accent);
+            color: #000 !important;
+            padding: 8px 18px !important;
+            border-radius: 8px;
+            font-weight: 600 !important;
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 70vh;
+            background: var(--gradient-hero);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 24px 60px;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(88, 166, 255, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(210, 168, 255, 0.08) 0%, transparent 50%);
+            animation: drift 20s ease-in-out infinite;
+        }
+
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-5%, 3%); }
+        }
+
+        .hero-content {
+            max-width: 1000px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(126, 231, 135, 0.1);
+            border: 1px solid rgba(126, 231, 135, 0.3);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: var(--accent2);
+            margin-bottom: 24px;
+        }
+
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent2);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2em, 5vw, 4em);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 .gradient {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1em, 2vw, 1.3em);
+            color: var(--text-dim);
+            max-width: 700px;
+            margin: 0 auto 32px;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #79b8ff;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface2);
+            border-color: var(--accent);
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 62px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--surface);
+            z-index: 999;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* Table of Contents */
+        .toc-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        .toc {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+        }
+
+        .toc h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+        }
+
+        .toc-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.2s;
+        }
+
+        .toc-item:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+            background: var(--surface2);
+        }
+
+        .toc-num {
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85em;
+            flex-shrink: 0;
+        }
+
+        .toc-text {
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        /* Lesson sections */
+        section.lesson {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 24px;
+        }
+
+        .lesson-header {
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .lesson-num {
+            display: inline-block;
+            background: var(--accent);
+            color: #000;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .lesson-header h2 {
+            font-size: clamp(1.8em, 3vw, 2.5em);
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .lesson-header p {
+            color: var(--text-dim);
+            font-size: 1.1em;
+        }
+
+        .lesson-content h3 {
+            font-size: 1.3em;
+            margin: 28px 0 14px;
+            color: var(--accent6);
+        }
+
+        .lesson-content p {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .lesson-content ul, .lesson-content ol {
+            margin: 0 0 16px 24px;
+        }
+
+        .lesson-content li {
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .lesson-content code {
+            background: var(--surface2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 0.9em;
+            color: var(--accent4);
+            border: 1px solid var(--border);
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            background: var(--surface2);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-lang {
+            color: var(--text-dim);
+            font-size: 0.85em;
+            font-family: 'Consolas', monospace;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-lang::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent2);
+            border-radius: 50%;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--surface3);
+            color: var(--text);
+            border-color: var(--accent);
+        }
+
+        .copy-btn.copied {
+            background: var(--accent2);
+            color: #000;
+            border-color: var(--accent2);
+        }
+
+        .code-body {
+            padding: 16px 20px;
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 0.88em;
+            line-height: 1.7;
+            overflow-x: auto;
+        }
+
+        .code-line {
+            display: flex;
+            gap: 16px;
+        }
+
+        .line-num {
+            color: var(--text-muted);
+            user-select: none;
+            min-width: 24px;
+            text-align: right;
+        }
+
+        .line-content { flex: 1; white-space: pre; }
+
+        .kw { color: var(--accent3); font-weight: 600; }
+        .fn { color: var(--accent); }
+        .str { color: var(--accent2); }
+        .num { color: var(--accent4); }
+        .cmt { color: var(--text-muted); font-style: italic; }
+        .var { color: var(--accent6); }
+        .op { color: var(--accent5); }
+
+        /* Callout boxes */
+        .callout {
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-left: 4px solid;
+            display: flex;
+            gap: 14px;
+        }
+
+        .callout-icon {
+            font-size: 1.4em;
+            flex-shrink: 0;
+        }
+
+        .callout-content { flex: 1; }
+
+        .callout-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+            font-size: 0.95em;
+        }
+
+        .callout-body {
+            font-size: 0.92em;
+            line-height: 1.6;
+        }
+
+        .callout.tip { background: var(--tip-bg); border-color: var(--tip-border); }
+        .callout.tip .callout-title { color: var(--accent2); }
+
+        .callout.warn { background: var(--warn-bg); border-color: var(--warn-border); }
+        .callout.warn .callout-title { color: var(--accent4); }
+
+        .callout.danger { background: var(--danger-bg); border-color: var(--danger-border); }
+        .callout.danger .callout-title { color: var(--accent5); }
+
+        .callout.info { background: var(--info-bg); border-color: var(--info-border); }
+        .callout.info .callout-title { color: var(--accent); }
+
+        /* Comparison table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .comparison-table th {
+            background: var(--surface2);
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table tr:last-child td { border-bottom: none; }
+
+        .comparison-table tr:hover { background: var(--surface2); }
+
+        /* Feature grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .feature-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .feature-card h4 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .feature-card p {
+            color: var(--text-dim);
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        /* Complete app showcase */
+        .app-showcase {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin: 24px 0;
+        }
+
+        .app-showcase h3 {
+            color: var(--accent2);
+            margin-bottom: 16px;
+        }
+
+        /* Pitfall cards */
+        .pitfall {
+            background: var(--danger-bg);
+            border: 1px solid var(--danger-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+        }
+
+        .pitfall-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            color: var(--accent5);
+            font-weight: 700;
+        }
+
+        .pitfall-code {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+        }
+
+        .pitfall-code.wrong { border-left: 3px solid var(--accent5); }
+        .pitfall-code.right { border-left: 3px solid var(--accent2); }
+
+        /* Footer */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 60px 24px 40px;
+            margin-top: 80px;
+            text-align: center;
+            color: var(--text-dim);
+        }
+
+        .footer-inner {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .footer h3 {
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .footer-links a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.95em;
+        }
+
+        .footer-links a:hover { text-decoration: underline; }
+
+        /* Back to top */
+        .back-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--accent);
+            color: #000;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.4em;
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 200;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .back-top.visible { opacity: 1; }
+        .back-top:hover { transform: scale(1.1); }
+
+        /* Reveal animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            section.lesson { padding: 40px 16px; }
+            .toc { padding: 20px; }
+            .code-body { font-size: 0.8em; padding: 12px; }
+        }
+
+        /* Print */
+        @media print {
+            .nav, .progress-bar, .back-top { display: none; }
+            .hero { min-height: auto; padding: 40px 20px; }
+            body { background: #fff; color: #000; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="#" class="logo">
+            <div class="logo-icon">A</div>
+            <span>AnikaLang Tutorial</span>
+        </a>
+        <div class="nav-links">
+            <a href="#lesson-1">Lessons</a>
+            <a href="#lesson-13">Build App</a>
+            <a href="#lesson-14">Pitfalls</a>
+            <a href="documentation.html" class="nav-cta">Reference</a>
+        </div>
+    </div>
+</nav>
+
+<div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            <span>Beginner-Friendly • 15 Lessons • ~45 min</span>
+        </div>
+        <h1>
+            Learn <span class="gradient">AnikaLang</span><br>
+            From Zero to Desktop Apps
+        </h1>
+        <p class="hero-subtitle">
+            A complete interactive tutorial that takes you from your first "Hello World" to building real wxPython desktop applications — in plain English.
+        </p>
+        <div class="hero-ctas">
+            <a href="#lesson-1" class="btn btn-primary">🚀 Start Learning</a>
+            <a href="#toc" class="btn btn-secondary">📋 View Contents</a>
+        </div>
+    </div>
+</section>
+
+<!-- Table of Contents -->
+<div class="toc-container" id="toc">
+    <div class="toc reveal">
+        <h2>📚 Tutorial Contents</h2>
+        <div class="toc-grid">
+            <a href="#lesson-1" class="toc-item"><span class="toc-num">1</span><span class="toc-text">Setup & First Program</span></a>
+            <a href="#lesson-2" class="toc-item"><span class="toc-num">2</span><span class="toc-text">Variables & Data Types</span></a>
+            <a href="#lesson-3" class="toc-item"><span class="toc-num">3</span><span class="toc-text">Operators & Expressions</span></a>
+            <a href="#lesson-4" class="toc-item"><span class="toc-num">4</span><span class="toc-text">Control Flow</span></a>
+            <a href="#lesson-5" class="toc-item"><span class="toc-num">5</span><span class="toc-text">Functions</span></a>
+            <a href="#lesson-6" class="toc-item"><span class="toc-num">6</span><span class="toc-text">Lists & Dictionaries</span></a>
+            <a href="#lesson-7" class="toc-item"><span class="toc-num">7</span><span class="toc-text">Your First GUI App</span></a>
+            <a href="#lesson-8" class="toc-item"><span class="toc-num">8</span><span class="toc-text">Common Widgets</span></a>
+            <a href="#lesson-9" class="toc-item"><span class="toc-num">9</span><span class="toc-text">Events & Callbacks</span></a>
+            <a href="#lesson-10" class="toc-item"><span class="toc-num">10</span><span class="toc-text">Layout & Positioning</span></a>
+            <a href="#lesson-11" class="toc-item"><span class="toc-num">11</span><span class="toc-text">File I/O</span></a>
+            <a href="#lesson-12" class="toc-item"><span class="toc-num">12</span><span class="toc-text">Styling & Colors</span></a>
+            <a href="#lesson-13" class="toc-item"><span class="toc-num">13</span><span class="toc-text">Build a Complete App</span></a>
+            <a href="#lesson-14" class="toc-item"><span class="toc-num">14</span><span class="toc-text">Common Pitfalls</span></a>
+            <a href="#lesson-15" class="toc-item"><span class="toc-num">15</span><span class="toc-text">Next Steps & Resources</span></a>
+        </div>
+    </div>
+</div>
+
+<!-- LESSON 1 -->
+<section class="lesson" id="lesson-1">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 1</span>
+        <h2>Setup & Your First Program</h2>
+        <p>Get AnikaLang running and write your very first script in under 2 minutes.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>📦 Installation</h3>
+        <p>AnikaLang runs on top of wxPython. Install it with one command:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">Terminal</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="fn">pip</span> install wxPython</span></div>
+            </div>
+        </div>
+
+        <h3>📝 Your First Script</h3>
+        <p>Create a file called <code>hello.fms</code> and add this code:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">hello.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cmt"># This is a comment - AnikaLang ignores it</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Hello World"</span>, <span class="num">400</span>, <span class="num">300</span>)</span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> lbl <span class="kw">TO</span> <span class="fn">UI_LABEL</span>(win, <span class="str">"Hello, World!"</span>, <span class="num">150</span>, <span class="num">130</span>, <span class="num">100</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <p>Run it from your terminal:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">Terminal</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="fn">python</span> anikawx.py hello.fms</span></div>
+            </div>
+        </div>
+
+        <p>You should see a window with "Hello, World!" in the middle. 🎉</p>
+
+        <h3>🔍 What Just Happened?</h3>
+        <ul>
+            <li><code>UI_WINDOW</code> creates a window with a title, width, and height</li>
+            <li><code>UI_LABEL</code> creates a text label at position (150, 130) with size (100, 30)</li>
+            <li><code>UI_MAINLOOP</code> starts the event loop — without this, the window closes immediately</li>
+        </ul>
+
+        <div class="callout tip">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+                <div class="callout-title">Pro Tip</div>
+                <div class="callout-body">
+                    Every AnikaLang GUI app ends with <code>UI_MAINLOOP(win)</code>. Think of it as "keep the window open until the user closes it."
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 2 -->
+<section class="lesson" id="lesson-2">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 2</span>
+        <h2>Variables & Data Types</h2>
+        <p>Store values, check types, and convert between data types.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>📦 Creating Variables</h3>
+        <p>Use <code>SET name TO value</code> to create variables:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">variables.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> name <span class="kw">TO</span> <span class="str">"Alice"</span>          <span class="cmt"># String</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> age <span class="kw">TO</span> <span class="num">30</span>                <span class="cmt"># Integer</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> height <span class="kw">TO</span> <span class="num">5.7</span>            <span class="cmt"># Float</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> active <span class="kw">TO</span> <span class="num">TRUE</span>           <span class="cmt"># Boolean</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> nothing <span class="kw">TO</span> <span class="num">NULL</span>          <span class="cmt"># Null value</span></span></div>
+            </div>
+        </div>
+
+        <h3>🔍 Type Checking & Conversion</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">types.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cmt"># Check the type of a value</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> t <span class="kw">TO</span> <span class="fn">TYPE_OF</span>(age)       <span class="cmt"># Returns "INTEGER"</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="cmt"># Convert between types</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> num_str <span class="kw">TO</span> <span class="str">"42"</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="kw">SET</span> num <span class="kw">TO</span> <span class="fn">INT</span>(num_str)         <span class="cmt"># 42</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="kw">SET</span> pi_str <span class="kw">TO</span> <span class="fn">STR</span>(<span class="num">3.14159</span>)     <span class="cmt"># "3.14159"</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">SET</span> price <span class="kw">TO</span> <span class="fn">FLOAT</span>(<span class="str">"19.99"</span>)   <span class="cmt"># 19.99</span></span></div>
+            </div>
+        </div>
+
+        <h3>📝 String Operations</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">strings.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> greeting <span class="kw">TO</span> <span class="str">"Hello"</span> & <span class="str">" "</span> & <span class="str">"World"</span>   <span class="cmt"># Concatenation</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> upper <span class="kw">TO</span> <span class="fn">UPPER</span>(<span class="str">"hello"</span>)              <span class="cmt"># "HELLO"</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> lower <span class="kw">TO</span> <span class="fn">LOWER</span>(<span class="str">"HELLO"</span>)              <span class="cmt"># "hello"</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> length <span class="kw">TO</span> <span class="fn">LEN</span>(<span class="str">"hello"</span>)                <span class="cmt"># 5</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> part <span class="kw">TO</span> <span class="fn">MID</span>(<span class="str">"hello"</span>, <span class="num">1</span>, <span class="num">3</span>)         <span class="cmt"># "ell"</span></span></div>
+            </div>
+        </div>
+
+        <div class="callout info">
+            <div class="callout-icon">ℹ️</div>
+            <div class="callout-content">
+                <div class="callout-title">String Concatenation</div>
+                <div class="callout-body">
+                    Use the <code>&</code> operator to join strings together. The <code>+</code> operator is for math only.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 3 -->
+<section class="lesson" id="lesson-3">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 3</span>
+        <h2>Operators & Expressions</h2>
+        <p>Math, comparisons, and logical operations.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>🧮 Math Operators</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">math.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> a <span class="kw">TO</span> <span class="num">10</span> + <span class="num">5</span>        <span class="cmt"># 15 (addition)</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> b <span class="kw">TO</span> <span class="num">10</span> - <span class="num">5</span>        <span class="cmt"># 5 (subtraction)</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> c <span class="kw">TO</span> <span class="num">10</span> * <span class="num">5</span>        <span class="cmt"># 50 (multiplication)</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> d <span class="kw">TO</span> <span class="num">10</span> / <span class="num">3</span>        <span class="cmt"># 3.333... (division)</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> e <span class="kw">TO</span> <span class="fn">POW</span>(<span class="num">2</span>, <span class="num">10</span>)    <span class="cmt"># 1024 (power)</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="kw">SET</span> f <span class="kw">TO</span> <span class="fn">SQRT</span>(<span class="num">16</span>)       <span class="cmt"># 4 (square root)</span></span></div>
+            </div>
+        </div>
+
+        <div class="callout warn">
+            <div class="callout-icon">⚠️</div>
+            <div class="callout-content">
+                <div class="callout-title">No Modulo or Power Operators</div>
+                <div class="callout-body">
+                    AnikaLang doesn't have <code>%</code> or <code>^</code> operators. Use <code>POW(base, exp)</code> for power. For modulo, use: <code>a - INT(a/b)*b</code>
+                </div>
+            </div>
+        </div>
+
+        <h3>⚖️ Comparison & Logic</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">logic.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> age <span class="kw">TO</span> <span class="num">25</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> has_id <span class="kw">TO</span> <span class="num">TRUE</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="cmt"># AND - both must be true</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">IF</span> age >= <span class="num">18</span> <span class="kw">AND</span> has_id == <span class="num">TRUE</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Can enter"</span>)</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="cmt"># OR - at least one must be true</span></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="kw">IF</span> age < <span class="num">13</span> <span class="kw">OR</span> age > <span class="num">65</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Discount available"</span>)</span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="kw">END IF</span></span></div>
+            </div>
+        </div>
+
+        <table class="comparison-table">
+            <thead>
+                <tr><th>Operator</th><th>Meaning</th><th>Example</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>==</code></td><td>Equal</td><td><code>5 == 5</code> → TRUE</td></tr>
+                <tr><td><code>!=</code></td><td>Not equal</td><td><code>5 != 3</code> → TRUE</td></tr>
+                <tr><td><code>&lt;</code>, <code>&gt;</code></td><td>Less / Greater</td><td><code>3 &lt; 5</code> → TRUE</td></tr>
+                <tr><td><code>&lt;=</code>, <code>&gt;=</code></td><td>Less-equal / Greater-equal</td><td><code>5 &gt;= 5</code> → TRUE</td></tr>
+                <tr><td><code>AND</code></td><td>Logical AND</td><td><code>TRUE AND FALSE</code> → FALSE</td></tr>
+                <tr><td><code>OR</code></td><td>Logical OR</td><td><code>TRUE OR FALSE</code> → TRUE</td></tr>
+                <tr><td><code>NOT</code></td><td>Logical NOT</td><td><code>NOT TRUE</code> → FALSE</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- LESSON 4 -->
+<section class="lesson" id="lesson-4">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 4</span>
+        <h2>Control Flow</h2>
+        <p>Make decisions with IF/ELSE and repeat actions with loops.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>🔀 IF / ELSE Decisions</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">ifelse.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> score <span class="kw">TO</span> <span class="num">85</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">IF</span> score >= <span class="num">90</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content">    <span class="kw">SET</span> grade <span class="kw">TO</span> <span class="str">"A"</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">ELSE</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content">    <span class="kw">IF</span> score >= <span class="num">80</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content">        <span class="kw">SET</span> grade <span class="kw">TO</span> <span class="str">"B"</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content">    <span class="kw">ELSE</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content">        <span class="kw">SET</span> grade <span class="kw">TO</span> <span class="str">"C"</span></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content">    <span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"><span class="kw">END IF</span></span></div>
+            </div>
+        </div>
+
+        <div class="callout danger">
+            <div class="callout-icon">🚫</div>
+            <div class="callout-content">
+                <div class="callout-title">No ELSE IF Keyword</div>
+                <div class="callout-body">
+                    AnikaLang doesn't have <code>ELSE IF</code>. To handle multiple conditions, nest <code>IF</code> inside <code>ELSE</code> as shown above.
+                </div>
+            </div>
+        </div>
+
+        <h3>🔁 WHILE Loops</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">while.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> count <span class="kw">TO</span> <span class="num">1</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> total <span class="kw">TO</span> <span class="num">0</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">WHILE</span> count <= <span class="num">10</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content">    <span class="kw">SET</span> total <span class="kw">TO</span> total + count</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content">    <span class="kw">SET</span> count <span class="kw">TO</span> count + <span class="num">1</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="kw">END WHILE</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="fn">UI_ALERT</span>(<span class="str">"Sum: "</span> & <span class="fn">STR</span>(total))    <span class="cmt"># 55</span></span></div>
+            </div>
+        </div>
+
+        <h3>🔄 FOR Loops</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">for.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cmt"># Iterate a list</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> fruits <span class="kw">TO</span> [<span class="str">"apple"</span>, <span class="str">"banana"</span>, <span class="str">"cherry"</span>]</span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">FOR</span> fruit <span class="kw">IN</span> fruits <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content">    <span class="fn">UI_ALERT</span>(fruit)</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">END FOR</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="cmt"># Range loop (1 to 10 inclusive)</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">FOR</span> i <span class="kw">IN</span> <span class="num">1</span>..<span class="num">10</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="fn">STR</span>(i))</span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="kw">END FOR</span></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="cmt"># Range with step</span></span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="kw">FOR</span> i <span class="kw">IN</span> <span class="num">0</span>..<span class="num">100</span> <span class="kw">STEP</span> <span class="num">10</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">14</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="fn">STR</span>(i))    <span class="cmt"># 0, 10, 20, ..., 100</span></span></div>
+                <div class="code-line"><span class="line-num">15</span><span class="line-content"><span class="kw">END FOR</span></span></div>
+            </div>
+        </div>
+
+        <h3>⏹️ Loop Control</h3>
+        <ul>
+            <li><code>BREAK</code> — Exit the loop immediately</li>
+            <li><code>CONTINUE</code> — Skip to the next iteration</li>
+        </ul>
+
+        <h3>🛡️ Error Handling</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">trycatch.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">TRY</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content">    <span class="kw">SET</span> result <span class="kw">TO</span> <span class="num">10</span> / <span class="num">0</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">CATCH</span> err <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Error: "</span> & err)</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">END TRY</span></span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 5 -->
+<section class="lesson" id="lesson-5">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 5</span>
+        <h2>Functions</h2>
+        <p>Reuse code by defining your own functions.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>🔧 Defining Functions</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">functions.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">greet</span>(name)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content">    <span class="kw">RETURN</span> <span class="str">"Hello, "</span> & name & <span class="str">"!"</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> message <span class="kw">TO</span> <span class="fn">greet</span>(<span class="str">"Alice"</span>)</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="fn">UI_ALERT</span>(message)    <span class="cmt"># "Hello, Alice!"</span></span></div>
+            </div>
+        </div>
+
+        <h3>📐 Multiple Parameters</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">multi.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">add</span>(a, b)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content">    <span class="kw">RETURN</span> a + b</span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> sum <span class="kw">TO</span> <span class="fn">add</span>(<span class="num">5</span>, <span class="num">3</span>)</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="fn">UI_ALERT</span>(<span class="fn">STR</span>(sum))    <span class="cmt"># 8</span></span></div>
+            </div>
+        </div>
+
+        <h3>🔁 Recursion</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">recursion.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">factorial</span>(n)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content">    <span class="kw">IF</span> n <= <span class="num">1</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content">        <span class="kw">RETURN</span> <span class="num">1</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content">    <span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content">    <span class="kw">RETURN</span> n * <span class="fn">factorial</span>(n - <span class="num">1</span>)</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="fn">UI_ALERT</span>(<span class="fn">STR</span>(<span class="fn">factorial</span>(<span class="num">5</span>)))    <span class="cmt"># 120</span></span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 6 -->
+<section class="lesson" id="lesson-6">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 6</span>
+        <h2>Lists & Dictionaries</h2>
+        <p>Store collections of data with lists and key-value pairs with dictionaries.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>📋 Lists</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">lists.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cmt"># Create a list</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> fruits <span class="kw">TO</span> [<span class="str">"apple"</span>, <span class="str">"banana"</span>, <span class="str">"cherry"</span>]</span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="cmt"># Access by index (0-based)</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> first <span class="kw">TO</span> fruits[<span class="num">0</span>]       <span class="cmt"># "apple"</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="kw">SET</span> last <span class="kw">TO</span> fruits[<span class="num">2</span>]        <span class="cmt"># "cherry"</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="cmt"># Modify the list</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="fn">LIST_SET</span>(fruits, <span class="num">1</span>, <span class="str">"blueberry"</span>)   <span class="cmt"># Replace index 1</span></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="fn">LIST_APPEND</span>(fruits, <span class="str">"date"</span>)          <span class="cmt"># Add to end</span></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="cmt"># Length</span></span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="kw">SET</span> count <span class="kw">TO</span> <span class="fn">LEN</span>(fruits)            <span class="cmt"># 4</span></span></div>
+            </div>
+        </div>
+
+        <h3>🗂️ Dictionaries</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">dicts.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cmt"># Create a dictionary</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> person <span class="kw">TO</span> {</span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content">    <span class="str">"name"</span>: <span class="str">"Alice"</span>,</span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content">    <span class="str">"age"</span>: <span class="num">30</span>,</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content">    <span class="str">"city"</span>: <span class="str">"NYC"</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content">}</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="cmt"># Access values</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="kw">SET</span> name <span class="kw">TO</span> person[<span class="str">"name"</span>]    <span class="cmt"># "Alice"</span></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="kw">SET</span> name <span class="kw">TO</span> person.name        <span class="cmt"># Same thing!</span></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="cmt"># Modify</span></span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="fn">DICT_SET</span>(person, <span class="str">"age"</span>, <span class="num">31</span>)</span></div>
+                <div class="code-line"><span class="line-num">14</span><span class="line-content"><span class="fn">DICT_SET</span>(person, <span class="str">"email"</span>, <span class="str">"alice@example.com"</span>)</span></div>
+                <div class="code-line"><span class="line-num">15</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">16</span><span class="line-content"><span class="cmt"># Check if key exists</span></span></div>
+                <div class="code-line"><span class="line-num">17</span><span class="line-content"><span class="kw">IF</span> <span class="fn">DICT_HAS_KEY</span>(person, <span class="str">"email"</span>) <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">18</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Has email"</span>)</span></div>
+                <div class="code-line"><span class="line-num">19</span><span class="line-content"><span class="kw">END IF</span></span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 7 -->
+<section class="lesson" id="lesson-7">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 7</span>
+        <h2>Your First GUI App</h2>
+        <p>Build a complete counter application with buttons and a label.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <p>Let's combine everything you've learned into a real interactive app:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">counter.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cmt"># Counter App</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> count <span class="kw">TO</span> <span class="num">0</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> counter_lbl <span class="kw">TO</span> <span class="num">NULL</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">increment</span>()</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content">    <span class="kw">SET</span> count <span class="kw">TO</span> count + <span class="num">1</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content">    <span class="fn">UI_SET</span>(counter_lbl, <span class="str">"Count: "</span> & <span class="fn">STR</span>(count))</span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">reset</span>()</span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content">    <span class="kw">SET</span> count <span class="kw">TO</span> <span class="num">0</span></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content">    <span class="fn">UI_SET</span>(counter_lbl, <span class="str">"Count: 0"</span>)</span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">14</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">15</span><span class="line-content"><span class="cmt"># Create window</span></span></div>
+                <div class="code-line"><span class="line-num">16</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Counter App"</span>, <span class="num">300</span>, <span class="num">200</span>)</span></div>
+                <div class="code-line"><span class="line-num">17</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">18</span><span class="line-content"><span class="cmt"># Create label</span></span></div>
+                <div class="code-line"><span class="line-num">19</span><span class="line-content"><span class="kw">SET</span> counter_lbl <span class="kw">TO</span> <span class="fn">UI_LABEL</span>(win, <span class="str">"Count: 0"</span>, <span class="num">100</span>, <span class="num">50</span>, <span class="num">100</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">20</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">21</span><span class="line-content"><span class="cmt"># Create buttons</span></span></div>
+                <div class="code-line"><span class="line-num">22</span><span class="line-content"><span class="kw">SET</span> btn_inc <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Increment"</span>, <span class="str">"increment"</span>, <span class="num">50</span>, <span class="num">100</span>, <span class="num">90</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">23</span><span class="line-content"><span class="kw">SET</span> btn_reset <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Reset"</span>, <span class="str">"reset"</span>, <span class="num">160</span>, <span class="num">100</span>, <span class="num">90</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">24</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">25</span><span class="line-content"><span class="cmt"># Start event loop</span></span></div>
+                <div class="code-line"><span class="line-num">26</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <h3>🔍 How It Works</h3>
+        <ol>
+            <li>We define two functions: <code>increment</code> and <code>reset</code></li>
+            <li>We create a window, label, and two buttons</li>
+            <li>Each button is linked to a function by <strong>name as a string</strong></li>
+            <li>When clicked, the button calls the function</li>
+            <li>The function updates the label using <code>UI_SET</code></li>
+        </ol>
+
+        <div class="callout tip">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+                <div class="callout-title">Global Variables</div>
+                <div class="callout-body">
+                    Notice <code>count</code> and <code>counter_lbl</code> are declared at the top. Functions can access and modify global variables directly.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 8 -->
+<section class="lesson" id="lesson-8">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 8</span>
+        <h2>Common Widgets</h2>
+        <p>Explore the full range of widgets available in AnikaLang.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>📝 UI_LABEL</h4>
+                <p>Static text display</p>
+            </div>
+            <div class="feature-card">
+                <h4>🔘 UI_BUTTON</h4>
+                <p>Clickable button with callback</p>
+            </div>
+            <div class="feature-card">
+                <h4>📋 UI_ENTRY</h4>
+                <p>Single-line text input</p>
+            </div>
+            <div class="feature-card">
+                <h4>📄 UI_TEXT</h4>
+                <p>Multiline text area</p>
+            </div>
+            <div class="feature-card">
+                <h4>☑️ UI_CHECKBOX</h4>
+                <p>Toggleable checkbox</p>
+            </div>
+            <div class="feature-card">
+                <h4>🔘 UI_RADIO</h4>
+                <p>Radio button (grouped)</p>
+            </div>
+            <div class="feature-card">
+                <h4>📋 UI_COMBOBOX</h4>
+                <p>Dropdown selection</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 UI_LISTVIEW</h4>
+                <p>Table with columns</p>
+            </div>
+            <div class="feature-card">
+                <h4>🌐 UI_HTMLVIEW</h4>
+                <p>Render HTML content</p>
+            </div>
+            <div class="feature-card">
+                <h4>💻 UI_CODE_EDITOR</h4>
+                <p>Syntax-highlighted code editor</p>
+            </div>
+            <div class="feature-card">
+                <h4>📑 UI_TABS</h4>
+                <p>Tabbed notebook</p>
+            </div>
+            <div class="feature-card">
+                <h4>📅 UI_DATEPICKER</h4>
+                <p>Date selection widget</p>
+            </div>
+        </div>
+
+        <h3>📝 Text Input Example</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">entry.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Widgets Demo"</span>, <span class="num">400</span>, <span class="num">300</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="fn">UI_LABEL</span>(win, <span class="str">"Name:"</span>, <span class="num">20</span>, <span class="num">20</span>, <span class="num">80</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> ent <span class="kw">TO</span> <span class="fn">UI_ENTRY</span>(win, <span class="str">"Enter name"</span>, <span class="num">110</span>, <span class="num">20</span>, <span class="num">200</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="kw">SET</span> btn <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Submit"</span>, <span class="str">"on_submit"</span>, <span class="num">110</span>, <span class="num">60</span>, <span class="num">80</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">on_submit</span>()</span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content">    <span class="kw">SET</span> value <span class="kw">TO</span> <span class="fn">UI_GET</span>(ent)</span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Hello, "</span> & value & <span class="str">"!"</span>)</span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <h3>📊 ListView (Table) Example</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">listview.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"ListView"</span>, <span class="num">500</span>, <span class="num">300</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> lv <span class="kw">TO</span> <span class="fn">UI_LISTVIEW</span>(win, [<span class="str">"Name"</span>, <span class="str">"Age"</span>, <span class="str">"City"</span>], <span class="num">20</span>, <span class="num">20</span>, <span class="num">460</span>, <span class="num">200</span>)</span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="cmt"># Add rows</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="fn">UI_LISTVIEW_INSERT</span>(lv, [<span class="str">"Alice"</span>, <span class="str">"30"</span>, <span class="str">"NYC"</span>])</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="fn">UI_LISTVIEW_INSERT</span>(lv, [<span class="str">"Bob"</span>, <span class="str">"25"</span>, <span class="str">"LA"</span>])</span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="fn">UI_LISTVIEW_INSERT</span>(lv, [<span class="str">"Charlie"</span>, <span class="str">"35"</span>, <span class="str">"Chicago"</span>])</span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="cmt"># Auto-fit columns</span></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"><span class="fn">UI_LISTVIEW_AUTOFIT</span>(lv)</span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 9 -->
+<section class="lesson" id="lesson-9">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 9</span>
+        <h2>Events & Callbacks</h2>
+        <p>Make your app respond to user actions.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>🔘 Button Click Events</h3>
+        <p>Buttons trigger functions when clicked. The third argument is the <strong>function name as a string</strong>:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">events.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Events"</span>, <span class="num">300</span>, <span class="num">150</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> btn <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Click Me"</span>, <span class="str">"on_click"</span>, <span class="num">100</span>, <span class="num">50</span>, <span class="num">100</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">on_click</span>()</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Button clicked!"</span>)</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <h3>🎯 Binding Other Events</h3>
+        <p>Use <code>UI_BIND</code> for events other than clicks:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bind.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Event Binding"</span>, <span class="num">400</span>, <span class="num">200</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> ent <span class="kw">TO</span> <span class="fn">UI_ENTRY</span>(win, <span class="str">""</span>, <span class="num">20</span>, <span class="num">20</span>, <span class="num">360</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="cmt"># Bind CHANGE event (fires when text changes)</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="fn">UI_BIND</span>(ent, <span class="str">"CHANGE"</span>, <span class="str">"on_change"</span>)</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">SET</span> lbl <span class="kw">TO</span> <span class="fn">UI_LABEL</span>(win, <span class="str">"Type something..."</span>, <span class="num">20</span>, <span class="num">60</span>, <span class="num">360</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">on_change</span>()</span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content">    <span class="kw">SET</span> text <span class="kw">TO</span> <span class="fn">UI_GET</span>(ent)</span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content">    <span class="fn">UI_SET</span>(lbl, <span class="str">"You typed: "</span> & text)</span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">14</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">15</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <h3>📋 Available Events</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr><th>Event</th><th>When It Fires</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>CLICK</code></td><td>Widget is clicked</td></tr>
+                <tr><td><code>CHANGE</code></td><td>Text content changes</td></tr>
+                <tr><td><code>SELECT</code></td><td>Item selected (list, combo)</td></tr>
+                <tr><td><code>DOUBLE_CLICK</code></td><td>Double-clicked</td></tr>
+                <tr><td><code>KEY_PRESS</code></td><td>Key pressed down</td></tr>
+                <tr><td><code>KEY_RELEASE</code></td><td>Key released</td></tr>
+                <tr><td><code>FOCUS_IN</code></td><td>Widget gained focus</td></tr>
+                <tr><td><code>FOCUS_OUT</code></td><td>Widget lost focus</td></tr>
+                <tr><td><code>RESIZE</code></td><td>Window is resized</td></tr>
+                <tr><td><code>TAB_CHANGE</code></td><td>Notebook tab changed</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- LESSON 10 -->
+<section class="lesson" id="lesson-10">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 10</span>
+        <h2>Layout & Positioning</h2>
+        <p>Understand how widgets are placed on screen.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>📐 Absolute Positioning</h3>
+        <p>All widgets use coordinates <code>(x, y, width, height)</code>:</p>
+        <ul>
+            <li><code>x</code> — horizontal position from left (pixels)</li>
+            <li><code>y</code> — vertical position from top (pixels)</li>
+            <li><code>width</code> — widget width in pixels</li>
+            <li><code>height</code> — widget height in pixels</li>
+        </ul>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">layout.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Layout Demo"</span>, <span class="num">400</span>, <span class="num">300</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="cmt"># Top-left</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="fn">UI_LABEL</span>(win, <span class="str">"Top-Left"</span>, <span class="num">20</span>, <span class="num">20</span>, <span class="num">100</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="cmt"># Top-right</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="fn">UI_LABEL</span>(win, <span class="str">"Top-Right"</span>, <span class="num">280</span>, <span class="num">20</span>, <span class="num">100</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="cmt"># Center</span></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="fn">UI_LABEL</span>(win, <span class="str">"Center"</span>, <span class="num">150</span>, <span class="num">130</span>, <span class="num">100</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <h3>🔄 Moving Widgets Dynamically</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">move.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Move Widget"</span>, <span class="num">400</span>, <span class="num">300</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> lbl <span class="kw">TO</span> <span class="fn">UI_LABEL</span>(win, <span class="str">"I can move!"</span>, <span class="num">50</span>, <span class="num">50</span>, <span class="num">150</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> btn <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Move"</span>, <span class="str">"move_label"</span>, <span class="num">50</span>, <span class="num">100</span>, <span class="num">100</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">move_label</span>()</span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content">    <span class="cmt"># Move label to new position</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content">    <span class="fn">UI_POS</span>(lbl, <span class="num">200</span>, <span class="num">150</span>, <span class="num">150</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <h3>📏 Responsive Resize</h3>
+        <p>Bind the <code>RESIZE</code> event to make your app adapt to window size:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">resize.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Responsive"</span>, <span class="num">800</span>, <span class="num">600</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> editor <span class="kw">TO</span> <span class="fn">UI_TEXT</span>(win, <span class="str">""</span>, <span class="num">TRUE</span>, <span class="num">0</span>, <span class="num">0</span>, <span class="num">600</span>, <span class="num">570</span>)</span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> statusbar <span class="kw">TO</span> <span class="fn">UI_PANEL</span>(win, <span class="num">0</span>, <span class="num">570</span>, <span class="num">800</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="fn">UI_BIND</span>(win, <span class="str">"RESIZE"</span>, <span class="str">"on_resize"</span>)</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">on_resize</span>(widget, w, h)</span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content">    <span class="cmt"># Get actual drawable area</span></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content">    <span class="kw">SET</span> cs <span class="kw">TO</span> <span class="fn">UI_GET_CLIENT_SIZE</span>(win)</span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content">    <span class="kw">SET</span> cw <span class="kw">TO</span> cs[<span class="num">0</span>]</span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content">    <span class="kw">SET</span> ch <span class="kw">TO</span> cs[<span class="num">1</span>]</span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content">    </span></div>
+                <div class="code-line"><span class="line-num">14</span><span class="line-content">    <span class="cmt"># Resize editor to fill available space</span></span></div>
+                <div class="code-line"><span class="line-num">15</span><span class="line-content">    <span class="fn">UI_SIZE</span>(editor, cw, ch - <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">16</span><span class="line-content">    </span></div>
+                <div class="code-line"><span class="line-num">17</span><span class="line-content">    <span class="cmt"># Move status bar to bottom</span></span></div>
+                <div class="code-line"><span class="line-num">18</span><span class="line-content">    <span class="fn">UI_POS</span>(statusbar, <span class="num">0</span>, ch - <span class="num">30</span>, cw, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">19</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">20</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">21</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <div class="callout tip">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+                <div class="callout-title">Use UI_GET_CLIENT_SIZE</div>
+                <div class="callout-body">
+                    Always use <code>UI_GET_CLIENT_SIZE(win)</code> instead of <code>UI_GET_SIZE(win)</code> for layout calculations. It returns the drawable area, excluding title bar and menu bar.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 11 -->
+<section class="lesson" id="lesson-11">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 11</span>
+        <h2>File I/O</h2>
+        <p>Read and write files, work with paths, and handle CSV data.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>📖 Reading Files</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">read.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> content <span class="kw">TO</span> <span class="fn">FILE_READ</span>(<span class="str">"data.txt"</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">IF</span> <span class="fn">STARTS_WITH</span>(content, <span class="str">"ERROR:"</span>) <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content">    <span class="fn">UI_ALERT_ERR</span>(<span class="str">"Failed to read file"</span>)</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">ELSE</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content">    <span class="fn">UI_ALERT</span>(content)</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="kw">END IF</span></span></div>
+            </div>
+        </div>
+
+        <h3>✍️ Writing Files</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">write.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> result <span class="kw">TO</span> <span class="fn">FILE_WRITE</span>(<span class="str">"output.txt"</span>, <span class="str">"Hello World"</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">IF</span> result == <span class="str">"SUCCESS"</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"File saved!"</span>)</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">ELSE</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content">    <span class="fn">UI_ALERT_ERR</span>(<span class="str">"Failed to save: "</span> & result)</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="kw">END IF</span></span></div>
+            </div>
+        </div>
+
+        <h3>📊 CSV Files</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">csv.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cmt"># Read CSV</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> data <span class="kw">TO</span> <span class="fn">CSV_READ</span>(<span class="str">"data.csv"</span>)</span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">FOR</span> row <span class="kw">IN</span> data <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content">    <span class="fn">UI_ALERT</span>(row[<span class="str">"name"</span>] & <span class="str">" - "</span> & row[<span class="str">"age"</span>])</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="kw">END FOR</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="cmt"># Write CSV</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="kw">SET</span> records <span class="kw">TO</span> [</span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content">    {<span class="str">"name"</span>: <span class="str">"Alice"</span>, <span class="str">"age"</span>: <span class="str">"30"</span>},</span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content">    {<span class="str">"name"</span>: <span class="str">"Bob"</span>, <span class="str">"age"</span>: <span class="str">"25"</span>}</span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content">]</span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="fn">CSV_WRITE</span>(<span class="str">"output.csv"</span>, records)</span></div>
+            </div>
+        </div>
+
+        <h3>📁 Path Utilities</h3>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">paths.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> dir <span class="kw">TO</span> <span class="fn">PATH_DIR</span>(<span class="str">"C:/folder/file.txt"</span>)     <span class="cmt"># "C:/folder"</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">SET</span> fname <span class="kw">TO</span> <span class="fn">PATH_FILE</span>(<span class="str">"C:/folder/file.txt"</span>)  <span class="cmt"># "file.txt"</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">SET</span> ext <span class="kw">TO</span> <span class="fn">PATH_EXT</span>(<span class="str">"file.txt"</span>)              <span class="cmt"># ".txt"</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> full <span class="kw">TO</span> <span class="fn">PATH_JOIN</span>(<span class="str">"dir"</span>, <span class="str">"file.txt"</span>)      <span class="cmt"># "dir/file.txt"</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> cwd <span class="kw">TO</span> <span class="fn">PATH_CWD</span>()                        <span class="cmt"># Current directory</span></span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 12 -->
+<section class="lesson" id="lesson-12">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 12</span>
+        <h2>Styling & Colors</h2>
+        <p>Make your app look beautiful with colors, fonts, and visual polish.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>🎨 Colors</h3>
+        <p>Use <code>UI_COLOR(widget, foreground, background)</code> with hex codes or named colors:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">colors.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Styled App"</span>, <span class="num">400</span>, <span class="num">300</span>)</span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="cmt"># Create a styled panel</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> panel <span class="kw">TO</span> <span class="fn">UI_PANEL</span>(win, <span class="num">20</span>, <span class="num">20</span>, <span class="num">360</span>, <span class="num">260</span>)</span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="fn">UI_COLOR</span>(panel, <span class="str">""</span>, <span class="str">"#2c3e50"</span>)</span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="cmt"># Add styled text</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">SET</span> lbl <span class="kw">TO</span> <span class="fn">UI_LABEL</span>(panel, <span class="str">"Hello Styled World!"</span>, <span class="num">50</span>, <span class="num">100</span>, <span class="num">260</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="fn">UI_COLOR</span>(lbl, <span class="str">"#ecf0f1"</span>, <span class="str">""</span>)</span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="fn">UI_FONT</span>(lbl, <span class="num">18</span>, <span class="str">"Segoe UI"</span>, <span class="num">TRUE</span>)</span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="cmt"># Styled button</span></span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="kw">SET</span> btn <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(panel, <span class="str">"Click Me"</span>, <span class="str">"on_click"</span>, <span class="num">130</span>, <span class="num">180</span>, <span class="num">100</span>, <span class="num">35</span>)</span></div>
+                <div class="code-line"><span class="line-num">14</span><span class="line-content"><span class="fn">UI_COLOR</span>(btn, <span class="str">"white"</span>, <span class="str">"#27ae60"</span>)</span></div>
+                <div class="code-line"><span class="line-num">15</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">16</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">on_click</span>()</span></div>
+                <div class="code-line"><span class="line-num">17</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Button clicked!"</span>)</span></div>
+                <div class="code-line"><span class="line-num">18</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">19</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">20</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <h3>🔤 Fonts</h3>
+        <p>Use <code>UI_FONT(widget, size, face, bold)</code>:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">fonts.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="fn">UI_FONT</span>(lbl, <span class="num">14</span>, <span class="str">"Segoe UI"</span>, <span class="num">TRUE</span>)      <span class="cmt"># Bold heading</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="fn">UI_FONT</span>(editor, <span class="num">11</span>, <span class="str">"Consolas"</span>, <span class="num">FALSE</span>)  <span class="cmt"># Monospace code</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="fn">UI_FONT</span>(title, <span class="num">24</span>, <span class="str">"Arial"</span>, <span class="num">TRUE</span>)       <span class="cmt"># Large title</span></span></div>
+            </div>
+        </div>
+
+        <h3>🎯 Common Color Palettes</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr><th>Purpose</th><th>Hex Code</th><th>Preview</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Primary Blue</td><td><code>#3498db</code></td><td style="background:#3498db; width:40px;">&nbsp;</td></tr>
+                <tr><td>Success Green</td><td><code>#27ae60</code></td><td style="background:#27ae60; width:40px;">&nbsp;</td></tr>
+                <tr><td>Warning Orange</td><td><code>#e67e22</code></td><td style="background:#e67e22; width:40px;">&nbsp;</td></tr>
+                <tr><td>Danger Red</td><td><code>#e74c3c</code></td><td style="background:#e74c3c; width:40px;">&nbsp;</td></tr>
+                <tr><td>Purple Accent</td><td><code>#8e44ad</code></td><td style="background:#8e44ad; width:40px;">&nbsp;</td></tr>
+                <tr><td>Dark Background</td><td><code>#2c3e50</code></td><td style="background:#2c3e50; width:40px;">&nbsp;</td></tr>
+                <tr><td>Light Gray</td><td><code>#ecf0f1</code></td><td style="background:#ecf0f1; width:40px;">&nbsp;</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- LESSON 13 -->
+<section class="lesson" id="lesson-13">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 13</span>
+        <h2>Build a Complete App</h2>
+        <p>Put it all together with a full-featured Todo List application.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <p>Let's build a complete Todo List app that uses everything you've learned:</p>
+
+        <div class="app-showcase">
+            <h3>📋 Todo List Application</h3>
+            <p>A fully functional app with add, toggle, delete, and save features.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">todo.fms — Complete App</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cmt"># ==============================================================================</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="cmt"># TODO LIST APPLICATION</span></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="cmt"># ==============================================================================</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="cmt"># Global state</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="kw">SET</span> todos <span class="kw">TO</span> []</span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="kw">SET</span> todo_list <span class="kw">TO</span> <span class="num">NULL</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">SET</span> entry <span class="kw">TO</span> <span class="num">NULL</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"><span class="cmt"># --- Functions ---</span></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">add_todo</span>()</span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content">    <span class="kw">SET</span> text <span class="kw">TO</span> <span class="fn">UI_GET</span>(entry)</span></div>
+                <div class="code-line"><span class="line-num">14</span><span class="line-content">    <span class="kw">IF</span> <span class="fn">LEN</span>(<span class="fn">TRIM</span>(text)) == <span class="num">0</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">15</span><span class="line-content">        <span class="fn">UI_ALERT_ERR</span>(<span class="str">"Please enter a todo item"</span>)</span></div>
+                <div class="code-line"><span class="line-num">16</span><span class="line-content">        <span class="kw">RETURN</span></span></div>
+                <div class="code-line"><span class="line-num">17</span><span class="line-content">    <span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">18</span><span class="line-content">    </span></div>
+                <div class="code-line"><span class="line-num">19</span><span class="line-content">    <span class="cmt"># Add to list</span></span></div>
+                <div class="code-line"><span class="line-num">20</span><span class="line-content">    <span class="kw">SET</span> new_todo <span class="kw">TO</span> {<span class="str">"text"</span>: text, <span class="str">"done"</span>: <span class="num">FALSE</span>}</span></div>
+                <div class="code-line"><span class="line-num">21</span><span class="line-content">    <span class="fn">LIST_APPEND</span>(todos, new_todo)</span></div>
+                <div class="code-line"><span class="line-num">22</span><span class="line-content">    </span></div>
+                <div class="code-line"><span class="line-num">23</span><span class="line-content">    <span class="cmt"># Clear entry</span></span></div>
+                <div class="code-line"><span class="line-num">24</span><span class="line-content">    <span class="fn">UI_SET</span>(entry, <span class="str">""</span>)</span></div>
+                <div class="code-line"><span class="line-num">25</span><span class="line-content">    </span></div>
+                <div class="code-line"><span class="line-num">26</span><span class="line-content">    <span class="cmt"># Refresh display</span></span></div>
+                <div class="code-line"><span class="line-num">27</span><span class="line-content">    <span class="fn">refresh_list</span>()</span></div>
+                <div class="code-line"><span class="line-num">28</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">29</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">30</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">toggle_todo</span>()</span></div>
+                <div class="code-line"><span class="line-num">31</span><span class="line-content">    <span class="kw">SET</span> selected <span class="kw">TO</span> <span class="fn">UI_LISTVIEW_GET_SELECTED</span>(todo_list)</span></div>
+                <div class="code-line"><span class="line-num">32</span><span class="line-content">    <span class="kw">IF</span> selected == <span class="num">NULL</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">33</span><span class="line-content">        <span class="fn">UI_ALERT_ERR</span>(<span class="str">"Please select a todo"</span>)</span></div>
+                <div class="code-line"><span class="line-num">34</span><span class="line-content">        <span class="kw">RETURN</span></span></div>
+                <div class="code-line"><span class="line-num">35</span><span class="line-content">    <span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">36</span><span class="line-content">    </span></div>
+                <div class="code-line"><span class="line-num">37</span><span class="line-content">    <span class="cmt"># Find the todo by text</span></span></div>
+                <div class="code-line"><span class="line-num">38</span><span class="line-content">    <span class="kw">SET</span> row_text <span class="kw">TO</span> selected[<span class="num">1</span>]</span></div>
+                <div class="code-line"><span class="line-num">39</span><span class="line-content">    <span class="kw">FOR</span> todo <span class="kw">IN</span> todos <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">40</span><span class="line-content">        <span class="kw">IF</span> todo[<span class="str">"text"</span>] == row_text <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">41</span><span class="line-content">            <span class="kw">IF</span> todo[<span class="str">"done"</span>] == <span class="num">TRUE</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">42</span><span class="line-content">                <span class="fn">DICT_SET</span>(todo, <span class="str">"done"</span>, <span class="num">FALSE</span>)</span></div>
+                <div class="code-line"><span class="line-num">43</span><span class="line-content">            <span class="kw">ELSE</span></span></div>
+                <div class="code-line"><span class="line-num">44</span><span class="line-content">                <span class="fn">DICT_SET</span>(todo, <span class="str">"done"</span>, <span class="num">TRUE</span>)</span></div>
+                <div class="code-line"><span class="line-num">45</span><span class="line-content">            <span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">46</span><span class="line-content">            <span class="kw">BREAK</span></span></div>
+                <div class="code-line"><span class="line-num">47</span><span class="line-content">        <span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">48</span><span class="line-content">    <span class="kw">END FOR</span></span></div>
+                <div class="code-line"><span class="line-num">49</span><span class="line-content">    </span></div>
+                <div class="code-line"><span class="line-num">50</span><span class="line-content">    <span class="fn">refresh_list</span>()</span></div>
+                <div class="code-line"><span class="line-num">51</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">52</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">53</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">refresh_list</span>()</span></div>
+                <div class="code-line"><span class="line-num">54</span><span class="line-content">    <span class="fn">UI_LISTVIEW_CLEAR</span>(todo_list)</span></div>
+                <div class="code-line"><span class="line-num">55</span><span class="line-content">    <span class="kw">FOR</span> todo <span class="kw">IN</span> todos <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">56</span><span class="line-content">        <span class="kw">SET</span> status <span class="kw">TO</span> <span class="str">"⬜"</span></span></div>
+                <div class="code-line"><span class="line-num">57</span><span class="line-content">        <span class="kw">IF</span> todo[<span class="str">"done"</span>] == <span class="num">TRUE</span> <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">58</span><span class="line-content">            <span class="kw">SET</span> status <span class="kw">TO</span> <span class="str">"✅"</span></span></div>
+                <div class="code-line"><span class="line-num">59</span><span class="line-content">        <span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">60</span><span class="line-content">        <span class="fn">UI_LISTVIEW_INSERT</span>(todo_list, [status, todo[<span class="str">"text"</span>]])</span></div>
+                <div class="code-line"><span class="line-num">61</span><span class="line-content">    <span class="kw">END FOR</span></span></div>
+                <div class="code-line"><span class="line-num">62</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">63</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">64</span><span class="line-content"><span class="kw">FUNCTION</span> <span class="fn">save_todos</span>()</span></div>
+                <div class="code-line"><span class="line-num">65</span><span class="line-content">    <span class="kw">SET</span> json <span class="kw">TO</span> <span class="fn">JSON_STRINGIFY</span>(todos)</span></div>
+                <div class="code-line"><span class="line-num">66</span><span class="line-content">    <span class="fn">FILE_WRITE</span>(<span class="str">"todos.json"</span>, json)</span></div>
+                <div class="code-line"><span class="line-num">67</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Todos saved to todos.json"</span>)</span></div>
+                <div class="code-line"><span class="line-num">68</span><span class="line-content"><span class="kw">END FUNCTION</span></span></div>
+                <div class="code-line"><span class="line-num">69</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">70</span><span class="line-content"><span class="cmt"># --- UI Layout ---</span></span></div>
+                <div class="code-line"><span class="line-num">71</span><span class="line-content"><span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Todo List"</span>, <span class="num">500</span>, <span class="num">400</span>)</span></div>
+                <div class="code-line"><span class="line-num">72</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">73</span><span class="line-content"><span class="cmt"># Title</span></span></div>
+                <div class="code-line"><span class="line-num">74</span><span class="line-content"><span class="kw">SET</span> title <span class="kw">TO</span> <span class="fn">UI_LABEL</span>(win, <span class="str">"📝 Todo List"</span>, <span class="num">200</span>, <span class="num">10</span>, <span class="num">100</span>, <span class="num">30</span>)</span></div>
+                <div class="code-line"><span class="line-num">75</span><span class="line-content"><span class="fn">UI_FONT</span>(title, <span class="num">16</span>, <span class="str">"Segoe UI"</span>, <span class="num">TRUE</span>)</span></div>
+                <div class="code-line"><span class="line-num">76</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">77</span><span class="line-content"><span class="cmt"># Entry field</span></span></div>
+                <div class="code-line"><span class="line-num">78</span><span class="line-content"><span class="kw">SET</span> entry <span class="kw">TO</span> <span class="fn">UI_ENTRY</span>(win, <span class="str">"Enter todo..."</span>, <span class="num">20</span>, <span class="num">50</span>, <span class="num">360</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">79</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">80</span><span class="line-content"><span class="cmt"># Buttons</span></span></div>
+                <div class="code-line"><span class="line-num">81</span><span class="line-content"><span class="kw">SET</span> btn_add <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Add"</span>, <span class="str">"add_todo"</span>, <span class="num">390</span>, <span class="num">50</span>, <span class="num">90</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">82</span><span class="line-content"><span class="fn">UI_COLOR</span>(btn_add, <span class="str">"white"</span>, <span class="str">"#27ae60"</span>)</span></div>
+                <div class="code-line"><span class="line-num">83</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">84</span><span class="line-content"><span class="kw">SET</span> btn_toggle <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Toggle"</span>, <span class="str">"toggle_todo"</span>, <span class="num">20</span>, <span class="num">90</span>, <span class="num">90</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">85</span><span class="line-content"><span class="fn">UI_COLOR</span>(btn_toggle, <span class="str">"white"</span>, <span class="str">"#3498db"</span>)</span></div>
+                <div class="code-line"><span class="line-num">86</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">87</span><span class="line-content"><span class="kw">SET</span> btn_save <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Save"</span>, <span class="str">"save_todos"</span>, <span class="num">120</span>, <span class="num">90</span>, <span class="num">90</span>, <span class="num">25</span>)</span></div>
+                <div class="code-line"><span class="line-num">88</span><span class="line-content"><span class="fn">UI_COLOR</span>(btn_save, <span class="str">"white"</span>, <span class="str">"#9b59b6"</span>)</span></div>
+                <div class="code-line"><span class="line-num">89</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">90</span><span class="line-content"><span class="cmt"># ListView</span></span></div>
+                <div class="code-line"><span class="line-num">91</span><span class="line-content"><span class="kw">SET</span> todo_list <span class="kw">TO</span> <span class="fn">UI_LISTVIEW</span>(win, [<span class="str">"Status"</span>, <span class="str">"Todo"</span>], <span class="num">20</span>, <span class="num">130</span>, <span class="num">460</span>, <span class="num">240</span>)</span></div>
+                <div class="code-line"><span class="line-num">92</span><span class="line-content"><span class="fn">UI_LISTVIEW_SET_COLUMN_WIDTH</span>(todo_list, <span class="num">0</span>, <span class="num">60</span>)</span></div>
+                <div class="code-line"><span class="line-num">93</span><span class="line-content"><span class="fn">UI_LISTVIEW_SET_COLUMN_WIDTH</span>(todo_list, <span class="num">1</span>, <span class="num">380</span>)</span></div>
+                <div class="code-line"><span class="line-num">94</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">95</span><span class="line-content"><span class="cmt"># Start</span></span></div>
+                <div class="code-line"><span class="line-num">96</span><span class="line-content"><span class="fn">UI_MAINLOOP</span>(win)</span></div>
+            </div>
+        </div>
+
+        <h3>🎯 What You've Learned</h3>
+        <ul>
+            <li>✅ Global variables for state management</li>
+            <li>✅ Functions for code organization</li>
+            <li>✅ List and dictionary manipulation</li>
+            <li>✅ ListView for displaying data</li>
+            <li>✅ Event handling with button callbacks</li>
+            <li>✅ File I/O with JSON serialization</li>
+            <li>✅ Styling with colors and fonts</li>
+        </ul>
+    </div>
+</section>
+
+<!-- LESSON 14 -->
+<section class="lesson" id="lesson-14">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 14</span>
+        <h2>Common Pitfalls</h2>
+        <p>Avoid these common mistakes that trip up beginners.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <div class="pitfall">
+            <div class="pitfall-header">❌ Pitfall 1: Using ELSE IF</div>
+            <p>AnikaLang doesn't have <code>ELSE IF</code>. You must nest IF inside ELSE:</p>
+            <div class="pitfall-code wrong">
+                <span class="cmt"># WRONG - Syntax error</span><br>
+                <span class="kw">IF</span> x > <span class="num">10</span> <span class="kw">THEN</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;...<br>
+                <span class="kw">ELSE IF</span> x > <span class="num">5</span> <span class="kw">THEN</span> <span class="cmt"># ❌ Error!</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;...<br>
+                <span class="kw">END IF</span>
+            </div>
+            <div class="pitfall-code right">
+                <span class="cmt"># CORRECT - Nest IF inside ELSE</span><br>
+                <span class="kw">IF</span> x > <span class="num">10</span> <span class="kw">THEN</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;...<br>
+                <span class="kw">ELSE</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">IF</span> x > <span class="num">5</span> <span class="kw">THEN</span> <span class="cmt"># ✅ Correct</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">END IF</span><br>
+                <span class="kw">END IF</span>
+            </div>
+        </div>
+
+        <div class="pitfall">
+            <div class="pitfall-header">❌ Pitfall 2: Using % or ^ Operators</div>
+            <p>AnikaLang doesn't have modulo (<code>%</code>) or power (<code>^</code>) operators:</p>
+            <div class="pitfall-code wrong">
+                <span class="kw">SET</span> x <span class="kw">TO</span> <span class="num">10</span> % <span class="num">3</span> <span class="cmt"># ❌ Syntax error</span><br>
+                <span class="kw">SET</span> y <span class="kw">TO</span> <span class="num">2</span> ^ <span class="num">10</span> <span class="cmt"># ❌ Syntax error</span>
+            </div>
+            <div class="pitfall-code right">
+                <span class="kw">SET</span> y <span class="kw">TO</span> <span class="fn">POW</span>(<span class="num">2</span>, <span class="num">10</span>) <span class="cmt"># ✅ Use POW function</span>
+            </div>
+        </div>
+
+        <div class="pitfall">
+            <div class="pitfall-header">❌ Pitfall 3: Forgetting UI_MAINLOOP</div>
+            <p>Without <code>UI_MAINLOOP</code>, the window closes immediately:</p>
+            <div class="pitfall-code wrong">
+                <span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Test"</span>, <span class="num">300</span>, <span class="num">200</span>)<br>
+                <span class="fn">UI_LABEL</span>(win, <span class="str">"Hello"</span>, <span class="num">100</span>, <span class="num">80</span>, <span class="num">100</span>, <span class="num">30</span>)<br>
+                <span class="cmt"># Missing UI_MAINLOOP(win) — window closes immediately!</span>
+            </div>
+            <div class="pitfall-code right">
+                <span class="kw">SET</span> win <span class="kw">TO</span> <span class="fn">UI_WINDOW</span>(<span class="str">"Test"</span>, <span class="num">300</span>, <span class="num">200</span>)<br>
+                <span class="fn">UI_LABEL</span>(win, <span class="str">"Hello"</span>, <span class="num">100</span>, <span class="num">80</span>, <span class="num">100</span>, <span class="num">30</span>)<br>
+                <span class="fn">UI_MAINLOOP</span>(win) <span class="cmt"># ✅ Keeps window open</span>
+            </div>
+        </div>
+
+        <div class="pitfall">
+            <div class="pitfall-header">❌ Pitfall 4: Wrong Function Name in Button</div>
+            <p>Function names in UI_BUTTON must be strings:</p>
+            <div class="pitfall-code wrong">
+                <span class="cmt"># ❌ on_click is a variable, not a string</span><br>
+                <span class="kw">SET</span> btn <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Click"</span>, on_click, <span class="num">100</span>, <span class="num">100</span>, <span class="num">100</span>, <span class="num">30</span>)
+            </div>
+            <div class="pitfall-code right">
+                <span class="cmt"># ✅ Function name as string</span><br>
+                <span class="kw">SET</span> btn <span class="kw">TO</span> <span class="fn">UI_BUTTON</span>(win, <span class="str">"Click"</span>, <span class="str">"on_click"</span>, <span class="num">100</span>, <span class="num">100</span>, <span class="num">100</span>, <span class="num">30</span>)
+            </div>
+        </div>
+
+        <div class="pitfall">
+            <div class="pitfall-header">❌ Pitfall 5: Modifying Lists Incorrectly</div>
+            <p>Can't use bracket assignment — use helper functions:</p>
+            <div class="pitfall-code wrong">
+                <span class="kw">SET</span> list <span class="kw">TO</span> [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>]<br>
+                <span class="kw">SET</span> list[<span class="num">0</span>] <span class="kw">TO</span> <span class="num">10</span> <span class="cmt"># ❌ Syntax error</span>
+            </div>
+            <div class="pitfall-code right">
+                <span class="kw">SET</span> list <span class="kw">TO</span> [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>]<br>
+                <span class="fn">LIST_SET</span>(list, <span class="num">0</span>, <span class="num">10</span>) <span class="cmt"># ✅ Use LIST_SET</span>
+            </div>
+        </div>
+
+        <div class="pitfall">
+            <div class="pitfall-header">❌ Pitfall 6: Using Variables Before Defining</div>
+            <p>Variables must be defined before use:</p>
+            <div class="pitfall-code wrong">
+                <span class="fn">UI_ALERT</span>(message) <span class="cmt"># ❌ message not defined yet</span><br>
+                <span class="kw">SET</span> message <span class="kw">TO</span> <span class="str">"Hello"</span>
+            </div>
+            <div class="pitfall-code right">
+                <span class="kw">SET</span> message <span class="kw">TO</span> <span class="str">"Hello"</span><br>
+                <span class="fn">UI_ALERT</span>(message) <span class="cmt"># ✅ Works now</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- LESSON 15 -->
+<section class="lesson" id="lesson-15">
+    <div class="lesson-header reveal">
+        <span class="lesson-num">LESSON 15</span>
+        <h2>Next Steps & Resources</h2>
+        <p>What to build next and where to learn more.</p>
+    </div>
+    <div class="lesson-content reveal">
+        <h3>🚀 Project Ideas</h3>
+        <p>Now that you know the basics, try these projects to level up:</p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🧮 Calculator</h4>
+                <p>Build a calculator with buttons for all operations</p>
+            </div>
+            <div class="feature-card">
+                <h4>📝 Note Taker</h4>
+                <p>Create a notes app with save/load functionality</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 Data Viewer</h4>
+                <p>Build a CSV file viewer with filtering</p>
+            </div>
+            <div class="feature-card">
+                <h4>⏱️ Timer App</h4>
+                <p>Create a countdown timer with alarms</p>
+            </div>
+            <div class="feature-card">
+                <h4>🖼️ Image Viewer</h4>
+                <p>Build an image browser with thumbnails</p>
+            </div>
+            <div class="feature-card">
+                <h4>📧 Email Client</h4>
+                <p>Create a simple email reader/sender</p>
+            </div>
+        </div>
+
+        <h3>📚 Advanced Topics to Explore</h3>
+        <ul>
+            <li><strong>Database integration</strong> — Use SQLite to persist data</li>
+            <li><strong>HTTP requests</strong> — Fetch data from APIs</li>
+            <li><strong>Charts & graphs</strong> — Visualize data with matplotlib</li>
+            <li><strong>Machine learning</strong> — Train models with scikit-learn</li>
+            <li><strong>Document manipulation</strong> — Create Word, Excel, PowerPoint files</li>
+            <li><strong>Text-to-speech</strong> — Add voice output to your apps</li>
+            <li><strong>Translation</strong> — Add Google Translate to your apps</li>
+        </ul>
+
+        <h3>🔗 Resources</h3>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>📖 API Reference</h4>
+                <p>Complete list of all 450+ functions</p>
+            </div>
+            <div class="feature-card">
+                <h4>💡 Sample Apps</h4>
+                <p>Ready-to-run example applications</p>
+            </div>
+            <div class="feature-card">
+                <h4>🎓 Interactive Tutorial</h4>
+                <p>Learn by doing with live code examples</p>
+            </div>
+            <div class="feature-card">
+                <h4>🐛 Troubleshooting</h4>
+                <p>Common issues and how to fix them</p>
+            </div>
+        </div>
+
+        <div class="callout tip">
+            <div class="callout-icon">🎉</div>
+            <div class="callout-content">
+                <div class="callout-title">Congratulations!</div>
+                <div class="callout-body">
+                    You've completed the AnikaLang tutorial! You now have the skills to build real desktop applications. The best way to learn is to build — so pick a project and start coding!
+                </div>
+            </div>
+        </div>
+
+        <h3>🎯 Quick Reference Card</h3>
+        <p>Keep this handy as you code:</p>
+
+        <table class="comparison-table">
+            <thead>
+                <tr><th>Task</th><th>Function</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Create window</td><td><code>UI_WINDOW(title, w, h)</code></td></tr>
+                <tr><td>Add label</td><td><code>UI_LABEL(parent, text, x, y, w, h)</code></td></tr>
+                <tr><td>Add button</td><td><code>UI_BUTTON(parent, label, "action", x, y, w, h)</code></td></tr>
+                <tr><td>Add text input</td><td><code>UI_ENTRY(parent, default, x, y, w, h)</code></td></tr>
+                <tr><td>Get widget value</td><td><code>UI_GET(widget)</code></td></tr>
+                <tr><td>Set widget value</td><td><code>UI_SET(widget, value)</code></td></tr>
+                <tr><td>Style widget</td><td><code>UI_COLOR(widget, fg, bg)</code></td></tr>
+                <tr><td>Set font</td><td><code>UI_FONT(widget, size, face, bold)</code></td></tr>
+                <tr><td>Bind event</td><td><code>UI_BIND(widget, "EVENT", "handler")</code></td></tr>
+                <tr><td>Show alert</td><td><code>UI_ALERT(message)</code></td></tr>
+                <tr><td>Start app</td><td><code>UI_MAINLOOP(win)</code></td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-inner">
+        <h3>🎓 You've Completed the Tutorial!</h3>
+        <p>Ready to build amazing desktop applications with AnikaLang?</p>
+        <div class="footer-links">
+            <a href="#lesson-1">📚 Review Lessons</a>
+            <a href="api-reference.html">📖 API Reference</a>
+            <a href="#lesson-13">🚀 Build an App</a>
+            <a href="#toc">📋 Table of Contents</a>
+        </div>
+        <p style="margin-top: 30px; font-size: 0.85em; color: var(--text-muted);">
+            © 2026 AnikaLang • Built with ❤️ for builders everywhere
+        </p>
+    </div>
+</footer>
+
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+    // Copy code to clipboard
+    function copyCode(btn) {
+        const codeBlock = btn.closest('.code-block');
+        const lines = codeBlock.querySelectorAll('.line-content');
+        let text = '';
+        lines.forEach(line => {
+            text += line.textContent + '\n';
+        });
+        text = text.trim();
+
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = '✓ Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = '📋 Copy';
+                btn.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    }
+
+    // Progress bar
+    window.addEventListener('scroll', () => {
+        const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+        const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        const scrolled = (winScroll / height) * 100;
+        document.getElementById('progressFill').style.width = scrolled + '%';
+
+        // Back to top button
+        const btn = document.getElementById('backTop');
+        if (window.scrollY > 400) {
+            btn.classList.add('visible');
+        } else {
+            btn.classList.remove('visible');
+        }
+    });
+
+    // Reveal on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+</script>
+
+</body>
+</html>
