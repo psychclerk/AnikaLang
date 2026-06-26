@@ -1123,9 +1123,9 @@
 <section id="install">
     <div class="section-header reveal">
         <div class="section-tag">Get Started</div>
-        <h2 class="section-title">Up and Running in 60 Seconds</h2>
+        <h2 class="section-title">Up and Running in 30 Seconds</h2>
         <p class="section-subtitle">
-            No complex setup. No configuration hell. Just install and start building.
+            No Python needed. No dependencies to install. Just download and run.
         </p>
     </div>
     <div class="install-box reveal">
@@ -1133,30 +1133,57 @@
             <div class="install-step">
                 <div class="step-num">1</div>
                 <div class="step-content">
-                    <h4>Install wxPython</h4>
-                    <div class="step-code">pip install wxPython</div>
+                    <h4>Download from GitHub</h4>
+                    <div class="step-code">github.com/yourusername/anikalang/releases</div>
+                    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: 8px;">
+                        Download <code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px;">AnikaLang.exe</code> for Windows
+                    </p>
                 </div>
             </div>
             <div class="install-step">
                 <div class="step-num">2</div>
                 <div class="step-content">
-                    <h4>Create your first script</h4>
-                    <div class="step-code">echo 'UI_ALERT("Hello World!")' > hello.fms</div>
+                    <h4>Run it</h4>
+                    <div class="step-code">AnikaLang.exe</div>
+                    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: 8px;">
+                        Double-click to launch the IDE. No installation required!
+                    </p>
                 </div>
             </div>
             <div class="install-step">
                 <div class="step-num">3</div>
                 <div class="step-content">
-                    <h4>Run it</h4>
-                    <div class="step-code">python anikawx.py hello.fms</div>
+                    <h4>Create your first script</h4>
+                    <div class="step-code">SET win TO UI_WINDOW("Hello", 300, 200)</div>
+                    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: 8px;">
+                        Save as <code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px;">hello.fms</code>
+                    </p>
                 </div>
             </div>
             <div class="install-step">
                 <div class="step-num">4</div>
                 <div class="step-content">
-                    <h4>Optional: Install extras</h4>
-                    <div class="step-code">pip install scikit-learn matplotlib openpyxl python-docx python-pptx</div>
+                    <h4>Run your script</h4>
+                    <div class="step-code">AnikaLang.exe hello.fms</div>
+                    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: 8px;">
+                        Or open it from the IDE with File → Open
+                    </p>
                 </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 32px; padding: 20px; background: var(--surface2); border-radius: 12px; border: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>🔧</span> For Developers: Build from Source
+            </h4>
+            <p style="color: var(--text-dim); font-size: 0.9em; margin-bottom: 12px;">
+                Want to contribute or customize? Clone the repo and run from source:
+            </p>
+            <div class="step-code" style="font-size: 0.85em;">
+                git clone https://github.com/yourusername/anikalang.git<br>
+                cd anikalang<br>
+                pip install wxPython<br>
+                python anikawx.py
             </div>
         </div>
     </div>
