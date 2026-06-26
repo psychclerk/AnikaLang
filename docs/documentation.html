@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnikaLang wxPython — Complete API Reference</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --accent: #58a6ff;
+            --accent2: #7ee787;
+            --accent3: #d2a8ff;
+            --accent4: #ffa657;
+            --accent5: #ff7b72;
+            --accent6: #79c0ff;
+            --keyword-bg: #1f2937;
+            --code-bg: #0d1117;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1f35 0%, #0d1117 50%, #1a2332 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 40px 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            background: linear-gradient(90deg, var(--accent), var(--accent3), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-dim);
+            font-size: 1.1em;
+        }
+
+        .header .badge {
+            display: inline-block;
+            background: var(--accent);
+            color: #000;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        /* Search & Controls */
+        .controls {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: sticky;
+            top: 120px;
+            z-index: 99;
+        }
+
+        .search-box {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: var(--text);
+            font-size: 1em;
+            width: 350px;
+            max-width: 100%;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus { border-color: var(--accent); }
+
+        .btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .btn:hover { background: var(--border); border-color: var(--accent); }
+        .btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+        .stats-bar {
+            color: var(--text-dim);
+            font-size: 0.85em;
+            padding: 8px 20px;
+            text-align: center;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stats-bar span { color: var(--accent); font-weight: 700; }
+
+        /* Main Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Section */
+        .section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .section:hover { border-color: #484f58; }
+
+        .section-header {
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .section-header:hover { background: var(--surface2); }
+
+        .section-header h2 {
+            font-size: 1.15em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-header .icon {
+            font-size: 1.3em;
+        }
+
+        .section-header .count {
+            background: var(--border);
+            color: var(--text-dim);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .section-header .chevron {
+            transition: transform 0.3s;
+            color: var(--text-dim);
+            font-size: 1.2em;
+        }
+
+        .section.open .chevron { transform: rotate(180deg); }
+
+        .section-body {
+            display: none;
+            padding: 0 20px 20px;
+        }
+
+        .section.open .section-body { display: block; }
+
+        /* Category Colors */
+        .cat-keyword .section-header { border-left: 4px solid #f97316; }
+        .cat-math .section-header { border-left: 4px solid #3b82f6; }
+        .cat-string .section-header { border-left: 4px solid #10b981; }
+        .cat-datetime .section-header { border-left: 4px solid #8b5cf6; }
+        .cat-type .section-header { border-left: 4px solid #ec4899; }
+        .cat-eval .section-header { border-left: 4px solid #f59e0b; }
+        .cat-stats .section-header { border-left: 4px solid #06b6d4; }
+        .cat-graph .section-header { border-left: 4px solid #84cc16; }
+        .cat-collection .section-header { border-left: 4px solid #a855f7; }
+        .cat-db .section-header { border-left: 4px solid #14b8a6; }
+        .cat-file .section-header { border-left: 4px solid #f43f5e; }
+        .cat-csv .section-header { border-left: 4px solid #22c55e; }
+        .cat-network .section-header { border-left: 4px solid #6366f1; }
+        .cat-docx .section-header { border-left: 4px solid #2563eb; }
+        .cat-pptx .section-header { border-left: 4px solid #ea580c; }
+        .cat-ml .section-header { border-left: 4px solid #d946ef; }
+        .cat-translate .section-header { border-left: 4px solid #0ea5e9; }
+        .cat-tts .section-header { border-left: 4px solid #f97316; }
+        .cat-ui .section-header { border-left: 4px solid #58a6ff; }
+        .cat-richtext .section-header { border-left: 4px solid #e879f9; }
+        .cat-misc .section-header { border-left: 4px solid #94a3b8; }
+
+        /* Table */
+        .func-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        .func-table thead th {
+            background: var(--code-bg);
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dim);
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+        }
+
+        .func-table tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+
+        .func-table tbody tr:hover { background: var(--surface2); }
+        .func-table tbody tr.hidden { display: none; }
+
+        .func-table td {
+            padding: 10px 14px;
+            vertical-align: top;
+        }
+
+        .func-name {
+            font-family: 'Consolas', 'Fira Code', monospace;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.95em;
+            white-space: nowrap;
+        }
+
+        .func-args {
+            font-family: 'Consolas', 'Fira Code', monospace;
+            color: var(--accent4);
+            font-size: 0.85em;
+        }
+
+        .func-desc {
+            color: var(--text-dim);
+            font-size: 0.9em;
+        }
+
+        /* Keywords Grid */
+        .keywords-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 0;
+        }
+
+        .keyword-chip {
+            background: var(--keyword-bg);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            color: var(--accent3);
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .keyword-chip:hover {
+            border-color: var(--accent3);
+            background: #2d1b4e;
+        }
+
+        /* Events Grid */
+        .events-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 0;
+        }
+
+        .event-chip {
+            background: #1a2332;
+            border: 1px solid #2563eb;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+            color: var(--accent6);
+        }
+
+        /* Summary Table */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .summary-table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-table td:first-child {
+            color: var(--text-dim);
+            width: 60%;
+        }
+
+        .summary-table td:last-child {
+            text-align: right;
+            font-weight: 700;
+            color: var(--accent2);
+            font-size: 1.1em;
+        }
+
+        .summary-table tr.total td {
+            border-top: 2px solid var(--accent);
+            font-size: 1.1em;
+            padding-top: 12px;
+        }
+
+        .summary-table tr.total td:last-child {
+            color: var(--accent);
+            font-size: 1.3em;
+        }
+
+        /* Code block */
+        .code-example {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            margin: 10px 0;
+            color: var(--text);
+            line-height: 1.7;
+        }
+
+        .code-example .kw { color: var(--accent3); }
+        .code-example .fn { color: var(--accent); }
+        .code-example .str { color: var(--accent2); }
+        .code-example .num { color: var(--accent4); }
+        .code-example .cmt { color: var(--text-dim); font-style: italic; }
+
+        /* Back to top */
+        .back-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--accent);
+            color: #000;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.4em;
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 200;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .back-top.visible { opacity: 1; }
+        .back-top:hover { transform: scale(1.1); }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5em; }
+            .controls { flex-direction: column; }
+            .search-box { width: 100%; }
+            .func-table { font-size: 0.8em; }
+            .func-table td, .func-table th { padding: 8px 8px; }
+            .func-args { font-size: 0.75em; }
+        }
+
+        /* Highlight match */
+        mark {
+            background: #f97316;
+            color: #000;
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+
+        /* Print styles */
+        @media print {
+            .header, .controls, .back-top { position: static; }
+            .section-body { display: block !important; }
+            body { background: #fff; color: #000; }
+            .section { border: 1px solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header" id="top">
+    <h1>AnikaLang wxPython</h1>
+    <p>Complete Keywords & Functions Reference — 450+ Functions</p>
+</div>
+
+<div class="controls">
+    <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search functions, keywords, descriptions..." oninput="filterAll()">
+    <button class="btn" onclick="expandAll()">▼ Expand All</button>
+    <button class="btn" onclick="collapseAll()">▲ Collapse All</button>
+    <button class="btn" onclick="window.print()">🖨 Print</button>
+</div>
+
+<div class="stats-bar">
+    Showing <span id="visibleCount">450+</span> functions across <span>39</span> categories
+</div>
+
+<div class="container">
+
+    <!-- KEYWORDS -->
+    <div class="section open cat-keyword" data-category="keywords">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🔑</span> Keywords <span class="count">23</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <p style="color:var(--text-dim); margin-bottom:12px;">Reserved words that define the structure and flow of AnikaLang programs.</p>
+            <div class="keywords-grid">
+                <span class="keyword-chip">SET</span>
+                <span class="keyword-chip">TO</span>
+                <span class="keyword-chip">IF</span>
+                <span class="keyword-chip">THEN</span>
+                <span class="keyword-chip">ELSE</span>
+                <span class="keyword-chip">END</span>
+                <span class="keyword-chip">FOR</span>
+                <span class="keyword-chip">IN</span>
+                <span class="keyword-chip">WHILE</span>
+                <span class="keyword-chip">BREAK</span>
+                <span class="keyword-chip">CONTINUE</span>
+                <span class="keyword-chip">TRY</span>
+                <span class="keyword-chip">CATCH</span>
+                <span class="keyword-chip">RETURN</span>
+                <span class="keyword-chip">FUNCTION</span>
+                <span class="keyword-chip">TRUE</span>
+                <span class="keyword-chip">FALSE</span>
+                <span class="keyword-chip">NULL</span>
+                <span class="keyword-chip">AND</span>
+                <span class="keyword-chip">OR</span>
+                <span class="keyword-chip">NOT</span>
+                <span class="keyword-chip">STEP</span>
+                <span class="keyword-chip">INCLUDE</span>
+            </div>
+            <div class="code-example">
+<span class="cmt"># Example: Keywords in action</span>
+<span class="kw">SET</span> x <span class="kw">TO</span> <span class="num">10</span>
+<span class="kw">IF</span> x > <span class="num">5</span> <span class="kw">AND</span> x < <span class="num">20</span> <span class="kw">THEN</span>
+    <span class="fn">UI_ALERT</span>(<span class="str">"x is between 5 and 20"</span>)
+<span class="kw">ELSE</span>
+    <span class="fn">UI_ALERT</span>(<span class="str">"x is out of range"</span>)
+<span class="kw">END IF</span>
+
+<span class="kw">FOR</span> i <span class="kw">IN</span> <span class="num">1</span>..<span class="num">10</span> <span class="kw">STEP</span> <span class="num">2</span> <span class="kw">THEN</span>
+    <span class="fn">UI_ALERT</span>(<span class="fn">STR</span>(i))
+<span class="kw">END FOR</span>
+
+<span class="kw">TRY</span>
+    <span class="kw">SET</span> y <span class="kw">TO</span> x / <span class="num">0</span>
+<span class="kw">CATCH</span> err <span class="kw">THEN</span>
+    <span class="fn">UI_ALERT_ERR</span>(err)
+<span class="kw">END TRY</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MATH -->
+    <div class="section cat-math" data-category="math">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🧮</span> Math Functions <span class="count">28</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">ABS</td><td class="func-args">(num)</td><td class="func-desc">Absolute value</td></tr>
+                    <tr><td class="func-name">ROUND</td><td class="func-args">(num, decimals)</td><td class="func-desc">Round to N decimals</td></tr>
+                    <tr><td class="func-name">POW</td><td class="func-args">(base, exp)</td><td class="func-desc">Power (base^exp)</td></tr>
+                    <tr><td class="func-name">EXP</td><td class="func-args">(num)</td><td class="func-desc">e^num</td></tr>
+                    <tr><td class="func-name">LN</td><td class="func-args">(num)</td><td class="func-desc">Natural log</td></tr>
+                    <tr><td class="func-name">LOG10</td><td class="func-args">(num)</td><td class="func-desc">Log base 10</td></tr>
+                    <tr><td class="func-name">FLOOR</td><td class="func-args">(num)</td><td class="func-desc">Floor</td></tr>
+                    <tr><td class="func-name">CEIL</td><td class="func-args">(num)</td><td class="func-desc">Ceiling</td></tr>
+                    <tr><td class="func-name">PI</td><td class="func-args">()</td><td class="func-desc">Returns π (3.14159...)</td></tr>
+                    <tr><td class="func-name">E</td><td class="func-args">()</td><td class="func-desc">Returns e (2.71828...)</td></tr>
+                    <tr><td class="func-name">SIN</td><td class="func-args">(rad)</td><td class="func-desc">Sine</td></tr>
+                    <tr><td class="func-name">COS</td><td class="func-args">(rad)</td><td class="func-desc">Cosine</td></tr>
+                    <tr><td class="func-name">TAN</td><td class="func-args">(rad)</td><td class="func-desc">Tangent</td></tr>
+                    <tr><td class="func-name">ASIN</td><td class="func-args">(num)</td><td class="func-desc">Arc sine</td></tr>
+                    <tr><td class="func-name">ACOS</td><td class="func-args">(num)</td><td class="func-desc">Arc cosine</td></tr>
+                    <tr><td class="func-name">ATAN</td><td class="func-args">(num)</td><td class="func-desc">Arc tangent</td></tr>
+                    <tr><td class="func-name">DEG_TO_RAD</td><td class="func-args">(deg)</td><td class="func-desc">Degrees → radians</td></tr>
+                    <tr><td class="func-name">RAD_TO_DEG</td><td class="func-args">(rad)</td><td class="func-desc">Radians → degrees</td></tr>
+                    <tr><td class="func-name">MIN</td><td class="func-args">(a, b)</td><td class="func-desc">Minimum of two values</td></tr>
+                    <tr><td class="func-name">MAX</td><td class="func-args">(a, b)</td><td class="func-desc">Maximum of two values</td></tr>
+                    <tr><td class="func-name">SUM</td><td class="func-args">(list)</td><td class="func-desc">Sum of list</td></tr>
+                    <tr><td class="func-name">AVG</td><td class="func-args">(list)</td><td class="func-desc">Average of list</td></tr>
+                    <tr><td class="func-name">FACT</td><td class="func-args">(n)</td><td class="func-desc">Factorial</td></tr>
+                    <tr><td class="func-name">COMB</td><td class="func-args">(n, k)</td><td class="func-desc">Combinations</td></tr>
+                    <tr><td class="func-name">PERM</td><td class="func-args">(n, k)</td><td class="func-desc">Permutations</td></tr>
+                    <tr><td class="func-name">RANDINT</td><td class="func-args">(low, high)</td><td class="func-desc">Random integer</td></tr>
+                    <tr><td class="func-name">RAND</td><td class="func-args">()</td><td class="func-desc">Random float 0–1</td></tr>
+                    <tr><td class="func-name">SQRT</td><td class="func-args">(num)</td><td class="func-desc">Square root</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- STRING -->
+    <div class="section cat-string" data-category="string">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📝</span> String Functions <span class="count">17</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UPPER</td><td class="func-args">(str)</td><td class="func-desc">To uppercase</td></tr>
+                    <tr><td class="func-name">LOWER</td><td class="func-args">(str)</td><td class="func-desc">To lowercase</td></tr>
+                    <tr><td class="func-name">TRIM</td><td class="func-args">(str)</td><td class="func-desc">Remove whitespace</td></tr>
+                    <tr><td class="func-name">LEN</td><td class="func-args">(str/list/dict)</td><td class="func-desc">Length</td></tr>
+                    <tr><td class="func-name">REPLACE</td><td class="func-args">(str, old, new)</td><td class="func-desc">Replace all occurrences</td></tr>
+                    <tr><td class="func-name">LEFT</td><td class="func-args">(str, n)</td><td class="func-desc">First N characters</td></tr>
+                    <tr><td class="func-name">RIGHT</td><td class="func-args">(str, n)</td><td class="func-desc">Last N characters</td></tr>
+                    <tr><td class="func-name">MID</td><td class="func-args">(str, start, [length])</td><td class="func-desc">Substring</td></tr>
+                    <tr><td class="func-name">SPLIT</td><td class="func-args">(str, delimiter)</td><td class="func-desc">Split to list</td></tr>
+                    <tr><td class="func-name">STARTS_WITH</td><td class="func-args">(str, prefix)</td><td class="func-desc">Check prefix</td></tr>
+                    <tr><td class="func-name">ENDS_WITH</td><td class="func-args">(str, suffix)</td><td class="func-desc">Check suffix</td></tr>
+                    <tr><td class="func-name">CONTAINS</td><td class="func-args">(str, substr)</td><td class="func-desc">Check contains</td></tr>
+                    <tr><td class="func-name">INDEX_OF</td><td class="func-args">(str, substr)</td><td class="func-desc">Find position (-1 if not found)</td></tr>
+                    <tr><td class="func-name">HTML_ESCAPE</td><td class="func-args">(str)</td><td class="func-desc">Escape HTML entities</td></tr>
+                    <tr><td class="func-name">BASE64_ENCODE</td><td class="func-args">(str)</td><td class="func-desc">Base64 encode</td></tr>
+                    <tr><td class="func-name">BASE64_DECODE</td><td class="func-args">(str)</td><td class="func-desc">Base64 decode</td></tr>
+                    <tr><td class="func-name">STR</td><td class="func-args">(value)</td><td class="func-desc">Convert to string</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DATETIME -->
+    <div class="section cat-datetime" data-category="datetime">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📅</span> Date/Time Functions <span class="count">6</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">NOW</td><td class="func-args">()</td><td class="func-desc">Current datetime "YYYY-MM-DD HH:MM:SS"</td></tr>
+                    <tr><td class="func-name">DATE</td><td class="func-args">()</td><td class="func-desc">Current date "YYYY-MM-DD"</td></tr>
+                    <tr><td class="func-name">TO_INDIAN_DATE</td><td class="func-args">(date_str)</td><td class="func-desc">Convert to DD-MM-YYYY</td></tr>
+                    <tr><td class="func-name">TO_ISO_DATETIME</td><td class="func-args">(str)</td><td class="func-desc">Convert to ISO format</td></tr>
+                    <tr><td class="func-name">TO_INDIAN_DATETIME</td><td class="func-args">(str)</td><td class="func-desc">Convert to DD-MM-YYYY HH:MM AM/PM</td></tr>
+                    <tr><td class="func-name">CALC_DURATION</td><td class="func-args">(start, end)</td><td class="func-desc">Minutes between two datetimes</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TYPE & CASTING -->
+    <div class="section cat-type" data-category="type">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🔄</span> Type & Casting <span class="count">6</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">INT</td><td class="func-args">(value)</td><td class="func-desc">Cast to integer</td></tr>
+                    <tr><td class="func-name">FLOAT</td><td class="func-args">(value)</td><td class="func-desc">Cast to float</td></tr>
+                    <tr><td class="func-name">TYPE_OF</td><td class="func-args">(value)</td><td class="func-desc">Returns "STRING", "INTEGER", etc.</td></tr>
+                    <tr><td class="func-name">IIF</td><td class="func-args">(cond, true_val, false_val)</td><td class="func-desc">Inline IF (ternary)</td></tr>
+                    <tr><td class="func-name">JSON_PARSE</td><td class="func-args">(json_str)</td><td class="func-desc">Parse JSON string</td></tr>
+                    <tr><td class="func-name">JSON_STRINGIFY</td><td class="func-args">(dict/list)</td><td class="func-desc">Convert to JSON string</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- EVALUATION -->
+    <div class="section cat-eval" data-category="eval">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🧪</span> Evaluation & Debug <span class="count">5</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">EVAL_FMS</td><td class="func-args">(code_str)</td><td class="func-desc">Execute AnikaLang code dynamically</td></tr>
+                    <tr><td class="func-name">EVAL_FMS_SILENT</td><td class="func-args">(code_str)</td><td class="func-desc">Execute, return None on error</td></tr>
+                    <tr><td class="func-name">IS_ERROR</td><td class="func-args">(value)</td><td class="func-desc">Check if result is error</td></tr>
+                    <tr><td class="func-name">ERROR_MESSAGE</td><td class="func-args">(value)</td><td class="func-desc">Extract error message</td></tr>
+                    <tr><td class="func-name">LIST_VARIABLES</td><td class="func-args">()</td><td class="func-desc">List all current variables</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- STATISTICS -->
+    <div class="section cat-stats" data-category="stats">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📊</span> Statistics <span class="count">28</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">STATS_DESCRIBE</td><td class="func-args">(list)</td><td class="func-desc">Full descriptive stats dict</td></tr>
+                    <tr><td class="func-name">STATS_MEAN</td><td class="func-args">(list)</td><td class="func-desc">Mean</td></tr>
+                    <tr><td class="func-name">STATS_MEDIAN</td><td class="func-args">(list)</td><td class="func-desc">Median</td></tr>
+                    <tr><td class="func-name">STATS_VARIANCE</td><td class="func-args">(list)</td><td class="func-desc">Variance</td></tr>
+                    <tr><td class="func-name">STATS_STDEV</td><td class="func-args">(list)</td><td class="func-desc">Standard deviation</td></tr>
+                    <tr><td class="func-name">STATS_MODE</td><td class="func-args">(list)</td><td class="func-desc">Mode</td></tr>
+                    <tr><td class="func-name">STATS_PERCENTILE</td><td class="func-args">(list, p)</td><td class="func-desc">Percentile (0–100)</td></tr>
+                    <tr><td class="func-name">STATS_QUARTILES</td><td class="func-args">(list)</td><td class="func-desc">Q1, Q2, Q3, IQR</td></tr>
+                    <tr><td class="func-name">STATS_SKEWNESS</td><td class="func-args">(list)</td><td class="func-desc">Skewness</td></tr>
+                    <tr><td class="func-name">STATS_KURTOSIS</td><td class="func-args">(list)</td><td class="func-desc">Kurtosis</td></tr>
+                    <tr><td class="func-name">STATS_FREQUENCY</td><td class="func-args">(list)</td><td class="func-desc">Frequency table</td></tr>
+                    <tr><td class="func-name">STATS_CROSSTAB</td><td class="func-args">(list1, list2)</td><td class="func-desc">Contingency table</td></tr>
+                    <tr><td class="func-name">STATS_TTEST_1SAMPLE</td><td class="func-args">(list, mu)</td><td class="func-desc">One-sample t-test</td></tr>
+                    <tr><td class="func-name">STATS_TTEST_IND</td><td class="func-args">(list1, list2, [equal_var])</td><td class="func-desc">Independent t-test</td></tr>
+                    <tr><td class="func-name">STATS_TTEST_PAIRED</td><td class="func-args">(list1, list2)</td><td class="func-desc">Paired t-test</td></tr>
+                    <tr><td class="func-name">STATS_ANOVA</td><td class="func-args">(list1, list2, ...)</td><td class="func-desc">One-way ANOVA</td></tr>
+                    <tr><td class="func-name">STATS_CHISQUARE</td><td class="func-args">(observed, [expected])</td><td class="func-desc">Chi-square goodness-of-fit</td></tr>
+                    <tr><td class="func-name">STATS_CHISQUARE_INDEP</td><td class="func-args">(list1, list2)</td><td class="func-desc">Chi-square independence</td></tr>
+                    <tr><td class="func-name">STATS_CORRELATION</td><td class="func-args">(list1, list2)</td><td class="func-desc">Pearson correlation</td></tr>
+                    <tr><td class="func-name">STATS_SPEARMAN</td><td class="func-args">(list1, list2)</td><td class="func-desc">Spearman correlation</td></tr>
+                    <tr><td class="func-name">STATS_REGRESSION</td><td class="func-args">(list_x, list_y)</td><td class="func-desc">Linear regression</td></tr>
+                    <tr><td class="func-name">STATS_MANNWHITNEY</td><td class="func-args">(list1, list2)</td><td class="func-desc">Mann-Whitney U test</td></tr>
+                    <tr><td class="func-name">STATS_WILCOXON</td><td class="func-args">(list1, list2)</td><td class="func-desc">Wilcoxon signed-rank</td></tr>
+                    <tr><td class="func-name">STATS_KRUSKAL</td><td class="func-args">(list1, list2, ...)</td><td class="func-desc">Kruskal-Wallis H test</td></tr>
+                    <tr><td class="func-name">STATS_ZSCORE</td><td class="func-args">(list)</td><td class="func-desc">Standardize to z-scores</td></tr>
+                    <tr><td class="func-name">STATS_CLEAN</td><td class="func-args">(list)</td><td class="func-desc">Remove NULL/NaN</td></tr>
+                    <tr><td class="func-name">STATS_RECODE</td><td class="func-args">(list, mapping_dict)</td><td class="func-desc">Recode values</td></tr>
+                    <tr><td class="func-name">STATS_GROUP_BY</td><td class="func-args">(data, group_key, val_key, [agg])</td><td class="func-desc">Group & aggregate</td></tr>
+                    <tr><td class="func-name">STATS_BIN</td><td class="func-args">(list, [n_bins])</td><td class="func-desc">Bin continuous data</td></tr>
+                    <tr><td class="func-name">STATS_REPORT</td><td class="func-args">(results_dict)</td><td class="func-desc">Format report string</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- GRAPHS -->
+    <div class="section cat-graph" data-category="graph">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📈</span> Graphs <span class="count">12</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">GRAPH_LINE</td><td class="func-args">(x, y, [title], [xlabel], [ylabel], [color])</td><td class="func-desc">Line chart</td></tr>
+                    <tr><td class="func-name">GRAPH_BAR</td><td class="func-args">(labels, values, [title], [xlabel], [ylabel], [color])</td><td class="func-desc">Bar chart</td></tr>
+                    <tr><td class="func-name">GRAPH_SCATTER</td><td class="func-args">(x, y, [title], [xlabel], [ylabel], [color])</td><td class="func-desc">Scatter plot</td></tr>
+                    <tr><td class="func-name">GRAPH_HISTOGRAM</td><td class="func-args">(data, [bins], [title], [xlabel], [ylabel], [color])</td><td class="func-desc">Histogram</td></tr>
+                    <tr><td class="func-name">GRAPH_PIE</td><td class="func-args">(labels, values, [title], [colors])</td><td class="func-desc">Pie chart</td></tr>
+                    <tr><td class="func-name">GRAPH_BOX</td><td class="func-args">(data_groups, [labels], [title])</td><td class="func-desc">Box plot</td></tr>
+                    <tr><td class="func-name">GRAPH_HEATMAP</td><td class="func-args">(matrix, [title], [xlabel], [ylabel])</td><td class="func-desc">Heatmap</td></tr>
+                    <tr><td class="func-name">GRAPH_MULTI_LINE</td><td class="func-args">(x, series_dict, [title], [xlabel], [ylabel])</td><td class="func-desc">Multi-line chart</td></tr>
+                    <tr><td class="func-name">GRAPH_REGRESSION_LINE</td><td class="func-args">(x, y, [title], [xlabel], [ylabel])</td><td class="func-desc">Scatter + regression line</td></tr>
+                    <tr><td class="func-name">GRAPH_SAVE</td><td class="func-args">(path, [dpi])</td><td class="func-desc">Save to file</td></tr>
+                    <tr><td class="func-name">GRAPH_SHOW</td><td class="func-args">()</td><td class="func-desc">Show interactively</td></tr>
+                    <tr><td class="func-name">GRAPH_CLOSE</td><td class="func-args">()</td><td class="func-desc">Close figure</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- COLLECTIONS -->
+    <div class="section cat-collection" data-category="collection">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📚</span> Dictionary & List <span class="count">8</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">DICT_KEYS</td><td class="func-args">(dict)</td><td class="func-desc">Get keys list</td></tr>
+                    <tr><td class="func-name">DICT_VALUES</td><td class="func-args">(dict)</td><td class="func-desc">Get values list</td></tr>
+                    <tr><td class="func-name">DICT_ENTRIES</td><td class="func-args">(dict)</td><td class="func-desc">Get [[k,v],...] list</td></tr>
+                    <tr><td class="func-name">DICT_MERGE</td><td class="func-args">(dict1, dict2)</td><td class="func-desc">Merge two dicts</td></tr>
+                    <tr><td class="func-name">DICT_HAS_KEY</td><td class="func-args">(dict, key)</td><td class="func-desc">Check key exists</td></tr>
+                    <tr><td class="func-name">DICT_SET</td><td class="func-args">(dict, key, value)</td><td class="func-desc">Set key-value</td></tr>
+                    <tr><td class="func-name">LIST_SET</td><td class="func-args">(list, index, value)</td><td class="func-desc">Set item at index</td></tr>
+                    <tr><td class="func-name">LIST_APPEND</td><td class="func-args">(list, value)</td><td class="func-desc">Append to list</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DATABASE -->
+    <div class="section cat-db" data-category="db">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🗄️</span> Database <span class="count">6</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">DB_CONNECT</td><td class="func-args">(db_path)</td><td class="func-desc">Connect to SQLite</td></tr>
+                    <tr><td class="func-name">DB_EXECUTE</td><td class="func-args">(conn, sql)</td><td class="func-desc">Execute SQL</td></tr>
+                    <tr><td class="func-name">DB_QUERY</td><td class="func-args">(conn, sql)</td><td class="func-desc">Query returning list of dicts</td></tr>
+                    <tr><td class="func-name">DB_FTS_CREATE</td><td class="func-args">(conn, fts_name, source_table, col1, ...)</td><td class="func-desc">Create FTS5 table</td></tr>
+                    <tr><td class="func-name">DB_FTS_SEARCH</td><td class="func-args">(conn, fts_name, query, [limit])</td><td class="func-desc">Full-text search</td></tr>
+                    <tr><td class="func-name">DB_FTS_UPDATE</td><td class="func-args">(conn, fts_name, rowid, [old], [new])</td><td class="func-desc">Update FTS index</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FILE I/O -->
+    <div class="section cat-file" data-category="file">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📁</span> File I/O & Paths <span class="count">20</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">FILE_READ</td><td class="func-args">(path)</td><td class="func-desc">Read file content</td></tr>
+                    <tr><td class="func-name">FILE_WRITE</td><td class="func-args">(path, content)</td><td class="func-desc">Write to file</td></tr>
+                    <tr><td class="func-name">FILE_APPEND</td><td class="func-args">(path, content)</td><td class="func-desc">Append to file</td></tr>
+                    <tr><td class="func-name">FILE_EXISTS</td><td class="func-args">(path)</td><td class="func-desc">Check if file exists</td></tr>
+                    <tr><td class="func-name">EXEC</td><td class="func-args">(cmd)</td><td class="func-desc">Execute shell command</td></tr>
+                    <tr><td class="func-name">EXEC_CAPTURE</td><td class="func-args">(cmd)</td><td class="func-desc">Execute and capture [success, output]</td></tr>
+                    <tr><td class="func-name">CMD_EXISTS</td><td class="func-args">(cmd)</td><td class="func-desc">Check if command exists on PATH</td></tr>
+                    <tr><td class="func-name">PATH_JOIN</td><td class="func-args">(part1, part2, ...)</td><td class="func-desc">Join path parts</td></tr>
+                    <tr><td class="func-name">PATH_DIR</td><td class="func-args">(path)</td><td class="func-desc">Get directory</td></tr>
+                    <tr><td class="func-name">PATH_FILE</td><td class="func-args">(path)</td><td class="func-desc">Get filename</td></tr>
+                    <tr><td class="func-name">PATH_EXT</td><td class="func-args">(path)</td><td class="func-desc">Get extension</td></tr>
+                    <tr><td class="func-name">PATH_NAME</td><td class="func-args">(path)</td><td class="func-desc">Get name without ext</td></tr>
+                    <tr><td class="func-name">PATH_CWD</td><td class="func-args">()</td><td class="func-desc">Get current working directory</td></tr>
+                    <tr><td class="func-name">PATH_ABS</td><td class="func-args">(path)</td><td class="func-desc">Get absolute path</td></tr>
+                    <tr><td class="func-name">PATH_NORM</td><td class="func-args">(path)</td><td class="func-desc">Normalize path</td></tr>
+                    <tr><td class="func-name">PATH_MKDIR</td><td class="func-args">(path)</td><td class="func-desc">Create directory</td></tr>
+                    <tr><td class="func-name">PATH_ISDIR</td><td class="func-args">(path)</td><td class="func-desc">Check if directory</td></tr>
+                    <tr><td class="func-name">PATH_ISFILE</td><td class="func-args">(path)</td><td class="func-desc">Check if file</td></tr>
+                    <tr><td class="func-name">PATH_LIST</td><td class="func-args">(path)</td><td class="func-desc">List directory contents</td></tr>
+                    <tr><td class="func-name">INTERPRETER_PATH</td><td class="func-args">()</td><td class="func-desc">Get interpreter path</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CSV & EXCEL -->
+    <div class="section cat-csv" data-category="csv">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📊</span> CSV & Excel <span class="count">17</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">CSV_READ</td><td class="func-args">(path)</td><td class="func-desc">Read CSV as list of dicts</td></tr>
+                    <tr><td class="func-name">CSV_WRITE</td><td class="func-args">(path, data)</td><td class="func-desc">Write list of dicts to CSV</td></tr>
+                    <tr><td class="func-name">CSV_READ_RAW</td><td class="func-args">(path)</td><td class="func-desc">Read CSV as list of lists</td></tr>
+                    <tr><td class="func-name">CSV_APPEND</td><td class="func-args">(path, row_dict)</td><td class="func-desc">Append one row</td></tr>
+                    <tr><td class="func-name">CSV_TO_XLSX</td><td class="func-args">(csv_path, xlsx_path, [sheet])</td><td class="func-desc">Convert CSV → Excel</td></tr>
+                    <tr><td class="func-name">EXCEL_READ</td><td class="func-args">(path, [sheet])</td><td class="func-desc">Read Excel as list of dicts</td></tr>
+                    <tr><td class="func-name">EXCEL_WRITE</td><td class="func-args">(path, data, [sheet])</td><td class="func-desc">Write list of dicts to Excel</td></tr>
+                    <tr><td class="func-name">EXCEL_APPEND</td><td class="func-args">(path, data, [sheet])</td><td class="func-desc">Append rows to Excel</td></tr>
+                    <tr><td class="func-name">EXCEL_SHEETS</td><td class="func-args">(path)</td><td class="func-desc">List sheet names</td></tr>
+                    <tr><td class="func-name">XLSX_FORMAT_CELL</td><td class="func-args">(path, sheet, cell, [bold], [font_color], [bg_color], [font_size])</td><td class="func-desc">Format cell</td></tr>
+                    <tr><td class="func-name">XLSX_MERGE_CELLS</td><td class="func-args">(path, sheet, range)</td><td class="func-desc">Merge cells</td></tr>
+                    <tr><td class="func-name">XLSX_SET_COLUMN_WIDTH</td><td class="func-args">(path, sheet, col_letter, width)</td><td class="func-desc">Set column width</td></tr>
+                    <tr><td class="func-name">XLSX_ADD_FORMULA</td><td class="func-args">(path, sheet, cell, formula)</td><td class="func-desc">Add formula</td></tr>
+                    <tr><td class="func-name">XLSX_ADD_CHART</td><td class="func-args">(path, sheet, type, range, title, [anchor])</td><td class="func-desc">Add chart</td></tr>
+                    <tr><td class="func-name">XLSX_GET_CELL</td><td class="func-args">(path, sheet, cell)</td><td class="func-desc">Get cell value</td></tr>
+                    <tr><td class="func-name">XLSX_SET_CELL</td><td class="func-args">(path, sheet, cell, value)</td><td class="func-desc">Set cell value</td></tr>
+                    <tr><td class="func-name">XLSX_TO_CSV</td><td class="func-args">(xlsx_path, csv_path, [sheet])</td><td class="func-desc">Convert Excel → CSV</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- NETWORK -->
+    <div class="section cat-network" data-category="network">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🌐</span> Network & Email <span class="count">4</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">HTTP_GET</td><td class="func-args">(url)</td><td class="func-desc">HTTP GET request</td></tr>
+                    <tr><td class="func-name">HTTP_POST</td><td class="func-args">(url, data, [content_type])</td><td class="func-desc">HTTP POST request</td></tr>
+                    <tr><td class="func-name">EMAIL_SEND</td><td class="func-args">(host, port, user, pwd, from, to, subject, body_html)</td><td class="func-desc">Send email</td></tr>
+                    <tr><td class="func-name">EMAIL_FETCH</td><td class="func-args">(host, port, user, pwd, [folder], [limit])</td><td class="func-desc">Fetch emails</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DOCX -->
+    <div class="section cat-docx" data-category="docx">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📄</span> DOCX (Word Document) <span class="count">20</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">DOCX_CREATE</td><td class="func-args">()</td><td class="func-desc">Create new document, returns handle</td></tr>
+                    <tr><td class="func-name">DOCX_OPEN</td><td class="func-args">(path)</td><td class="func-desc">Open existing document</td></tr>
+                    <tr><td class="func-name">DOCX_SAVE</td><td class="func-args">(handle, path)</td><td class="func-desc">Save document</td></tr>
+                    <tr><td class="func-name">DOCX_CLOSE</td><td class="func-args">(handle)</td><td class="func-desc">Close document</td></tr>
+                    <tr><td class="func-name">DOCX_ADD_PARAGRAPH</td><td class="func-args">(handle, text, [style])</td><td class="func-desc">Add paragraph</td></tr>
+                    <tr><td class="func-name">DOCX_ADD_HEADING</td><td class="func-args">(handle, text, [level])</td><td class="func-desc">Add heading (1–9)</td></tr>
+                    <tr><td class="func-name">DOCX_ADD_BULLET</td><td class="func-args">(handle, text, [level])</td><td class="func-desc">Add bullet point</td></tr>
+                    <tr><td class="func-name">DOCX_ADD_NUMBERED</td><td class="func-args">(handle, text, [level])</td><td class="func-desc">Add numbered item</td></tr>
+                    <tr><td class="func-name">DOCX_ADD_PAGE_BREAK</td><td class="func-args">(handle)</td><td class="func-desc">Add page break</td></tr>
+                    <tr><td class="func-name">DOCX_ADD_TABLE</td><td class="func-args">(handle, data, [header_bool])</td><td class="func-desc">Add table</td></tr>
+                    <tr><td class="func-name">DOCX_ADD_IMAGE</td><td class="func-args">(handle, img_path, [width_inches])</td><td class="func-desc">Add image</td></tr>
+                    <tr><td class="func-name">DOCX_GET_TEXT</td><td class="func-args">(handle)</td><td class="func-desc">Extract all text</td></tr>
+                    <tr><td class="func-name">DOCX_GET_PARAGRAPHS</td><td class="func-args">(handle)</td><td class="func-desc">Get paragraphs list</td></tr>
+                    <tr><td class="func-name">DOCX_REPLACE_TEXT</td><td class="func-args">(handle, old, new)</td><td class="func-desc">Replace text</td></tr>
+                    <tr><td class="func-name">DOCX_SET_HEADER</td><td class="func-args">(handle, text)</td><td class="func-desc">Set header</td></tr>
+                    <tr><td class="func-name">DOCX_SET_FOOTER</td><td class="func-args">(handle, text)</td><td class="func-desc">Set footer</td></tr>
+                    <tr><td class="func-name">DOCX_SET_TITLE</td><td class="func-args">(handle, title)</td><td class="func-desc">Set title</td></tr>
+                    <tr><td class="func-name">DOCX_SET_AUTHOR</td><td class="func-args">(handle, author)</td><td class="func-desc">Set author</td></tr>
+                    <tr><td class="func-name">DOCX_GET_METADATA</td><td class="func-args">(handle)</td><td class="func-desc">Get metadata dict</td></tr>
+                    <tr><td class="func-name">DOCX_TO_TEXT</td><td class="func-args">(docx_path, txt_path)</td><td class="func-desc">Convert DOCX → TXT</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PPTX -->
+    <div class="section cat-pptx" data-category="pptx">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📽️</span> PPTX (PowerPoint) <span class="count">17</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">PPTX_CREATE</td><td class="func-args">()</td><td class="func-desc">Create new presentation</td></tr>
+                    <tr><td class="func-name">PPTX_OPEN</td><td class="func-args">(path)</td><td class="func-desc">Open existing</td></tr>
+                    <tr><td class="func-name">PPTX_SAVE</td><td class="func-args">(handle, path)</td><td class="func-desc">Save</td></tr>
+                    <tr><td class="func-name">PPTX_CLOSE</td><td class="func-args">(handle)</td><td class="func-desc">Close</td></tr>
+                    <tr><td class="func-name">PPTX_ADD_TITLE_SLIDE</td><td class="func-args">(handle, title, [subtitle])</td><td class="func-desc">Add title slide</td></tr>
+                    <tr><td class="func-name">PPTX_ADD_SLIDE</td><td class="func-args">(handle, [layout_idx])</td><td class="func-desc">Add blank slide</td></tr>
+                    <tr><td class="func-name">PPTX_ADD_CONTENT_SLIDE</td><td class="func-args">(handle, title, bullets_list)</td><td class="func-desc">Add content slide</td></tr>
+                    <tr><td class="func-name">PPTX_ADD_TEXT_BOX</td><td class="func-args">(handle, slide_idx, text, [l], [t], [w], [h])</td><td class="func-desc">Add text box</td></tr>
+                    <tr><td class="func-name">PPTX_ADD_IMAGE</td><td class="func-args">(handle, slide_idx, img_path, [l], [t], [w], [h])</td><td class="func-desc">Add image</td></tr>
+                    <tr><td class="func-name">PPTX_ADD_TABLE</td><td class="func-args">(handle, slide_idx, data, [l], [t], [w], [h])</td><td class="func-desc">Add table</td></tr>
+                    <tr><td class="func-name">PPTX_GET_SLIDE_COUNT</td><td class="func-args">(handle)</td><td class="func-desc">Get slide count</td></tr>
+                    <tr><td class="func-name">PPTX_GET_TEXT</td><td class="func-args">(handle)</td><td class="func-desc">Get all text</td></tr>
+                    <tr><td class="func-name">PPTX_GET_SLIDES_TEXT</td><td class="func-args">(handle)</td><td class="func-desc">Get list of slide texts</td></tr>
+                    <tr><td class="func-name">PPTX_DELETE_SLIDE</td><td class="func-args">(handle, slide_idx)</td><td class="func-desc">Delete slide</td></tr>
+                    <tr><td class="func-name">PPTX_SET_SLIDE_BG</td><td class="func-args">(handle, slide_idx, hex_color)</td><td class="func-desc">Set background</td></tr>
+                    <tr><td class="func-name">PPTX_TO_PDF</td><td class="func-args">(pptx_path, pdf_path)</td><td class="func-desc">Convert PPTX → PDF</td></tr>
+                    <tr><td class="func-name">PPTX_ADD_NOTES</td><td class="func-args">(handle, slide_idx, notes_text)</td><td class="func-desc">Add speaker notes</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MACHINE LEARNING -->
+    <div class="section cat-ml" data-category="ml">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🤖</span> Machine Learning <span class="count">22</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">ML_TRAIN_TEST_SPLIT</td><td class="func-args">(data, features, target, [test_size], [seed])</td><td class="func-desc">Split data</td></tr>
+                    <tr><td class="func-name">ML_STANDARDIZE</td><td class="func-args">(data, features)</td><td class="func-desc">Standardize features</td></tr>
+                    <tr><td class="func-name">ML_LABEL_ENCODE</td><td class="func-args">(data, target_key)</td><td class="func-desc">Encode labels</td></tr>
+                    <tr><td class="func-name">ML_KNN</td><td class="func-args">(data, features, target, [k])</td><td class="func-desc">K-Nearest Neighbors</td></tr>
+                    <tr><td class="func-name">ML_DECISION_TREE</td><td class="func-args">(data, features, target, [max_depth])</td><td class="func-desc">Decision Tree</td></tr>
+                    <tr><td class="func-name">ML_RANDOM_FOREST</td><td class="func-args">(data, features, target, [n_estimators])</td><td class="func-desc">Random Forest</td></tr>
+                    <tr><td class="func-name">ML_LOGISTIC</td><td class="func-args">(data, features, target)</td><td class="func-desc">Logistic Regression</td></tr>
+                    <tr><td class="func-name">ML_SVM</td><td class="func-args">(data, features, target, [kernel])</td><td class="func-desc">SVM</td></tr>
+                    <tr><td class="func-name">ML_LINEAR_REGRESSION</td><td class="func-args">(data, features, target)</td><td class="func-desc">Linear Regression</td></tr>
+                    <tr><td class="func-name">ML_POLYNOMIAL_REGRESSION</td><td class="func-args">(data, features, target, [degree])</td><td class="func-desc">Polynomial Regression</td></tr>
+                    <tr><td class="func-name">ML_RIDGE</td><td class="func-args">(data, features, target, [alpha])</td><td class="func-desc">Ridge Regression</td></tr>
+                    <tr><td class="func-name">ML_LASSO</td><td class="func-args">(data, features, target, [alpha])</td><td class="func-desc">Lasso Regression</td></tr>
+                    <tr><td class="func-name">ML_KMEANS</td><td class="func-args">(data, features, [n_clusters])</td><td class="func-desc">K-Means clustering</td></tr>
+                    <tr><td class="func-name">ML_DBSCAN</td><td class="func-args">(data, features, [eps], [min_samples])</td><td class="func-desc">DBSCAN clustering</td></tr>
+                    <tr><td class="func-name">ML_PCA</td><td class="func-args">(data, features, [n_components])</td><td class="func-desc">PCA</td></tr>
+                    <tr><td class="func-name">ML_PREDICT</td><td class="func-args">(model_result, data, features)</td><td class="func-desc">Make predictions</td></tr>
+                    <tr><td class="func-name">ML_ACCURACY</td><td class="func-args">(y_true, y_pred)</td><td class="func-desc">Accuracy score</td></tr>
+                    <tr><td class="func-name">ML_CONFUSION_MATRIX</td><td class="func-args">(y_true, y_pred)</td><td class="func-desc">Confusion matrix</td></tr>
+                    <tr><td class="func-name">ML_CLASSIFICATION_REPORT</td><td class="func-args">(y_true, y_pred)</td><td class="func-desc">Full report</td></tr>
+                    <tr><td class="func-name">ML_R2_SCORE</td><td class="func-args">(y_true, y_pred)</td><td class="func-desc">R² score</td></tr>
+                    <tr><td class="func-name">ML_MSE</td><td class="func-args">(y_true, y_pred)</td><td class="func-desc">Mean Squared Error</td></tr>
+                    <tr><td class="func-name">ML_MAE</td><td class="func-args">(y_true, y_pred)</td><td class="func-desc">Mean Absolute Error</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TRANSLATION -->
+    <div class="section cat-translate" data-category="translate">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🌍</span> Translation <span class="count">5</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">TRANSLATE</td><td class="func-args">(text, target_lang, [source_lang])</td><td class="func-desc">Translate text</td></tr>
+                    <tr><td class="func-name">TRANSLATE_DETECT</td><td class="func-args">(text)</td><td class="func-desc">Detect language</td></tr>
+                    <tr><td class="func-name">TRANSLATE_BATCH</td><td class="func-args">(texts_list, target, [source])</td><td class="func-desc">Batch translate</td></tr>
+                    <tr><td class="func-name">TRANSLATE_LANGUAGES</td><td class="func-args">()</td><td class="func-desc">List supported languages</td></tr>
+                    <tr><td class="func-name">TRANSLATE_TO_ENGLISH</td><td class="func-args">(text)</td><td class="func-desc">Translate to English</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TEXT-TO-SPEECH -->
+    <div class="section cat-tts" data-category="tts">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🔊</span> Text-to-Speech <span class="count">12</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">TTS_SPEAK</td><td class="func-args">(text, [rate], [volume])</td><td class="func-desc">Speak text aloud</td></tr>
+                    <tr><td class="func-name">TTS_SAVE</td><td class="func-args">(text, path, [lang], [slow])</td><td class="func-desc">Save as MP3 (Google)</td></tr>
+                    <tr><td class="func-name">TTS_SAVE_OFFLINE</td><td class="func-args">(text, path, [rate])</td><td class="func-desc">Save as WAV (offline)</td></tr>
+                    <tr><td class="func-name">TTS_SET_RATE</td><td class="func-args">(rate)</td><td class="func-desc">Set words per minute</td></tr>
+                    <tr><td class="func-name">TTS_SET_VOLUME</td><td class="func-args">(volume)</td><td class="func-desc">Set volume 0.0–1.0</td></tr>
+                    <tr><td class="func-name">TTS_SET_VOICE</td><td class="func-args">(voice_id_or_name)</td><td class="func-desc">Set voice</td></tr>
+                    <tr><td class="func-name">TTS_LIST_VOICES</td><td class="func-args">()</td><td class="func-desc">List available voices</td></tr>
+                    <tr><td class="func-name">TTS_STOP</td><td class="func-args">()</td><td class="func-desc">Stop speech</td></tr>
+                    <tr><td class="func-name">TTS_GET_RATE</td><td class="func-args">()</td><td class="func-desc">Get current rate</td></tr>
+                    <tr><td class="func-name">TTS_GET_VOLUME</td><td class="func-args">()</td><td class="func-desc">Get current volume</td></tr>
+                    <tr><td class="func-name">TTS_GET_VOICE</td><td class="func-args">()</td><td class="func-desc">Get current voice</td></tr>
+                    <tr><td class="func-name">TTS_PLAY_FILE</td><td class="func-args">(file_path)</td><td class="func-desc">Play audio file</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI WINDOW -->
+    <div class="section cat-ui" data-category="ui-window">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🪟</span> UI Window & Lifecycle <span class="count">4</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_WINDOW</td><td class="func-args">(title, [width], [height])</td><td class="func-desc">Create main window</td></tr>
+                    <tr><td class="func-name">UI_POPUP</td><td class="func-args">(title, [width], [height])</td><td class="func-desc">Create popup window</td></tr>
+                    <tr><td class="func-name">UI_CLOSE</td><td class="func-args">(window)</td><td class="func-desc">Close window</td></tr>
+                    <tr><td class="func-name">UI_MAINLOOP</td><td class="func-args">(window)</td><td class="func-desc">Start event loop</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI LAYOUT -->
+    <div class="section cat-ui" data-category="ui-layout">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📐</span> UI Layout <span class="count">15</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_PANEL</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create panel</td></tr>
+                    <tr><td class="func-name">UI_SIZER</td><td class="func-args">(parent, [type], [cols])</td><td class="func-desc">Create sizer</td></tr>
+                    <tr><td class="func-name">UI_ADD</td><td class="func-args">(sizer, widget, [prop], [flag], [border])</td><td class="func-desc">Add to sizer</td></tr>
+                    <tr><td class="func-name">UI_POS</td><td class="func-args">(widget, x, y, [w], [h])</td><td class="func-desc">Set position</td></tr>
+                    <tr><td class="func-name">UI_SIZE</td><td class="func-args">(widget, w, h)</td><td class="func-desc">Set size</td></tr>
+                    <tr><td class="func-name">UI_REFRESH</td><td class="func-args">(widget)</td><td class="func-desc">Force refresh</td></tr>
+                    <tr><td class="func-name">UI_LAYOUT_ABS</td><td class="func-args">(window)</td><td class="func-desc">Switch to absolute layout</td></tr>
+                    <tr><td class="func-name">UI_LAYOUT_REFRESH</td><td class="func-args">(widget)</td><td class="func-desc">Refresh layout</td></tr>
+                    <tr><td class="func-name">UI_GET_POS</td><td class="func-args">(widget)</td><td class="func-desc">Get [x, y]</td></tr>
+                    <tr><td class="func-name">UI_GET_SIZE</td><td class="func-args">(widget)</td><td class="func-desc">Get [w, h]</td></tr>
+                    <tr><td class="func-name">UI_GET_CLIENT_SIZE</td><td class="func-args">(window)</td><td class="func-desc">Get drawable area [w, h]</td></tr>
+                    <tr><td class="func-name">UI_DESTROY</td><td class="func-args">(widget)</td><td class="func-desc">Destroy widget</td></tr>
+                    <tr><td class="func-name">UI_BRING_TO_FRONT</td><td class="func-args">(widget)</td><td class="func-desc">Raise z-order</td></tr>
+                    <tr><td class="func-name">UI_FONT</td><td class="func-args">(widget, size, [face], [bold])</td><td class="func-desc">Set font</td></tr>
+                    <tr><td class="func-name">UI_FOCUS</td><td class="func-args">(widget)</td><td class="func-desc">Set keyboard focus</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI BASIC WIDGETS -->
+    <div class="section cat-ui" data-category="ui-widgets">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🎨</span> UI Basic Widgets <span class="count">15</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_LABEL</td><td class="func-args">(parent, text, x, y, w, h)</td><td class="func-desc">Static text label</td></tr>
+                    <tr><td class="func-name">UI_ENTRY</td><td class="func-args">(parent, [default], x, y, w, h)</td><td class="func-desc">Text input</td></tr>
+                    <tr><td class="func-name">UI_BUTTON</td><td class="func-args">(parent, label, action, x, y, w, h)</td><td class="func-desc">Button</td></tr>
+                    <tr><td class="func-name">UI_BUTTON_SET_STATE</td><td class="func-args">(btn, state)</td><td class="func-desc">Enable/disable</td></tr>
+                    <tr><td class="func-name">UI_TEXT</td><td class="func-args">(parent, [text], [wrap], x, y, w, h)</td><td class="func-desc">Multiline text</td></tr>
+                    <tr><td class="func-name">UI_TEXT_GET</td><td class="func-args">(widget)</td><td class="func-desc">Get text content</td></tr>
+                    <tr><td class="func-name">UI_TEXT_SET</td><td class="func-args">(widget, text)</td><td class="func-desc">Set text content</td></tr>
+                    <tr><td class="func-name">UI_CHECKBOX</td><td class="func-args">(parent, text, x, y, w, h)</td><td class="func-desc">Checkbox</td></tr>
+                    <tr><td class="func-name">UI_CHECKBOX_GET</td><td class="func-args">(cb)</td><td class="func-desc">Get checked state</td></tr>
+                    <tr><td class="func-name">UI_CHECKBOX_SET</td><td class="func-args">(cb, value)</td><td class="func-desc">Set checked state</td></tr>
+                    <tr><td class="func-name">UI_RADIO</td><td class="func-args">(parent, text, value, group, x, y, w, h)</td><td class="func-desc">Radio button</td></tr>
+                    <tr><td class="func-name">UI_RADIO_GET</td><td class="func-args">(group)</td><td class="func-desc">Get selected value</td></tr>
+                    <tr><td class="func-name">UI_RADIO_SET</td><td class="func-args">(group, value)</td><td class="func-desc">Set selected value</td></tr>
+                    <tr><td class="func-name">UI_COMBOBOX</td><td class="func-args">(parent, choices, x, y, w, h)</td><td class="func-desc">Dropdown</td></tr>
+                    <tr><td class="func-name">UI_DATEPICKER</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Date picker</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI TEXT EDITING -->
+    <div class="section cat-ui" data-category="ui-text-edit">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">✏️</span> UI Text Editing <span class="count">11</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_TEXT_GET_SELECTION</td><td class="func-args">(widget)</td><td class="func-desc">Get selected text</td></tr>
+                    <tr><td class="func-name">UI_TEXT_DELETE_SELECTION</td><td class="func-args">(widget)</td><td class="func-desc">Delete selection</td></tr>
+                    <tr><td class="func-name">UI_TEXT_INSERT_AT_CURSOR</td><td class="func-args">(widget, text)</td><td class="func-desc">Insert at cursor</td></tr>
+                    <tr><td class="func-name">UI_TEXT_SELECT_ALL</td><td class="func-args">(widget)</td><td class="func-desc">Select all</td></tr>
+                    <tr><td class="func-name">UI_TEXT_FIND</td><td class="func-args">(widget, text)</td><td class="func-desc">Find text</td></tr>
+                    <tr><td class="func-name">UI_TEXT_REPLACE_SELECTED</td><td class="func-args">(widget, new_text)</td><td class="func-desc">Replace selection</td></tr>
+                    <tr><td class="func-name">UI_TEXT_CUT</td><td class="func-args">(widget)</td><td class="func-desc">Cut</td></tr>
+                    <tr><td class="func-name">UI_TEXT_COPY</td><td class="func-args">(widget)</td><td class="func-desc">Copy</td></tr>
+                    <tr><td class="func-name">UI_TEXT_PASTE</td><td class="func-args">(widget)</td><td class="func-desc">Paste</td></tr>
+                    <tr><td class="func-name">UI_TEXT_UNDO</td><td class="func-args">(widget)</td><td class="func-desc">Undo</td></tr>
+                    <tr><td class="func-name">UI_TEXT_REDO</td><td class="func-args">(widget)</td><td class="func-desc">Redo</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI CODE EDITOR -->
+    <div class="section cat-ui" data-category="ui-code-editor">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">💻</span> UI Code Editor (Scintilla) <span class="count">7</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_CODE_EDITOR</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create code editor</td></tr>
+                    <tr><td class="func-name">UI_HIGHLIGHT</td><td class="func-args">(editor)</td><td class="func-desc">Apply syntax highlighting</td></tr>
+                    <tr><td class="func-name">UI_EDITOR_GET_FUNCTIONS</td><td class="func-args">(editor)</td><td class="func-desc">List functions</td></tr>
+                    <tr><td class="func-name">UI_EDITOR_GOTO_LINE</td><td class="func-args">(editor, line)</td><td class="func-desc">Jump to line</td></tr>
+                    <tr><td class="func-name">UI_EDITOR_GET_CURSOR</td><td class="func-args">(editor)</td><td class="func-desc">Get "line:col"</td></tr>
+                    <tr><td class="func-name">UI_EDITOR_GET_LINE_COUNT</td><td class="func-args">(editor)</td><td class="func-desc">Get line count</td></tr>
+                    <tr><td class="func-name">UI_EDITOR_GET_LINE</td><td class="func-args">(editor, line_num)</td><td class="func-desc">Get line text</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI LISTS -->
+    <div class="section cat-ui" data-category="ui-lists">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📋</span> UI Lists <span class="count">15</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_LISTVIEW</td><td class="func-args">(parent, columns, x, y, w, h)</td><td class="func-desc">Create listview</td></tr>
+                    <tr><td class="func-name">UI_LISTVIEW_INSERT</td><td class="func-args">(lv, row)</td><td class="func-desc">Insert row</td></tr>
+                    <tr><td class="func-name">UI_LISTVIEW_CLEAR</td><td class="func-args">(lv)</td><td class="func-desc">Clear all</td></tr>
+                    <tr><td class="func-name">UI_LISTVIEW_GET_SELECTED</td><td class="func-args">(lv)</td><td class="func-desc">Get selected row</td></tr>
+                    <tr><td class="func-name">UI_LISTVIEW_AUTOFIT</td><td class="func-args">(lv)</td><td class="func-desc">Auto-fit columns</td></tr>
+                    <tr><td class="func-name">UI_LISTVIEW_REFRESH</td><td class="func-args">(lv)</td><td class="func-desc">Refresh</td></tr>
+                    <tr><td class="func-name">UI_LISTVIEW_SET_COLUMN_WIDTH</td><td class="func-args">(lv, col, width)</td><td class="func-desc">Set column width</td></tr>
+                    <tr><td class="func-name">UI_LISTBOX</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create listbox</td></tr>
+                    <tr><td class="func-name">UI_LISTBOX_INSERT</td><td class="func-args">(lb, items)</td><td class="func-desc">Insert items</td></tr>
+                    <tr><td class="func-name">UI_LISTBOX_GET</td><td class="func-args">(lb)</td><td class="func-desc">Get selected</td></tr>
+                    <tr><td class="func-name">UI_LISTBOX_CLEAR</td><td class="func-args">(lb)</td><td class="func-desc">Clear</td></tr>
+                    <tr><td class="func-name">UI_LISTBOX_SIZE</td><td class="func-args">(lb)</td><td class="func-desc">Get count</td></tr>
+                    <tr><td class="func-name">UI_LISTBOX_GET_ALL</td><td class="func-args">(lb)</td><td class="func-desc">Get all items</td></tr>
+                    <tr><td class="func-name">UI_LISTBOX_DELETE</td><td class="func-args">(lb, index)</td><td class="func-desc">Delete item</td></tr>
+                    <tr><td class="func-name">UI_LISTBOX_SELECT</td><td class="func-args">(lb, index)</td><td class="func-desc">Select item</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI TREE -->
+    <div class="section cat-ui" data-category="ui-tree">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🌳</span> UI Tree <span class="count">7</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_TREE</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create tree</td></tr>
+                    <tr><td class="func-name">UI_TREE_INSERT</td><td class="func-args">(tree, parent_id, item_id, text)</td><td class="func-desc">Insert node</td></tr>
+                    <tr><td class="func-name">UI_TREE_GET_SELECTED</td><td class="func-args">(tree)</td><td class="func-desc">Get selected ID</td></tr>
+                    <tr><td class="func-name">UI_TREE_CLEAR</td><td class="func-args">(tree)</td><td class="func-desc">Clear all</td></tr>
+                    <tr><td class="func-name">UI_TREE_DELETE</td><td class="func-args">(tree, item_id)</td><td class="func-desc">Delete node</td></tr>
+                    <tr><td class="func-name">UI_TREE_SET_TEXT</td><td class="func-args">(tree, item_id, text)</td><td class="func-desc">Set text</td></tr>
+                    <tr><td class="func-name">UI_TREE_EXPAND</td><td class="func-args">(tree, item_id, [expand])</td><td class="func-desc">Expand/collapse</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI HTML -->
+    <div class="section cat-ui" data-category="ui-html">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🌐</span> UI HTML Viewer <span class="count">3</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_HTMLVIEW</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create HTML viewer</td></tr>
+                    <tr><td class="func-name">UI_HTML_SET</td><td class="func-args">(viewer, html)</td><td class="func-desc">Set HTML content</td></tr>
+                    <tr><td class="func-name">UI_HTML_CLEAR</td><td class="func-args">(viewer)</td><td class="func-desc">Clear content</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI SPREADSHEET -->
+    <div class="section cat-ui" data-category="ui-sheet">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📊</span> UI Spreadsheet <span class="count">13</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_SHEET</td><td class="func-args">(parent, rows, cols, x, y, w, h)</td><td class="func-desc">Create grid</td></tr>
+                    <tr><td class="func-name">UI_SHEET_SET</td><td class="func-args">(grid, data)</td><td class="func-desc">Set data</td></tr>
+                    <tr><td class="func-name">UI_SHEET_GET</td><td class="func-args">(grid)</td><td class="func-desc">Get all data</td></tr>
+                    <tr><td class="func-name">UI_SHEET_INSERT</td><td class="func-args">(grid, row, [pos])</td><td class="func-desc">Insert row</td></tr>
+                    <tr><td class="func-name">UI_SHEET_DELETE</td><td class="func-args">(grid, row)</td><td class="func-desc">Delete row</td></tr>
+                    <tr><td class="func-name">UI_SHEET_CLEAR</td><td class="func-args">(grid)</td><td class="func-desc">Clear all</td></tr>
+                    <tr><td class="func-name">UI_SHEET_HEADERS</td><td class="func-args">(grid, headers)</td><td class="func-desc">Set headers</td></tr>
+                    <tr><td class="func-name">UI_SHEET_CELL_SET</td><td class="func-args">(grid, row, col, value)</td><td class="func-desc">Set cell</td></tr>
+                    <tr><td class="func-name">UI_SHEET_CELL_GET</td><td class="func-args">(grid, row, col)</td><td class="func-desc">Get cell</td></tr>
+                    <tr><td class="func-name">UI_SHEET_SELECTED</td><td class="func-args">(grid)</td><td class="func-desc">Get selected cells</td></tr>
+                    <tr><td class="func-name">UI_SHEET_BIND</td><td class="func-args">(grid, event, callback)</td><td class="func-desc">Bind event</td></tr>
+                    <tr><td class="func-name">UI_SHEET_RESIZE</td><td class="func-args">(grid, rows, cols)</td><td class="func-desc">Resize grid</td></tr>
+                    <tr><td class="func-name">UI_SHEET_SET_COLUMN_WIDTH</td><td class="func-args">(grid, col, width)</td><td class="func-desc">Set column width</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI TABS -->
+    <div class="section cat-ui" data-category="ui-tabs">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📑</span> UI Tabs <span class="count">4</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_TABS</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create notebook</td></tr>
+                    <tr><td class="func-name">UI_TAB_ADD</td><td class="func-args">(notebook, title)</td><td class="func-desc">Add tab</td></tr>
+                    <tr><td class="func-name">UI_TAB_GET</td><td class="func-args">(notebook)</td><td class="func-desc">Get current tab title</td></tr>
+                    <tr><td class="func-name">UI_TAB_SELECT</td><td class="func-args">(notebook, title)</td><td class="func-desc">Select tab</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI MENU -->
+    <div class="section cat-ui" data-category="ui-menu">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📜</span> UI Menu <span class="count">11</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_MENU</td><td class="func-args">(window)</td><td class="func-desc">Create menu bar</td></tr>
+                    <tr><td class="func-name">UI_MENU_ADD</td><td class="func-args">(menubar, label)</td><td class="func-desc">Add menu</td></tr>
+                    <tr><td class="func-name">UI_MENU_ITEM</td><td class="func-args">(menu, label, action)</td><td class="func-desc">Add menu item</td></tr>
+                    <tr><td class="func-name">UI_MENU_SEPARATOR</td><td class="func-args">(menu)</td><td class="func-desc">Add separator</td></tr>
+                    <tr><td class="func-name">UI_MENU_CHECK</td><td class="func-args">(menu, label, action)</td><td class="func-desc">Add check item</td></tr>
+                    <tr><td class="func-name">UI_MENU_RADIO</td><td class="func-args">(menu, label, value, group, [action])</td><td class="func-desc">Add radio item</td></tr>
+                    <tr><td class="func-name">UI_SET_MENU</td><td class="func-args">(window, menubar)</td><td class="func-desc">Attach menu bar</td></tr>
+                    <tr><td class="func-name">UI_POPUP_MENU</td><td class="func-args">()</td><td class="func-desc">Create popup menu</td></tr>
+                    <tr><td class="func-name">UI_POPUP_ITEM</td><td class="func-args">(menu, label, action)</td><td class="func-desc">Add popup item</td></tr>
+                    <tr><td class="func-name">UI_POPUP_SEPARATOR</td><td class="func-args">(menu)</td><td class="func-desc">Add separator</td></tr>
+                    <tr><td class="func-name">UI_BIND_POPUP</td><td class="func-args">(widget, menu)</td><td class="func-desc">Bind right-click menu</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI STATUS -->
+    <div class="section cat-ui" data-category="ui-status">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📢</span> UI Status <span class="count">2</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_STATUSBAR</td><td class="func-args">(window, [text])</td><td class="func-desc">Create status bar</td></tr>
+                    <tr><td class="func-name">UI_STATUSBAR_SET</td><td class="func-args">(window, text)</td><td class="func-desc">Set status text</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI GENERIC -->
+    <div class="section cat-ui" data-category="ui-generic">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🔧</span> UI Generic <span class="count">12</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_GET</td><td class="func-args">(widget)</td><td class="func-desc">Get widget value</td></tr>
+                    <tr><td class="func-name">UI_SET</td><td class="func-args">(widget, value)</td><td class="func-desc">Set widget value</td></tr>
+                    <tr><td class="func-name">UI_COLOR</td><td class="func-args">(widget, [fg], [bg])</td><td class="func-desc">Set colors</td></tr>
+                    <tr><td class="func-name">UI_BIND</td><td class="func-args">(widget, event, callback)</td><td class="func-desc">Bind event</td></tr>
+                    <tr><td class="func-name">UI_ALERT</td><td class="func-args">(message)</td><td class="func-desc">Show info dialog</td></tr>
+                    <tr><td class="func-name">UI_ALERT_ERR</td><td class="func-args">(message)</td><td class="func-desc">Show error dialog</td></tr>
+                    <tr><td class="func-name">UI_FILE_OPEN</td><td class="func-args">([widget])</td><td class="func-desc">Open file dialog</td></tr>
+                    <tr><td class="func-name">UI_FILE_SAVE</td><td class="func-args">([widget])</td><td class="func-desc">Save file dialog</td></tr>
+                    <tr><td class="func-name">UI_AFTER</td><td class="func-args">(delay_ms, callback)</td><td class="func-desc">Schedule timer</td></tr>
+                    <tr><td class="func-name">UI_AFTER_CANCEL</td><td class="func-args">(timer_id)</td><td class="func-desc">Cancel timer</td></tr>
+                    <tr><td class="func-name">UI_MOUSE_POS</td><td class="func-args">([mode], [window])</td><td class="func-desc">Get mouse position</td></tr>
+                    <tr><td class="func-name">UI_CAPTURE_MOUSE</td><td class="func-args">(widget, [capture])</td><td class="func-desc">Capture/release mouse</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI MARKDOWN -->
+    <div class="section cat-ui" data-category="ui-md">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📝</span> UI Markdown Editor <span class="count">4</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_MD_EDITOR</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create MD editor</td></tr>
+                    <tr><td class="func-name">UI_MD_GET</td><td class="func-args">(editor)</td><td class="func-desc">Get markdown source</td></tr>
+                    <tr><td class="func-name">UI_MD_SET</td><td class="func-args">(editor, content)</td><td class="func-desc">Set markdown source</td></tr>
+                    <tr><td class="func-name">UI_MD_REFRESH</td><td class="func-args">(editor)</td><td class="func-desc">Refresh preview</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UI RICHTEXT -->
+    <div class="section cat-richtext" data-category="ui-richtext">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📄</span> UI RichText Editor <span class="count">38</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">UI_RICHTEXT</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create rich text editor</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_GET_TEXT</td><td class="func-args">(rt)</td><td class="func-desc">Get plain text</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_TEXT</td><td class="func-args">(rt, text)</td><td class="func-desc">Set plain text</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_APPLY_BOLD</td><td class="func-args">(rt)</td><td class="func-desc">Toggle bold</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_APPLY_ITALIC</td><td class="func-args">(rt)</td><td class="func-desc">Toggle italic</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_APPLY_UNDERLINE</td><td class="func-args">(rt)</td><td class="func-desc">Toggle underline</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_FONT</td><td class="func-args">(rt, font_name)</td><td class="func-desc">Set font face</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_FONT_SIZE</td><td class="func-args">(rt, size)</td><td class="func-desc">Set font size</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_TEXT_COLOR</td><td class="func-args">(rt, hex_color)</td><td class="func-desc">Set text color</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_BG_COLOR</td><td class="func-args">(rt, hex_color)</td><td class="func-desc">Set highlight color</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_ALIGN</td><td class="func-args">(rt, alignment)</td><td class="func-desc">Set alignment</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_INSERT_IMAGE</td><td class="func-args">(rt, img_path, [w], [h])</td><td class="func-desc">Insert image</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_LINE_BREAK</td><td class="func-args">(rt)</td><td class="func-desc">Insert line break</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_PAGE_BREAK</td><td class="func-args">(rt)</td><td class="func-desc">Insert page break</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_UNDO</td><td class="func-args">(rt)</td><td class="func-desc">Undo</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_REDO</td><td class="func-args">(rt)</td><td class="func-desc">Redo</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_CUT</td><td class="func-args">(rt)</td><td class="func-desc">Cut</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_COPY</td><td class="func-args">(rt)</td><td class="func-desc">Copy</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_PASTE</td><td class="func-args">(rt)</td><td class="func-desc">Paste</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SELECT_ALL</td><td class="func-args">(rt)</td><td class="func-desc">Select all</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SAVE</td><td class="func-args">(rt, path, [format])</td><td class="func-desc">Save document</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_LOAD</td><td class="func-args">(rt, path, [format])</td><td class="func-desc">Load document</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_WORD_COUNT</td><td class="func-args">(rt)</td><td class="func-desc">Get word count</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_CHAR_COUNT</td><td class="func-args">(rt)</td><td class="func-desc">Get char count</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_FIND</td><td class="func-args">(rt, text, [from_cursor])</td><td class="func-desc">Find text</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_REPLACE</td><td class="func-args">(rt, search, replace, [replace_all])</td><td class="func-desc">Replace text</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_BULLET</td><td class="func-args">(rt, style)</td><td class="func-desc">Set bullet/numbered</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_INDENT</td><td class="func-args">(rt, left, [right])</td><td class="func-desc">Set indent</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_STRIKETHROUGH</td><td class="func-args">(rt)</td><td class="func-desc">Toggle strikethrough</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SUPERSCRIPT</td><td class="func-args">(rt)</td><td class="func-desc">Toggle superscript</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SUBSCRIPT</td><td class="func-args">(rt)</td><td class="func-desc">Toggle subscript</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_INSERT_TABLE</td><td class="func-args">(rt, rows, cols, [width])</td><td class="func-desc">Insert table</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_HR</td><td class="func-args">(rt)</td><td class="func-desc">Insert horizontal rule</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_GET_SELECTION</td><td class="func-args">(rt)</td><td class="func-desc">Get selected text</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_HAS_SELECTION</td><td class="func-args">(rt)</td><td class="func-desc">Check if selection</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_SET_PAGE_COLOR</td><td class="func-args">(rt, hex_color)</td><td class="func-desc">Set page color</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_PRINT</td><td class="func-args">(rt)</td><td class="func-desc">Print document</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_PAGE_SETUP</td><td class="func-args">(rt)</td><td class="func-desc">Open page setup</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_ZOOM</td><td class="func-args">(rt, percent)</td><td class="func-desc">Set zoom</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_CLEAR</td><td class="func-args">(rt)</td><td class="func-desc">Clear content</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_INSERT_FIELD</td><td class="func-args">(rt, field_type)</td><td class="func-desc">Insert field</td></tr>
+                    <tr><td class="func-name">UI_RICHTEXT_INSERT_HYPERLINK</td><td class="func-args">(rt, url, [display])</td><td class="func-desc">Insert hyperlink</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ATTACHMENTS -->
+    <div class="section cat-misc" data-category="attachments">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📎</span> Attachments <span class="count">4</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">ATTACHMENT_SAVE</td><td class="func-args">(source_path, [dir])</td><td class="func-desc">Save attachment, returns ID</td></tr>
+                    <tr><td class="func-name">ATTACHMENT_PATH</td><td class="func-args">(res_id, [dir])</td><td class="func-desc">Get full path</td></tr>
+                    <tr><td class="func-name">ATTACHMENT_DELETE</td><td class="func-args">(res_id, [dir])</td><td class="func-desc">Delete attachment</td></tr>
+                    <tr><td class="func-name">ATTACHMENT_LIST</td><td class="func-args">([dir])</td><td class="func-desc">List all attachments</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- JOPLIN -->
+    <div class="section cat-misc" data-category="joplin">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📓</span> Joplin Import/Export <span class="count">2</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">JOPLIN_EXPORT</td><td class="func-args">(notes_list, output_path)</td><td class="func-desc">Export to JEX</td></tr>
+                    <tr><td class="func-name">JOPLIN_IMPORT</td><td class="func-args">(jex_path)</td><td class="func-desc">Import from JEX</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MARKDOWN & PDF -->
+    <div class="section cat-misc" data-category="md-pdf">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📑</span> Markdown & PDF <span class="count">5</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">MD_TO_HTML</td><td class="func-args">(markdown_text)</td><td class="func-desc">Convert MD → HTML</td></tr>
+                    <tr><td class="func-name">HTML_TO_MD</td><td class="func-args">(html_text)</td><td class="func-desc">Convert HTML → MD</td></tr>
+                    <tr><td class="func-name">MARKDOWN_TO_HTML</td><td class="func-args">(text, [extensions])</td><td class="func-desc">Convert with extensions</td></tr>
+                    <tr><td class="func-name">HTML_TO_TEXT</td><td class="func-args">(html)</td><td class="func-desc">Strip HTML tags</td></tr>
+                    <tr><td class="func-name">EXPORT_PDF</td><td class="func-args">(html_content, output_path)</td><td class="func-desc">Export to PDF</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CLIPBOARD -->
+    <div class="section cat-misc" data-category="clipboard">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📋</span> Clipboard <span class="count">2</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">CLIPBOARD_SET</td><td class="func-args">(text)</td><td class="func-desc">Copy to clipboard</td></tr>
+                    <tr><td class="func-name">CLIPBOARD_GET</td><td class="func-args">()</td><td class="func-desc">Get clipboard text</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- EVENT TYPES -->
+    <div class="section cat-ui" data-category="events">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🎯</span> Event Types (for UI_BIND) <span class="count">16</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <p style="color:var(--text-dim); margin-bottom:12px;">Use these event names as the second argument to <code style="color:var(--accent)">UI_BIND(widget, "EVENT", "handler")</code></p>
+            <div class="events-grid">
+                <span class="event-chip">CLICK</span>
+                <span class="event-chip">CHANGE</span>
+                <span class="event-chip">SELECT</span>
+                <span class="event-chip">DOUBLE_CLICK</span>
+                <span class="event-chip">KEY_PRESS</span>
+                <span class="event-chip">KEY_RELEASE</span>
+                <span class="event-chip">FOCUS_IN</span>
+                <span class="event-chip">FOCUS_OUT</span>
+                <span class="event-chip">RESIZE</span>
+                <span class="event-chip">TAB_CHANGE</span>
+                <span class="event-chip">CURSOR_MOVE</span>
+                <span class="event-chip">MOUSE_DOWN</span>
+                <span class="event-chip">MOUSE_UP</span>
+                <span class="event-chip">MOUSE_MOVE</span>
+                <span class="event-chip">MOUSE_DBLCLICK</span>
+                <span class="event-chip">RIGHT_CLICK</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="section open cat-misc" data-category="summary">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">📊</span> Summary Counts</h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="summary-table">
+                <tr><td>Keywords</td><td>23</td></tr>
+                <tr><td>Math</td><td>28</td></tr>
+                <tr><td>Strings</td><td>17</td></tr>
+                <tr><td>Date/Time</td><td>6</td></tr>
+                <tr><td>Type/Casting</td><td>6</td></tr>
+                <tr><td>Evaluation</td><td>5</td></tr>
+                <tr><td>Statistics</td><td>28</td></tr>
+                <tr><td>Graphs</td><td>12</td></tr>
+                <tr><td>Dict/List</td><td>8</td></tr>
+                <tr><td>Database</td><td>6</td></tr>
+                <tr><td>File/Paths</td><td>20</td></tr>
+                <tr><td>CSV/Excel</td><td>17</td></tr>
+                <tr><td>Network/Email</td><td>4</td></tr>
+                <tr><td>DOCX</td><td>20</td></tr>
+                <tr><td>PPTX</td><td>17</td></tr>
+                <tr><td>Machine Learning</td><td>22</td></tr>
+                <tr><td>Translation</td><td>5</td></tr>
+                <tr><td>Text-to-Speech</td><td>12</td></tr>
+                <tr><td>UI Window</td><td>4</td></tr>
+                <tr><td>UI Layout</td><td>15</td></tr>
+                <tr><td>UI Widgets</td><td>15</td></tr>
+                <tr><td>UI Text Editing</td><td>11</td></tr>
+                <tr><td>UI Code Editor</td><td>7</td></tr>
+                <tr><td>UI Lists</td><td>15</td></tr>
+                <tr><td>UI Tree</td><td>7</td></tr>
+                <tr><td>UI HTML</td><td>3</td></tr>
+                <tr><td>UI Sheet</td><td>13</td></tr>
+                <tr><td>UI Tabs</td><td>4</td></tr>
+                <tr><td>UI Menu</td><td>11</td></tr>
+                <tr><td>UI Status</td><td>2</td></tr>
+                <tr><td>UI Generic</td><td>12</td></tr>
+                <tr><td>UI Markdown</td><td>4</td></tr>
+                <tr><td>UI RichText</td><td>38</td></tr>
+                <tr><td>Attachments</td><td>4</td></tr>
+                <tr><td>Joplin</td><td>2</td></tr>
+                <tr><td>MD/PDF</td><td>5</td></tr>
+                <tr><td>Clipboard</td><td>2</td></tr>
+                <tr><td>Event Types</td><td>16</td></tr>
+                <tr class="total"><td><strong>TOTAL</strong></td><td>450+</td></tr>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<div class="footer">
+    <p>AnikaLang wxPython Edition — Complete API Reference</p>
+    <p style="margin-top:8px; font-size:0.85em;">Generated for AnikaLang v1 • 450+ Functions • 39 Categories</p>
+</div>
+
+<script>
+    // Toggle section
+    function toggleSection(header) {
+        header.parentElement.classList.toggle('open');
+    }
+
+    // Expand all
+    function expandAll() {
+        document.querySelectorAll('.section').forEach(s => s.classList.add('open'));
+    }
+
+    // Collapse all
+    function collapseAll() {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('open'));
+    }
+
+    // Filter/search
+    function filterAll() {
+        const query = document.getElementById('searchBox').value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        document.querySelectorAll('.section').forEach(section => {
+            const rows = section.querySelectorAll('tbody tr');
+            const keywords = section.querySelectorAll('.keyword-chip, .event-chip');
+            const header = section.querySelector('.section-header h2').textContent.toLowerCase();
+            let sectionHasMatch = false;
+
+            if (!query) {
+                // Reset all
+                rows.forEach(r => r.classList.remove('hidden'));
+                sectionHasMatch = true;
+            } else {
+                // Check header match
+                if (header.includes(query)) {
+                    sectionHasMatch = true;
+                    rows.forEach(r => r.classList.remove('hidden'));
+                } else {
+                    // Check rows
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        if (text.includes(query)) {
+                            row.classList.remove('hidden');
+                            sectionHasMatch = true;
+                        } else {
+                            row.classList.add('hidden');
+                        }
+                    });
+                }
+
+                // Check keyword/event chips
+                keywords.forEach(chip => {
+                    if (chip.textContent.toLowerCase().includes(query)) {
+                        sectionHasMatch = true;
+                    }
+                });
+            }
+
+            if (sectionHasMatch) {
+                section.style.display = '';
+                if (query) section.classList.add('open');
+                // Count visible functions
+                const visible = section.querySelectorAll('tbody tr:not(.hidden)').length;
+                visibleCount += visible || (sectionHasMatch && rows.length === 0 ? 1 : 0);
+            } else {
+                section.style.display = 'none';
+            }
+        });
+
+        document.getElementById('visibleCount').textContent = visibleCount || '0';
+    }
+
+    // Back to top button
+    window.addEventListener('scroll', () => {
+        const btn = document.getElementById('backTop');
+        if (window.scrollY > 400) {
+            btn.classList.add('visible');
+        } else {
+            btn.classList.remove('visible');
+        }
+    });
+
+    // Keyboard shortcut: Ctrl+K to focus search
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            document.getElementById('searchBox').focus();
+        }
+        if (e.key === 'Escape') {
+            document.getElementById('searchBox').value = '';
+            filterAll();
+            document.getElementById('searchBox').blur();
+        }
+    });
+</script>
+
+</body>
+</html>
