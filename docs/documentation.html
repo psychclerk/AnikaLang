@@ -103,6 +103,130 @@
             border: 1px solid rgba(88, 166, 255, 0.3);
         }
 
+
+        /* Hero */
+        .hero {
+            background: var(--gradient-hero);
+            padding: 130px 24px 60px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-breadcrumb {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+        }
+
+        .hero-breadcrumb a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .hero-breadcrumb a:hover { text-decoration: underline; }
+
+        .hero-modules {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .module-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: 1px solid;
+        }
+
+        .module-chip.math {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+
+        .module-chip.string {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34d399;
+        }
+
+        .hero h1 {
+            font-size: clamp(2em, 5vw, 3.5em);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        .hero h1 .gradient {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            color: var(--text-dim);
+            font-size: 1.15em;
+            max-width: 700px;
+            margin: 0 auto 28px;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 2.2em;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-stat-label {
+            color: var(--text-dim);
+            font-size: 0.85em;
+        }
+
         /* Header */
         .header {
             background: linear-gradient(135deg, #1a1f35 0%, #0d1117 50%, #1a2332 100%);
@@ -149,7 +273,6 @@
             align-items: center;
             flex-wrap: wrap;
             justify-content: center;
-            position: sticky;
             top: 120px;
             z-index: 99;
         }
@@ -511,7 +634,7 @@
     </div>
 </nav>
 
-<div class="header" id="top">
+<div class="hero" id="top">
     <h1>AnikaLang wxPython</h1>
     <p>Complete Keywords & Functions Reference — 450+ Functions</p>
 </div>
