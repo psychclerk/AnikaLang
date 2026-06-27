@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnikaLang — Math & String Utilities API Reference</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --surface3: #21262d;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #58a6ff;
+            --accent2: #7ee787;
+            --accent3: #d2a8ff;
+            --accent4: #ffa657;
+            --accent5: #ff7b72;
+            --accent6: #79c0ff;
+            --gradient-math: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --gradient-string: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            --gradient-primary: linear-gradient(135deg, #58a6ff 0%, #d2a8ff 50%, #7ee787 100%);
+            --gradient-hero: linear-gradient(135deg, #1a1f35 0%, #0d1117 50%, #1a2332 100%);
+            --gradient-card: linear-gradient(135deg, #161b22 0%, #1c2333 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 17, 23, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 14px 0;
+        }
+
+        .nav-inner {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.15em;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--gradient-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1em;
+            color: #000;
+            font-weight: 900;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 22px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.92em;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text); }
+
+        .nav-links a.active { color: var(--accent); font-weight: 600; }
+
+        .nav-badge {
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--accent);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+
+        /* Hero */
+        .hero {
+            background: var(--gradient-hero);
+            padding: 130px 24px 60px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-breadcrumb {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+        }
+
+        .hero-breadcrumb a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .hero-breadcrumb a:hover { text-decoration: underline; }
+
+        .hero-modules {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .module-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: 1px solid;
+        }
+
+        .module-chip.math {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+
+        .module-chip.string {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34d399;
+        }
+
+        .hero h1 {
+            font-size: clamp(2em, 5vw, 3.5em);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        .hero h1 .gradient {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            color: var(--text-dim);
+            font-size: 1.15em;
+            max-width: 700px;
+            margin: 0 auto 28px;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 2.2em;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-stat-label {
+            color: var(--text-dim);
+            font-size: 0.85em;
+        }
+
+        /* Search */
+        .search-container {
+            max-width: 1300px;
+            margin: -24px auto 0;
+            padding: 0 24px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .search-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            color: var(--text);
+            font-size: 1em;
+            width: 100%;
+            outline: none;
+            transition: all 0.2s;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        .search-box:focus {
+            border-color: var(--accent);
+            box-shadow: 0 8px 24px rgba(88, 166, 255, 0.15);
+        }
+
+        /* Main container */
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 60px 24px;
+        }
+
+        /* Module section */
+        .module-section {
+            margin-bottom: 80px;
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .module-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            flex-shrink: 0;
+        }
+
+        .module-icon.math { background: var(--gradient-math); }
+        .module-icon.string { background: var(--gradient-string); }
+
+        .module-title h2 {
+            font-size: 2em;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .module-title .module-filename {
+            font-family: 'Consolas', monospace;
+            color: var(--text-dim);
+            font-size: 0.9em;
+        }
+
+        .module-description {
+            color: var(--text-dim);
+            font-size: 1.05em;
+            margin-bottom: 32px;
+            max-width: 800px;
+        }
+
+        /* Category */
+        .category {
+            margin-bottom: 40px;
+            scroll-margin-top: 80px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .category-header .cat-icon {
+            font-size: 1.2em;
+        }
+
+        .category-header .cat-count {
+            background: var(--surface2);
+            color: var(--text-dim);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* Function table */
+        .func-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .func-table thead th {
+            background: var(--surface2);
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dim);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .func-table tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+
+        .func-table tbody tr:last-child { border-bottom: none; }
+        .func-table tbody tr:hover { background: var(--surface2); }
+        .func-table tbody tr.hidden { display: none; }
+
+        .func-table td {
+            padding: 12px 16px;
+            vertical-align: top;
+            font-size: 0.93em;
+        }
+
+        .func-name {
+            font-family: 'Consolas', 'Fira Code', monospace;
+            color: var(--accent);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .func-args {
+            font-family: 'Consolas', monospace;
+            color: var(--accent4);
+            font-size: 0.88em;
+            white-space: nowrap;
+        }
+
+        .func-returns {
+            font-family: 'Consolas', monospace;
+            color: var(--accent3);
+            font-size: 0.85em;
+        }
+
+        .func-desc {
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .func-desc code {
+            background: var(--surface3);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.88em;
+            color: var(--accent4);
+        }
+
+        /* Code example block */
+        .example-block {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin: 24px 0;
+            overflow: hidden;
+        }
+
+        .example-header {
+            background: var(--surface2);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .example-title {
+            color: var(--text-dim);
+            font-size: 0.85em;
+            font-family: 'Consolas', monospace;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .example-title::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent2);
+            border-radius: 50%;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--surface3);
+            color: var(--text);
+            border-color: var(--accent);
+        }
+
+        .copy-btn.copied {
+            background: var(--accent2);
+            color: #000;
+            border-color: var(--accent2);
+        }
+
+        .code-body {
+            padding: 16px 20px;
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 0.88em;
+            line-height: 1.7;
+            overflow-x: auto;
+        }
+
+        .code-line {
+            display: flex;
+            gap: 16px;
+        }
+
+        .line-num {
+            color: var(--text-muted);
+            user-select: none;
+            min-width: 24px;
+            text-align: right;
+        }
+
+        .line-content { flex: 1; white-space: pre; }
+
+        .kw { color: var(--accent3); font-weight: 600; }
+        .fn { color: var(--accent); }
+        .str { color: var(--accent2); }
+        .num { color: var(--accent4); }
+        .cmt { color: var(--text-muted); font-style: italic; }
+        .var { color: var(--accent6); }
+
+        /* Callout boxes */
+        .callout {
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-left: 4px solid;
+            display: flex;
+            gap: 14px;
+        }
+
+        .callout-icon { font-size: 1.4em; flex-shrink: 0; }
+        .callout-content { flex: 1; }
+        .callout-title { font-weight: 700; margin-bottom: 4px; font-size: 0.95em; }
+        .callout-body { font-size: 0.92em; line-height: 1.6; color: var(--text-dim); }
+
+        .callout.tip { background: rgba(126, 231, 135, 0.08); border-color: var(--accent2); }
+        .callout.tip .callout-title { color: var(--accent2); }
+
+        .callout.info { background: rgba(88, 166, 255, 0.08); border-color: var(--accent); }
+        .callout.info .callout-title { color: var(--accent); }
+
+        .callout.warn { background: rgba(255, 166, 87, 0.08); border-color: var(--accent4); }
+        .callout.warn .callout-title { color: var(--accent4); }
+
+        /* Quick ref */
+        .quick-ref {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .quick-ref h3 {
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .quick-ref-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .quick-ref-item:hover {
+            border-color: var(--accent);
+            transform: translateX(2px);
+        }
+
+        .quick-ref-item .qri-fn {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .quick-ref-item .qri-result {
+            color: var(--text-dim);
+            margin-top: 4px;
+            font-size: 0.9em;
+        }
+
+        /* Back to top */
+        .back-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--accent);
+            color: #000;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.4em;
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 200;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .back-top.visible { opacity: 1; }
+        .back-top:hover { transform: scale(1.1); }
+
+        /* Footer */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 40px 24px;
+            text-align: center;
+            color: var(--text-dim);
+            margin-top: 60px;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero h1 { font-size: 1.8em; }
+            .hero-stats { gap: 20px; }
+            .hero-stat-value { font-size: 1.6em; }
+            .func-table { font-size: 0.85em; }
+            .func-table td, .func-table th { padding: 10px 10px; }
+            .module-header { flex-direction: column; align-items: flex-start; }
+        }
+
+        /* Reveal animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease-out;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Highlight search */
+        mark {
+            background: var(--accent4);
+            color: #000;
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="#" class="logo">
+            <div class="logo-icon">A</div>
+            <span>AnikaLang Docs</span>
+        </a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="documentation.html">Documentation</a>
+            <a href="utils.html" class="active">Utilities</a>
+            <a href="tutorial.html">Tutorial</a>
+            <span class="nav-badge">v1</span>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-breadcrumb">
+            <a href="documentation.html">Documentation</a>
+            <span>›</span>
+            <span>Utility Modules</span>
+        </div>
+
+        <div class="hero-modules">
+            <span class="module-chip math">🧮 mathutils.fms</span>
+            <span class="module-chip string">📝 stringutils.fms</span>
+        </div>
+
+        <h1>
+            <span class="gradient">Math & String</span><br>
+            Utility Modules
+        </h1>
+        <p class="hero-subtitle">
+            A comprehensive collection of helper functions for advanced math operations and string manipulation.
+            Import them with <code style="background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:4px; font-family:Consolas,monospace;">INCLUDE "../../includes/mathutils.fms"</code>
+        </p>
+
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value">42</div>
+                <div class="hero-stat-label">Total Functions</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">2</div>
+                <div class="hero-stat-label">Modules</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">10</div>
+                <div class="hero-stat-label">Categories</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Search -->
+<div class="search-container">
+    <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search functions (e.g. 'percentage', 'slugify', 'clamp')..." oninput="filterAll()">
+</div>
+
+<div class="container">
+
+    <!-- ============================================================ -->
+    <!-- MATHUTILS MODULE -->
+    <!-- ============================================================ -->
+    <section class="module-section reveal" id="mathutils">
+        <div class="module-header">
+            <div class="module-icon math">🧮</div>
+            <div class="module-title">
+                <h2>Math Utilities</h2>
+                <div class="module-filename">mathutils.fms</div>
+            </div>
+        </div>
+        <p class="module-description">
+            Advanced math helpers for everyday calculations — percentages, clamping, interpolation,
+            unit conversions, financial math, and number formatting. All functions handle edge cases
+            gracefully and return sensible defaults.
+        </p>
+
+        <div class="callout info">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+                <div class="callout-title">How to Import</div>
+                <div class="callout-body">
+                    Add this line at the top of your script:<br>
+                    <code style="background:var(--surface3); padding:2px 8px; border-radius:4px; font-family:Consolas,monospace; color:var(--accent3);">INCLUDE "../../includes/mathutils.fms"</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Percentages -->
+        <div class="category" id="math-percentages">
+            <h3 class="category-header">
+                <span class="cat-icon">%</span> Percentages & Ratios
+                <span class="cat-count">6 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">PERCENT_OF</td>
+                        <td class="func-args">(value, percent)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Calculate <code>percent%</code> of <code>value</code>. Example: <code>PERCENT_OF(200, 15)</code> → <code>30</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">PERCENT_CHANGE</td>
+                        <td class="func-args">(old, new)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Percentage change from <code>old</code> to <code>new</code>. Returns negative for decrease.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">RATIO</td>
+                        <td class="func-args">(a, b)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Ratio of <code>a</code> to <code>b</code>. Returns <code>0</code> if <code>b</code> is zero.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">PROPORTION</td>
+                        <td class="func-args">(part, whole)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Returns <code>part/whole</code> as a decimal (0–1). Safe division by zero.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">MARKUP</td>
+                        <td class="func-args">(cost, percent)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Apply markup percentage to cost. Example: <code>MARKUP(100, 25)</code> → <code>125</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">DISCOUNT</td>
+                        <td class="func-args">(price, percent)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Apply discount percentage. Example: <code>DISCOUNT(80, 20)</code> → <code>64</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Number Range -->
+        <div class="category" id="math-range">
+            <h3 class="category-header">
+                <span class="cat-icon">📏</span> Number Range & Bounds
+                <span class="cat-count">5 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">CLAMP</td>
+                        <td class="func-args">(value, min, max)</td>
+                        <td class="func-returns">number</td>
+                        <td class="func-desc">Clamp <code>value</code> between <code>min</code> and <code>max</code>. Essential for game/UI values.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">LERP</td>
+                        <td class="func-args">(a, b, t)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Linear interpolation between <code>a</code> and <code>b</code> at <code>t</code> (0–1). Great for animations.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">IN_RANGE</td>
+                        <td class="func-args">(value, min, max)</td>
+                        <td class="func-returns">bool</td>
+                        <td class="func-desc">Returns <code>TRUE</code> if <code>value</code> is between <code>min</code> and <code>max</code> (inclusive).</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">WRAP</td>
+                        <td class="func-args">(value, min, max)</td>
+                        <td class="func-returns">number</td>
+                        <td class="func-desc">Wrap value around range. Example: <code>WRAP(370, 0, 360)</code> → <code>10</code> (degrees).</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">SIGN</td>
+                        <td class="func-args">(value)</td>
+                        <td class="func-returns">int</td>
+                        <td class="func-desc">Returns <code>1</code>, <code>-1</code>, or <code>0</code> based on sign of <code>value</code>.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Rounding -->
+        <div class="category" id="math-rounding">
+            <h3 class="category-header">
+                <span class="cat-icon">🎯</span> Rounding & Precision
+                <span class="cat-count">5 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">ROUND_TO</td>
+                        <td class="func-args">(value, step)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Round to nearest multiple of <code>step</code>. Example: <code>ROUND_TO(7.3, 0.5)</code> → <code>7.5</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">FIXED</td>
+                        <td class="func-args">(value, decimals)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Format number as string with fixed decimal places. Example: <code>FIXED(3.14159, 2)</code> → <code>"3.14"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">TRUNCATE</td>
+                        <td class="func-args">(value, decimals)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Truncate (not round) to N decimals. Example: <code>TRUNCATE(3.999, 2)</code> → <code>3.99</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">NEAREST_INT</td>
+                        <td class="func-args">(value)</td>
+                        <td class="func-returns">int</td>
+                        <td class="func-desc">Round to nearest integer (banker's rounding).</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">APPROX_EQUAL</td>
+                        <td class="func-args">(a, b, [tolerance])</td>
+                        <td class="func-returns">bool</td>
+                        <td class="func-desc">Check if two floats are approximately equal. Default tolerance: <code>0.0001</code>.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Financial -->
+        <div class="category" id="math-finance">
+            <h3 class="category-header">
+                <span class="cat-icon">💰</span> Financial Math
+                <span class="cat-count">5 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">SIMPLE_INTEREST</td>
+                        <td class="func-args">(principal, rate, years)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Calculate simple interest. <code>rate</code> is percentage per year.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">COMPOUND_INTEREST</td>
+                        <td class="func-args">(principal, rate, years, [n])</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Compound interest. <code>n</code> = compounding periods per year (default 12).</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">TIP</td>
+                        <td class="func-args">(bill, percent)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Calculate tip amount. Example: <code>TIP(50, 18)</code> → <code>9</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">TAX</td>
+                        <td class="func-args">(amount, rate)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Calculate tax amount. Example: <code>TAX(100, 8.5)</code> → <code>8.5</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">EMI</td>
+                        <td class="func-args">(principal, rate, months)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Monthly EMI (Equated Monthly Installment) for loans.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Geometry -->
+        <div class="category" id="math-geometry">
+            <h3 class="category-header">
+                <span class="cat-icon">📐</span> Geometry
+                <span class="cat-count">6 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">DISTANCE</td>
+                        <td class="func-args">(x1, y1, x2, y2)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Euclidean distance between two 2D points.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">DISTANCE_3D</td>
+                        <td class="func-args">(x1, y1, z1, x2, y2, z2)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Euclidean distance between two 3D points.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">ANGLE_BETWEEN</td>
+                        <td class="func-args">(x1, y1, x2, y2)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Angle (in degrees) between two points relative to origin.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">CIRCLE_AREA</td>
+                        <td class="func-args">(radius)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Area of circle: π × r²</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">RECTANGLE_AREA</td>
+                        <td class="func-args">(width, height)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Area of rectangle.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">TRIANGLE_AREA</td>
+                        <td class="func-args">(base, height)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Area of triangle: ½ × base × height.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Conversions -->
+        <div class="category" id="math-conversions">
+            <h3 class="category-header">
+                <span class="cat-icon">🔄</span> Unit Conversions
+                <span class="cat-count">6 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">CELSIUS_TO_F</td>
+                        <td class="func-args">(c)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Convert Celsius to Fahrenheit.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">F_TO_CELSIUS</td>
+                        <td class="func-args">(f)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Convert Fahrenheit to Celsius.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">KM_TO_MILES</td>
+                        <td class="func-args">(km)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Convert kilometers to miles.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">MILES_TO_KM</td>
+                        <td class="func-args">(miles)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Convert miles to kilometers.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">KG_TO_LBS</td>
+                        <td class="func-args">(kg)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Convert kilograms to pounds.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">LBS_TO_KG</td>
+                        <td class="func-args">(lbs)</td>
+                        <td class="func-returns">float</td>
+                        <td class="func-desc">Convert pounds to kilograms.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Formatting -->
+        <div class="category" id="math-format">
+            <h3 class="category-header">
+                <span class="cat-icon">✨</span> Number Formatting
+                <span class="cat-count">5 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">FORMAT_NUMBER</td>
+                        <td class="func-args">(value, [decimals])</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Format with thousand separators. <code>FORMAT_NUMBER(1234567, 2)</code> → <code>"1,234,567.00"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">FORMAT_CURRENCY</td>
+                        <td class="func-args">(value, [symbol])</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Format as currency. Default symbol: <code>"$"</code>. Example: <code>FORMAT_CURRENCY(1234.5)</code> → <code>"$1,234.50"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">FORMAT_BYTES</td>
+                        <td class="func-args">(bytes)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Human-readable bytes. <code>FORMAT_BYTES(1536)</code> → <code>"1.5 KB"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">FORMAT_COMPACT</td>
+                        <td class="func-args">(value)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Compact notation. <code>FORMAT_COMPACT(1500000)</code> → <code>"1.5M"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">ROMAN_NUMERAL</td>
+                        <td class="func-args">(number)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Convert integer (1–3999) to Roman numeral. <code>ROMAN_NUMERAL(2024)</code> → <code>"MMXXIV"</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Math Example -->
+        <div class="example-block">
+            <div class="example-header">
+                <span class="example-title">mathutils_example.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">INCLUDE</span> <span class="str">"../../includes/mathutils.fms"</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="cmt"># Percentage calculations</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> price <span class="kw">TO</span> <span class="num">100</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> discounted <span class="kw">TO</span> <span class="fn">DISCOUNT</span>(price, <span class="num">20</span>)    <span class="cmt"># 80</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"><span class="kw">SET</span> with_tax <span class="kw">TO</span> <span class="fn">TAX</span>(discounted, <span class="num">8.5</span>)    <span class="cmt"># 86.8</span></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="cmt"># Clamping a game value</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="kw">SET</span> health <span class="kw">TO</span> <span class="fn">CLAMP</span>(<span class="num">150</span>, <span class="num">0</span>, <span class="num">100</span>)    <span class="cmt"># 100</span></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"><span class="cmt"># Format for display</span></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="kw">SET</span> display <span class="kw">TO</span> <span class="fn">FORMAT_CURRENCY</span>(with_tax)  <span class="cmt"># "$86.80"</span></span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content"><span class="fn">UI_ALERT</span>(<span class="str">"Final price: "</span> & display)</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- STRINGUTILS MODULE -->
+    <!-- ============================================================ -->
+    <section class="module-section reveal" id="stringutils">
+        <div class="module-header">
+            <div class="module-icon string">📝</div>
+            <div class="module-title">
+                <h2>String Utilities</h2>
+                <div class="module-filename">stringutils.fms</div>
+            </div>
+        </div>
+        <p class="module-description">
+            Powerful string manipulation helpers — case conversion, padding, slug generation,
+            template formatting, validation, encoding, and advanced search/replace. Perfect for
+            data processing, URL building, and user input sanitization.
+        </p>
+
+        <div class="callout info">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+                <div class="callout-title">How to Import</div>
+                <div class="callout-body">
+                    Add this line at the top of your script:<br>
+                    <code style="background:var(--surface3); padding:2px 8px; border-radius:4px; font-family:Consolas,monospace; color:var(--accent3);">INCLUDE "../../includes/stringutils.fms"</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Case Conversion -->
+        <div class="category" id="str-case">
+            <h3 class="category-header">
+                <span class="cat-icon">🔤</span> Case Conversion
+                <span class="cat-count">6 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">TITLE_CASE</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Capitalize first letter of each word. <code>TITLE_CASE("hello world")</code> → <code>"Hello World"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">SENTENCE_CASE</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Capitalize first letter of each sentence.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">CAMEL_CASE</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Convert to camelCase. <code>CAMEL_CASE("hello world")</code> → <code>"helloWorld"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">SNAKE_CASE</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Convert to snake_case. <code>SNAKE_CASE("Hello World")</code> → <code>"hello_world"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">KEBAB_CASE</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Convert to kebab-case. <code>KEBAB_CASE("Hello World")</code> → <code>"hello-world"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">INVERT_CASE</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Invert case of each character. <code>INVERT_CASE("Hello")</code> → <code>"hELLO"</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Padding & Truncation -->
+        <div class="category" id="str-pad">
+            <h3 class="category-header">
+                <span class="cat-icon">📐</span> Padding & Truncation
+                <span class="cat-count">5 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">PAD_LEFT</td>
+                        <td class="func-args">(text, length, [char])</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Pad on left. Default char: space. <code>PAD_LEFT("42", 5, "0")</code> → <code>"00042"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">PAD_RIGHT</td>
+                        <td class="func-args">(text, length, [char])</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Pad on right. Default char: space.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">CENTER</td>
+                        <td class="func-args">(text, length, [char])</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Center text within length. Default char: space.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">TRUNCATE</td>
+                        <td class="func-args">(text, length, [suffix])</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Truncate to length with suffix. Default suffix: <code>"..."</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">REPEAT</td>
+                        <td class="func-args">(text, count)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Repeat text N times. <code>REPEAT("ab", 3)</code> → <code>"ababab"</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Search & Replace -->
+        <div class="category" id="str-search">
+            <h3 class="category-header">
+                <span class="cat-icon">🔍</span> Search & Replace
+                <span class="cat-count">5 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">COUNT_OCCURRENCES</td>
+                        <td class="func-args">(text, substr)</td>
+                        <td class="func-returns">int</td>
+                        <td class="func-desc">Count non-overlapping occurrences of <code>substr</code> in <code>text</code>.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">REPLACE_FIRST</td>
+                        <td class="func-args">(text, old, new)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Replace only the first occurrence.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">REPLACE_LAST</td>
+                        <td class="func-args">(text, old, new)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Replace only the last occurrence.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">REPLACE_IGNORE_CASE</td>
+                        <td class="func-args">(text, old, new)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Case-insensitive replace all.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">MASK</td>
+                        <td class="func-args">(text, [char])</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Mask all characters except last 4. Default char: <code>"*"</code>. Useful for credit cards.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Split & Join -->
+        <div class="category" id="str-split">
+            <h3 class="category-header">
+                <span class="cat-icon">✂️</span> Split & Join
+                <span class="cat-count">5 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">WORDS</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">list</td>
+                        <td class="func-desc">Split text into list of words (splits on any whitespace).</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">LINES</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">list</td>
+                        <td class="func-desc">Split text into list of lines.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">CHARS</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">list</td>
+                        <td class="func-desc">Split text into list of individual characters.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">JOIN_LIST</td>
+                        <td class="func-args">(list, delimiter)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Join list into string with delimiter. <code>JOIN_LIST(["a","b","c"], ",")</code> → <code>"a,b,c"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">CHUNK</td>
+                        <td class="func-args">(text, size)</td>
+                        <td class="func-returns">list</td>
+                        <td class="func-desc">Split text into chunks of N characters.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Validation -->
+        <div class="category" id="str-validate">
+            <h3 class="category-header">
+                <span class="cat-icon">✅</span> Validation
+                <span class="cat-count">6 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">IS_EMAIL</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">bool</td>
+                        <td class="func-desc">Check if text is a valid email address.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">IS_URL</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">bool</td>
+                        <td class="func-desc">Check if text is a valid URL (http/https/ftp).</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">IS_NUMERIC</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">bool</td>
+                        <td class="func-desc">Check if text can be parsed as a number.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">IS_ALPHA</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">bool</td>
+                        <td class="func-desc">Check if text contains only letters.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">IS_ALPHANUM</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">bool</td>
+                        <td class="func-desc">Check if text contains only letters and digits.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">IS_PALINDROME</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">bool</td>
+                        <td class="func-desc">Check if text reads the same forwards and backwards (case-insensitive).</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Text Analysis -->
+        <div class="category" id="str-analysis">
+            <h3 class="category-header">
+                <span class="cat-icon">📊</span> Text Analysis
+                <span class="cat-count">5 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">WORD_COUNT</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">int</td>
+                        <td class="func-desc">Count words in text.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">LINE_COUNT</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">int</td>
+                        <td class="func-desc">Count lines in text.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">SENTENCE_COUNT</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">int</td>
+                        <td class="func-desc">Count sentences (splits on <code>.</code>, <code>!</code>, <code>?</code>).</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">CHAR_FREQUENCY</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">dict</td>
+                        <td class="func-desc">Returns dict of character → count.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">MOST_COMMON_WORD</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Returns the most frequently occurring word.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- URL & Slug -->
+        <div class="category" id="str-url">
+            <h3 class="category-header">
+                <span class="cat-icon">🔗</span> URL & Slug Generation
+                <span class="cat-count">4 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">SLUGIFY</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Convert to URL-safe slug. <code>SLUGIFY("Hello World!")</code> → <code>"hello-world"</code></td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">URL_ENCODE</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">URL-encode special characters.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">URL_DECODE</td>
+                        <td class="func-args">(text)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Decode URL-encoded string.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">EXTRACT_DOMAIN</td>
+                        <td class="func-args">(url)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Extract domain from URL. <code>EXTRACT_DOMAIN("https://example.com/path")</code> → <code>"example.com"</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Template -->
+        <div class="category" id="str-template">
+            <h3 class="category-header">
+                <span class="cat-icon">📋</span> Template & Formatting
+                <span class="cat-count">3 functions</span>
+            </h3>
+            <table class="func-table">
+                <thead>
+                    <tr><th>Function</th><th>Arguments</th><th>Returns</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="func-name">TEMPLATE</td>
+                        <td class="func-args">(template, dict)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Replace <code>{{key}}</code> placeholders with values from dict.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">PLURALIZE</td>
+                        <td class="func-args">(word, count, [plural])</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Return singular or plural form. Auto-adds "s" if plural not given.</td>
+                    </tr>
+                    <tr>
+                        <td class="func-name">ORDINAL</td>
+                        <td class="func-args">(number)</td>
+                        <td class="func-returns">string</td>
+                        <td class="func-desc">Convert number to ordinal string. <code>ORDINAL(3)</code> → <code>"3rd"</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- String Example -->
+        <div class="example-block">
+            <div class="example-header">
+                <span class="example-title">stringutils_example.fms</span>
+                <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+            </div>
+            <div class="code-body">
+                <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="kw">INCLUDE</span> <span class="str">"../../includes/stringutils.fms"</span></span></div>
+                <div class="code-line"><span class="line-num">2</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="cmt"># Case conversion</span></span></div>
+                <div class="code-line"><span class="line-num">4</span><span class="line-content"><span class="kw">SET</span> name <span class="kw">TO</span> <span class="fn">TITLE_CASE</span>(<span class="str">"john doe"</span>)    <span class="cmt"># "John Doe"</span></span></div>
+                <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">SET</span> var_name <span class="kw">TO</span> <span class="fn">SNAKE_CASE</span>(<span class="str">"user name"</span>)  <span class="cmt"># "user_name"</span></span></div>
+                <div class="code-line"><span class="line-num">6</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">7</span><span class="line-content"><span class="cmt"># URL generation</span></span></div>
+                <div class="code-line"><span class="line-num">8</span><span class="line-content"><span class="kw">SET</span> title <span class="kw">TO</span> <span class="str">"Hello World! This is Cool"</span></span></div>
+                <div class="code-line"><span class="line-num">9</span><span class="line-content"><span class="kw">SET</span> slug <span class="kw">TO</span> <span class="fn">SLUGIFY</span>(title)            <span class="cmt"># "hello-world-this-is-cool"</span></span></div>
+                <div class="code-line"><span class="line-num">10</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">11</span><span class="line-content"><span class="cmt"># Validation</span></span></div>
+                <div class="code-line"><span class="line-num">12</span><span class="line-content"><span class="kw">IF</span> <span class="fn">IS_EMAIL</span>(<span class="str">"user@example.com"</span>) <span class="kw">THEN</span></span></div>
+                <div class="code-line"><span class="line-num">13</span><span class="line-content">    <span class="fn">UI_ALERT</span>(<span class="str">"Valid email!"</span>)</span></div>
+                <div class="code-line"><span class="line-num">14</span><span class="line-content"><span class="kw">END IF</span></span></div>
+                <div class="code-line"><span class="line-num">15</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-num">16</span><span class="line-content"><span class="cmt"># Template substitution</span></span></div>
+                <div class="code-line"><span class="line-num">17</span><span class="line-content"><span class="kw">SET</span> data <span class="kw">TO</span> {<span class="str">"name"</span>: <span class="str">"Alice"</span>, <span class="str">"age"</span>: <span class="str">"30"</span>}</span></div>
+                <div class="code-line"><span class="line-num">18</span><span class="line-content"><span class="kw">SET</span> msg <span class="kw">TO</span> <span class="fn">TEMPLATE</span>(<span class="str">"Hi {{name}}, you are {{age}}!"</span>, data)</span></div>
+                <div class="code-line"><span class="line-num">19</span><span class="line-content"><span class="fn">UI_ALERT</span>(msg)  <span class="cmt"># "Hi Alice, you are 30!"</span></span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Reference -->
+    <section class="reveal">
+        <div class="quick-ref">
+            <h3>⚡ Quick Reference — Most Used Functions</h3>
+            <div class="quick-ref-grid">
+                <div class="quick-ref-item">
+                    <div class="qri-fn">CLAMP(150, 0, 100)</div>
+                    <div class="qri-result">→ 100</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">PERCENT_OF(200, 15)</div>
+                    <div class="qri-result">→ 30</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">FORMAT_CURRENCY(1234.5)</div>
+                    <div class="qri-result">→ "$1,234.50"</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">SLUGIFY("Hello World!")</div>
+                    <div class="qri-result">→ "hello-world"</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">TITLE_CASE("john doe")</div>
+                    <div class="qri-result">→ "John Doe"</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">SNAKE_CASE("user name")</div>
+                    <div class="qri-result">→ "user_name"</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">PAD_LEFT("42", 5, "0")</div>
+                    <div class="qri-result">→ "00042"</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">IS_EMAIL("a@b.com")</div>
+                    <div class="qri-result">→ TRUE</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">ORDINAL(3)</div>
+                    <div class="qri-result">→ "3rd"</div>
+                </div>
+                <div class="quick-ref-item">
+                    <div class="qri-fn">LERP(0, 100, 0.5)</div>
+                    <div class="qri-result">→ 50</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="callout tip">
+            <div class="callout-icon">🎯</div>
+            <div class="callout-content">
+                <div class="callout-title">Pro Tip</div>
+                <div class="callout-body">
+                    Both modules are pure AnikaLang — no external dependencies required!
+                    They're built using only the standard library functions, so they work everywhere AnikaLang runs.
+                </div>
+            </div>
+        </div>
+
+        <div class="callout warn">
+            <div class="callout-icon">⚠️</div>
+            <div class="callout-content">
+                <div class="callout-title">Note on Namespaces</div>
+                <div class="callout-body">
+                    All functions are added to the global namespace when you <code>INCLUDE</code> the module.
+                    If you include both modules, you get access to all 42 functions directly — no prefix needed.
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+    <p><strong>AnikaLang</strong> — Build Desktop Apps in Plain English</p>
+    <p style="margin-top: 8px; font-size: 0.9em;">
+        <a href="documentation.html">Documentation</a> ·
+        <a href="tutorial.html">Tutorial</a> ·
+        <a href="https://github.com/psychclerk/anikalang">GitHub</a>
+    </p>
+    <p style="margin-top: 16px; font-size: 0.8em; color: var(--text-muted);">
+        © 2026 AnikaLang · 
+    </p>
+</footer>
+
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+    // Copy code to clipboard
+    function copyCode(btn) {
+        const block = btn.closest('.example-block');
+        const lines = block.querySelectorAll('.line-content');
+        let text = '';
+        lines.forEach(line => { text += line.textContent + '\n'; });
+        text = text.trim();
+
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = '✓ Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = '📋 Copy';
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    // Search / filter
+    function filterAll() {
+        const query = document.getElementById('searchBox').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.func-table tbody tr');
+
+        rows.forEach(row => {
+            if (!query) {
+                row.classList.remove('hidden');
+                return;
+            }
+            const text = row.textContent.toLowerCase();
+            if (text.includes(query)) {
+                row.classList.remove('hidden');
+            } else {
+                row.classList.add('hidden');
+            }
+        });
+    }
+
+    // Back to top button
+    window.addEventListener('scroll', () => {
+        const btn = document.getElementById('backTop');
+        if (window.scrollY > 400) {
+            btn.classList.add('visible');
+        } else {
+            btn.classList.remove('visible');
+        }
+    });
+
+    // Reveal on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Keyboard shortcut: Ctrl+K to focus search
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            document.getElementById('searchBox').focus();
+        }
+        if (e.key === 'Escape') {
+            document.getElementById('searchBox').value = '';
+            filterAll();
+            document.getElementById('searchBox').blur();
+        }
+    });
+</script>
+
+</body>
+</html>
