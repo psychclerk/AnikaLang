@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AnikaLang wxPython — Complete API Reference</title>
+    <title>AnikaLang wxPython — Complete API Reference v1.1</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -20,6 +20,8 @@
             --accent6: #79c0ff;
             --keyword-bg: #1f2937;
             --code-bg: #0d1117;
+            --gradient-primary: linear-gradient(135deg, #58a6ff 0%, #7ee787 100%);
+            --gradient-hero: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,7 +33,7 @@
             line-height: 1.6;
         }
 
-/* Navigation */
+        /* Navigation */
         .nav {
             position: fixed;
             top: 0;
@@ -90,7 +92,6 @@
         }
 
         .nav-links a:hover { color: var(--text); }
-
         .nav-links a.active { color: var(--accent); font-weight: 600; }
 
         .nav-badge {
@@ -102,7 +103,6 @@
             font-weight: 600;
             border: 1px solid rgba(88, 166, 255, 0.3);
         }
-
 
         /* Hero */
         .hero {
@@ -130,55 +130,6 @@
             margin: 0 auto;
             position: relative;
             z-index: 1;
-        }
-
-        .hero-breadcrumb {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 0.9em;
-            color: var(--text-dim);
-            margin-bottom: 20px;
-        }
-
-        .hero-breadcrumb a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        .hero-breadcrumb a:hover { text-decoration: underline; }
-
-        .hero-modules {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 24px;
-        }
-
-        .module-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-family: 'Consolas', monospace;
-            font-size: 0.9em;
-            font-weight: 600;
-            border: 1px solid;
-        }
-
-        .module-chip.math {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: rgba(59, 130, 246, 0.4);
-            color: #60a5fa;
-        }
-
-        .module-chip.string {
-            background: rgba(16, 185, 129, 0.1);
-            border-color: rgba(16, 185, 129, 0.4);
-            color: #34d399;
         }
 
         .hero h1 {
@@ -227,42 +178,6 @@
             font-size: 0.85em;
         }
 
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, #1a1f35 0%, #0d1117 50%, #1a2332 100%);
-            border-bottom: 1px solid var(--border);
-            padding: 40px 20px;
-            text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header h1 {
-            font-size: 2.2em;
-            background: linear-gradient(90deg, var(--accent), var(--accent3), var(--accent2));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: var(--text-dim);
-            font-size: 1.1em;
-        }
-
-        .header .badge {
-            display: inline-block;
-            background: var(--accent);
-            color: #000;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: 700;
-            margin-left: 8px;
-        }
-
         /* Search & Controls */
         .controls {
             background: var(--surface);
@@ -273,7 +188,8 @@
             align-items: center;
             flex-wrap: wrap;
             justify-content: center;
-            top: 120px;
+            position: sticky;
+            top: 62px;
             z-index: 99;
         }
 
@@ -400,6 +316,7 @@
         .cat-docx .section-header { border-left: 4px solid #2563eb; }
         .cat-pptx .section-header { border-left: 4px solid #ea580c; }
         .cat-ml .section-header { border-left: 4px solid #d946ef; }
+        .cat-ai .section-header { border-left: 4px solid #8b5cf6; }
         .cat-translate .section-header { border-left: 4px solid #0ea5e9; }
         .cat-tts .section-header { border-left: 4px solid #f97316; }
         .cat-ui .section-header { border-left: 4px solid #58a6ff; }
@@ -590,7 +507,7 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .header h1 { font-size: 1.5em; }
+            .hero h1 { font-size: 1.5em; }
             .controls { flex-direction: column; }
             .search-box { width: 100%; }
             .func-table { font-size: 0.8em; }
@@ -608,7 +525,7 @@
 
         /* Print styles */
         @media print {
-            .header, .controls, .back-top { position: static; }
+            .nav, .controls, .back-top { position: static; }
             .section-body { display: block !important; }
             body { background: #fff; color: #000; }
             .section { border: 1px solid #ccc; }
@@ -617,73 +534,66 @@
 </head>
 <body>
 
-<!-- Navigation -->
 <nav class="nav">
     <div class="nav-inner">
-        <a href="#" class="logo">
+        <a href="index.html" class="logo">
             <div class="logo-icon">A</div>
-            <span>AnikaLang Docs</span>
+            AnikaLang Docs
         </a>
         <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="documentation.html" class="active">Documentation</a>
             <a href="utils.html">Utilities</a>
             <a href="tutorial.html">Tutorial</a>
-            <span class="nav-badge">v1</span>
+            <span class="nav-badge">v1.1</span>
         </div>
     </div>
 </nav>
 
-<div class="hero" id="top">
-    <h1>AnikaLang wxPython</h1>
-    <p>Complete Keywords & Functions Reference — 450+ Functions</p>
-</div>
+<section class="hero">
+    <div class="hero-content">
+        <h1>AnikaLang <span class="gradient">wxPython</span></h1>
+        <p class="hero-subtitle">Complete Keywords & Functions Reference — Modular Plugin Architecture</p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value">476</div>
+                <div class="hero-stat-label">Functions</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">40</div>
+                <div class="hero-stat-label">Categories</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">13</div>
+                <div class="hero-stat-label">Plugins</div>
+            </div>
+        </div>
+    </div>
+</section>
 
 <div class="controls">
-    <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search functions, keywords, descriptions..." oninput="filterAll()">
-    <button class="btn" onclick="expandAll()">▼ Expand All</button>
-    <button class="btn" onclick="collapseAll()">▲ Collapse All</button>
+    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Search functions... (e.g., UI_BUTTON, STATS_MEAN, ML_KNN)">
+    <button class="btn" onclick="toggleAll(true)">▼ Expand All</button>
+    <button class="btn" onclick="toggleAll(false)">▲ Collapse All</button>
     <button class="btn" onclick="window.print()">🖨 Print</button>
 </div>
 
 <div class="stats-bar">
-    Showing <span id="visibleCount">450+</span> functions across <span>39</span> categories
+    Showing <span id="visibleCount">476</span> of <span>476</span> functions across <span>40</span> categories
 </div>
 
-<div class="container">
+<main class="container">
 
-    <!-- KEYWORDS -->
-    <div class="section open cat-keyword" data-category="keywords">
+    <!-- Keywords -->
+    <div class="section cat-keyword open" data-category="keywords">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🔑</span> Keywords <span class="count">23</span></h2>
             <span class="chevron">▼</span>
         </div>
         <div class="section-body">
-            <p style="color:var(--text-dim); margin-bottom:12px;">Reserved words that define the structure and flow of AnikaLang programs.</p>
+            <p style="color: var(--text-dim); margin-bottom: 12px;">Reserved words that define the structure and flow of AnikaLang programs.</p>
             <div class="keywords-grid">
-                <span class="keyword-chip">SET</span>
-                <span class="keyword-chip">TO</span>
-                <span class="keyword-chip">IF</span>
-                <span class="keyword-chip">THEN</span>
-                <span class="keyword-chip">ELSE</span>
-                <span class="keyword-chip">END</span>
-                <span class="keyword-chip">FOR</span>
-                <span class="keyword-chip">IN</span>
-                <span class="keyword-chip">WHILE</span>
-                <span class="keyword-chip">BREAK</span>
-                <span class="keyword-chip">CONTINUE</span>
-                <span class="keyword-chip">TRY</span>
-                <span class="keyword-chip">CATCH</span>
-                <span class="keyword-chip">RETURN</span>
-                <span class="keyword-chip">FUNCTION</span>
-                <span class="keyword-chip">TRUE</span>
-                <span class="keyword-chip">FALSE</span>
-                <span class="keyword-chip">NULL</span>
-                <span class="keyword-chip">AND</span>
-                <span class="keyword-chip">OR</span>
-                <span class="keyword-chip">NOT</span>
-                <span class="keyword-chip">STEP</span>
-                <span class="keyword-chip">INCLUDE</span>
+                <span class="keyword-chip">SET</span><span class="keyword-chip">TO</span><span class="keyword-chip">IF</span><span class="keyword-chip">THEN</span><span class="keyword-chip">ELSE</span><span class="keyword-chip">END</span><span class="keyword-chip">FOR</span><span class="keyword-chip">IN</span><span class="keyword-chip">WHILE</span><span class="keyword-chip">BREAK</span><span class="keyword-chip">CONTINUE</span><span class="keyword-chip">TRY</span><span class="keyword-chip">CATCH</span><span class="keyword-chip">RETURN</span><span class="keyword-chip">FUNCTION</span><span class="keyword-chip">TRUE</span><span class="keyword-chip">FALSE</span><span class="keyword-chip">NULL</span><span class="keyword-chip">AND</span><span class="keyword-chip">OR</span><span class="keyword-chip">NOT</span><span class="keyword-chip">STEP</span><span class="keyword-chip">INCLUDE</span>
             </div>
             <div class="code-example">
 <span class="cmt"># Example: Keywords in action</span>
@@ -707,7 +617,7 @@
         </div>
     </div>
 
-    <!-- MATH -->
+    <!-- Math Functions -->
     <div class="section cat-math" data-category="math">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🧮</span> Math Functions <span class="count">28</span></h2>
@@ -750,7 +660,7 @@
         </div>
     </div>
 
-    <!-- STRING -->
+    <!-- String Functions -->
     <div class="section cat-string" data-category="string">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📝</span> String Functions <span class="count">17</span></h2>
@@ -782,7 +692,7 @@
         </div>
     </div>
 
-    <!-- DATETIME -->
+    <!-- Date/Time Functions -->
     <div class="section cat-datetime" data-category="datetime">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📅</span> Date/Time Functions <span class="count">6</span></h2>
@@ -803,7 +713,7 @@
         </div>
     </div>
 
-    <!-- TYPE & CASTING -->
+    <!-- Type & Casting -->
     <div class="section cat-type" data-category="type">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🔄</span> Type & Casting <span class="count">6</span></h2>
@@ -824,7 +734,7 @@
         </div>
     </div>
 
-    <!-- EVALUATION -->
+    <!-- Evaluation & Debug -->
     <div class="section cat-eval" data-category="eval">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🧪</span> Evaluation & Debug <span class="count">5</span></h2>
@@ -844,10 +754,10 @@
         </div>
     </div>
 
-    <!-- STATISTICS -->
+    <!-- Statistics -->
     <div class="section cat-stats" data-category="stats">
         <div class="section-header" onclick="toggleSection(this)">
-            <h2><span class="icon">📊</span> Statistics <span class="count">28</span></h2>
+            <h2><span class="icon">📊</span> Statistics <span class="count">30</span></h2>
             <span class="chevron">▼</span>
         </div>
         <div class="section-body">
@@ -889,7 +799,7 @@
         </div>
     </div>
 
-    <!-- GRAPHS -->
+    <!-- Graphs -->
     <div class="section cat-graph" data-category="graph">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📈</span> Graphs <span class="count">12</span></h2>
@@ -916,7 +826,7 @@
         </div>
     </div>
 
-    <!-- COLLECTIONS -->
+    <!-- Dictionary & List -->
     <div class="section cat-collection" data-category="collection">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📚</span> Dictionary & List <span class="count">8</span></h2>
@@ -939,7 +849,7 @@
         </div>
     </div>
 
-    <!-- DATABASE -->
+    <!-- Database -->
     <div class="section cat-db" data-category="db">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🗄️</span> Database <span class="count">6</span></h2>
@@ -960,10 +870,10 @@
         </div>
     </div>
 
-    <!-- FILE I/O -->
+    <!-- File I/O & Paths -->
     <div class="section cat-file" data-category="file">
         <div class="section-header" onclick="toggleSection(this)">
-            <h2><span class="icon">📁</span> File I/O & Paths <span class="count">20</span></h2>
+            <h2><span class="icon">📁</span> File I/O & Paths <span class="count">22</span></h2>
             <span class="chevron">▼</span>
         </div>
         <div class="section-body">
@@ -971,9 +881,11 @@
                 <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
                 <tbody>
                     <tr><td class="func-name">FILE_READ</td><td class="func-args">(path)</td><td class="func-desc">Read file content</td></tr>
+                    <tr><td class="func-name">FILE_READ_BASE64</td><td class="func-args">(path)</td><td class="func-desc">Read file as base64 string</td></tr>
                     <tr><td class="func-name">FILE_WRITE</td><td class="func-args">(path, content)</td><td class="func-desc">Write to file</td></tr>
                     <tr><td class="func-name">FILE_APPEND</td><td class="func-args">(path, content)</td><td class="func-desc">Append to file</td></tr>
                     <tr><td class="func-name">FILE_EXISTS</td><td class="func-args">(path)</td><td class="func-desc">Check if file exists</td></tr>
+                    <tr><td class="func-name">FILE_TO_URL</td><td class="func-args">(path)</td><td class="func-desc">Convert path to file:// URL</td></tr>
                     <tr><td class="func-name">EXEC</td><td class="func-args">(cmd)</td><td class="func-desc">Execute shell command</td></tr>
                     <tr><td class="func-name">EXEC_CAPTURE</td><td class="func-args">(cmd)</td><td class="func-desc">Execute and capture [success, output]</td></tr>
                     <tr><td class="func-name">CMD_EXISTS</td><td class="func-args">(cmd)</td><td class="func-desc">Check if command exists on PATH</td></tr>
@@ -995,7 +907,7 @@
         </div>
     </div>
 
-    <!-- CSV & EXCEL -->
+    <!-- CSV & Excel -->
     <div class="section cat-csv" data-category="csv">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📊</span> CSV & Excel <span class="count">17</span></h2>
@@ -1027,10 +939,10 @@
         </div>
     </div>
 
-    <!-- NETWORK -->
+    <!-- Network & Email -->
     <div class="section cat-network" data-category="network">
         <div class="section-header" onclick="toggleSection(this)">
-            <h2><span class="icon">🌐</span> Network & Email <span class="count">4</span></h2>
+            <h2><span class="icon">🌐</span> Network & Email <span class="count">6</span></h2>
             <span class="chevron">▼</span>
         </div>
         <div class="section-body">
@@ -1038,7 +950,9 @@
                 <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
                 <tbody>
                     <tr><td class="func-name">HTTP_GET</td><td class="func-args">(url)</td><td class="func-desc">HTTP GET request</td></tr>
+                    <tr><td class="func-name">HTTP_GET_HEADERS</td><td class="func-args">(url, headers_dict)</td><td class="func-desc">GET with custom headers</td></tr>
                     <tr><td class="func-name">HTTP_POST</td><td class="func-args">(url, data, [content_type])</td><td class="func-desc">HTTP POST request</td></tr>
+                    <tr><td class="func-name">HTTP_POST_HEADERS</td><td class="func-args">(url, data, headers_dict)</td><td class="func-desc">POST with custom headers</td></tr>
                     <tr><td class="func-name">EMAIL_SEND</td><td class="func-args">(host, port, user, pwd, from, to, subject, body_html)</td><td class="func-desc">Send email</td></tr>
                     <tr><td class="func-name">EMAIL_FETCH</td><td class="func-args">(host, port, user, pwd, [folder], [limit])</td><td class="func-desc">Fetch emails</td></tr>
                 </tbody>
@@ -1113,7 +1027,7 @@
         </div>
     </div>
 
-    <!-- MACHINE LEARNING -->
+    <!-- Machine Learning -->
     <div class="section cat-ml" data-category="ml">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🤖</span> Machine Learning <span class="count">22</span></h2>
@@ -1150,7 +1064,34 @@
         </div>
     </div>
 
-    <!-- TRANSLATION -->
+    <!-- AI & RAG -->
+    <div class="section cat-ai" data-category="ai">
+        <div class="section-header" onclick="toggleSection(this)">
+            <h2><span class="icon">🧠</span> AI & RAG <span class="count">12</span></h2>
+            <span class="chevron">▼</span>
+        </div>
+        <div class="section-body">
+            <table class="func-table">
+                <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="func-name">AI_INIT</td><td class="func-args">([api_key], [base_url], [chat_model], [embed_model])</td><td class="func-desc">Initialize AI client (Ollama/OpenAI/etc)</td></tr>
+                    <tr><td class="func-name">AI_CHAT</td><td class="func-args">(prompt, [system], [temp], [max_tokens])</td><td class="func-desc">Chat with AI model</td></tr>
+                    <tr><td class="func-name">AI_EMBED</td><td class="func-args">(text)</td><td class="func-desc">Get embedding vector</td></tr>
+                    <tr><td class="func-name">AI_LIST_MODELS</td><td class="func-args">()</td><td class="func-desc">List available models from server</td></tr>
+                    <tr><td class="func-name">RAG_INIT</td><td class="func-args">([chunk_size], [overlap], [top_k])</td><td class="func-desc">Initialize RAG system</td></tr>
+                    <tr><td class="func-name">RAG_INGEST_PDF</td><td class="func-args">(path, [chunk_size], [overlap])</td><td class="func-desc">Ingest PDF into vector store</td></tr>
+                    <tr><td class="func-name">RAG_INGEST_TEXT</td><td class="func-args">(text, [doc_name], [chunk_size], [overlap])</td><td class="func-desc">Ingest raw text</td></tr>
+                    <tr><td class="func-name">RAG_QUERY</td><td class="func-args">(question, [top_k])</td><td class="func-desc">Query knowledge base</td></tr>
+                    <tr><td class="func-name">RAG_QUERY_MULTI</td><td class="func-args">(question, [top_k])</td><td class="func-desc">Query across all ingested docs</td></tr>
+                    <tr><td class="func-name">RAG_GET_STATS</td><td class="func-args">()</td><td class="func-desc">Get RAG statistics</td></tr>
+                    <tr><td class="func-name">RAG_CLEAR</td><td class="func-args">()</td><td class="func-desc">Clear memory (keeps cache)</td></tr>
+                    <tr><td class="func-name">RAG_DELETE_CACHE</td><td class="func-args">([file_path])</td><td class="func-desc">Delete cache files</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Translation -->
     <div class="section cat-translate" data-category="translate">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🌍</span> Translation <span class="count">5</span></h2>
@@ -1170,7 +1111,7 @@
         </div>
     </div>
 
-    <!-- TEXT-TO-SPEECH -->
+    <!-- Text-to-Speech -->
     <div class="section cat-tts" data-category="tts">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🔊</span> Text-to-Speech <span class="count">12</span></h2>
@@ -1197,7 +1138,7 @@
         </div>
     </div>
 
-    <!-- UI WINDOW -->
+    <!-- UI Window & Lifecycle -->
     <div class="section cat-ui" data-category="ui-window">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🪟</span> UI Window & Lifecycle <span class="count">4</span></h2>
@@ -1216,7 +1157,7 @@
         </div>
     </div>
 
-    <!-- UI LAYOUT -->
+    <!-- UI Layout -->
     <div class="section cat-ui" data-category="ui-layout">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📐</span> UI Layout <span class="count">15</span></h2>
@@ -1246,10 +1187,10 @@
         </div>
     </div>
 
-    <!-- UI BASIC WIDGETS -->
+    <!-- UI Basic Widgets -->
     <div class="section cat-ui" data-category="ui-widgets">
         <div class="section-header" onclick="toggleSection(this)">
-            <h2><span class="icon">🎨</span> UI Basic Widgets <span class="count">15</span></h2>
+            <h2><span class="icon">🎨</span> UI Basic Widgets <span class="count">22</span></h2>
             <span class="chevron">▼</span>
         </div>
         <div class="section-body">
@@ -1270,16 +1211,23 @@
                     <tr><td class="func-name">UI_RADIO_GET</td><td class="func-args">(group)</td><td class="func-desc">Get selected value</td></tr>
                     <tr><td class="func-name">UI_RADIO_SET</td><td class="func-args">(group, value)</td><td class="func-desc">Set selected value</td></tr>
                     <tr><td class="func-name">UI_COMBOBOX</td><td class="func-args">(parent, choices, x, y, w, h)</td><td class="func-desc">Dropdown</td></tr>
+                    <tr><td class="func-name">UI_COMBOBOX_CLEAR</td><td class="func-args">(cb)</td><td class="func-desc">Clear all items</td></tr>
+                    <tr><td class="func-name">UI_COMBOBOX_ADD</td><td class="func-args">(cb, item)</td><td class="func-desc">Add single item</td></tr>
+                    <tr><td class="func-name">UI_COMBOBOX_SET_ITEMS</td><td class="func-args">(cb, items_list)</td><td class="func-desc">Replace all items</td></tr>
+                    <tr><td class="func-name">UI_COMBOBOX_GET_INDEX</td><td class="func-args">(cb)</td><td class="func-desc">Get selected index</td></tr>
+                    <tr><td class="func-name">UI_COMBOBOX_SET_INDEX</td><td class="func-args">(cb, index)</td><td class="func-desc">Set selected index</td></tr>
+                    <tr><td class="func-name">UI_COMBOBOX_DELETE</td><td class="func-args">(cb, index)</td><td class="func-desc">Delete item by index</td></tr>
+                    <tr><td class="func-name">UI_COMBOBOX_GET_COUNT</td><td class="func-args">(cb)</td><td class="func-desc">Get item count</td></tr>
                     <tr><td class="func-name">UI_DATEPICKER</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Date picker</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- UI TEXT EDITING -->
-    <div class="section cat-ui" data-category="ui-text-edit">
+    <!-- UI Text Editing -->
+    <div class="section cat-ui" data-category="ui-text">
         <div class="section-header" onclick="toggleSection(this)">
-            <h2><span class="icon">✏️</span> UI Text Editing <span class="count">11</span></h2>
+            <h2><span class="icon">✏️</span> UI Text Editing <span class="count">13</span></h2>
             <span class="chevron">▼</span>
         </div>
         <div class="section-body">
@@ -1292,6 +1240,8 @@
                     <tr><td class="func-name">UI_TEXT_SELECT_ALL</td><td class="func-args">(widget)</td><td class="func-desc">Select all</td></tr>
                     <tr><td class="func-name">UI_TEXT_FIND</td><td class="func-args">(widget, text)</td><td class="func-desc">Find text</td></tr>
                     <tr><td class="func-name">UI_TEXT_REPLACE_SELECTED</td><td class="func-args">(widget, new_text)</td><td class="func-desc">Replace selection</td></tr>
+                    <tr><td class="func-name">UI_TEXT_APPEND</td><td class="func-args">(widget, text)</td><td class="func-desc">Append text & auto-scroll</td></tr>
+                    <tr><td class="func-name">UI_TEXT_HIGHLIGHT</td><td class="func-args">(widget)</td><td class="func-desc">Highlight text (placeholder)</td></tr>
                     <tr><td class="func-name">UI_TEXT_CUT</td><td class="func-args">(widget)</td><td class="func-desc">Cut</td></tr>
                     <tr><td class="func-name">UI_TEXT_COPY</td><td class="func-args">(widget)</td><td class="func-desc">Copy</td></tr>
                     <tr><td class="func-name">UI_TEXT_PASTE</td><td class="func-args">(widget)</td><td class="func-desc">Paste</td></tr>
@@ -1302,8 +1252,8 @@
         </div>
     </div>
 
-    <!-- UI CODE EDITOR -->
-    <div class="section cat-ui" data-category="ui-code-editor">
+    <!-- UI Code Editor -->
+    <div class="section cat-ui" data-category="ui-code">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">💻</span> UI Code Editor (Scintilla) <span class="count">7</span></h2>
             <span class="chevron">▼</span>
@@ -1324,7 +1274,7 @@
         </div>
     </div>
 
-    <!-- UI LISTS -->
+    <!-- UI Lists -->
     <div class="section cat-ui" data-category="ui-lists">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📋</span> UI Lists <span class="count">15</span></h2>
@@ -1354,7 +1304,7 @@
         </div>
     </div>
 
-    <!-- UI TREE -->
+    <!-- UI Tree -->
     <div class="section cat-ui" data-category="ui-tree">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🌳</span> UI Tree <span class="count">7</span></h2>
@@ -1376,7 +1326,7 @@
         </div>
     </div>
 
-    <!-- UI HTML -->
+    <!-- UI HTML Viewer -->
     <div class="section cat-ui" data-category="ui-html">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🌐</span> UI HTML Viewer <span class="count">3</span></h2>
@@ -1387,14 +1337,14 @@
                 <thead><tr><th>Function</th><th>Arguments</th><th>Description</th></tr></thead>
                 <tbody>
                     <tr><td class="func-name">UI_HTMLVIEW</td><td class="func-args">(parent, x, y, w, h)</td><td class="func-desc">Create HTML viewer</td></tr>
-                    <tr><td class="func-name">UI_HTML_SET</td><td class="func-args">(viewer, html)</td><td class="func-desc">Set HTML content</td></tr>
+                    <tr><td class="func-name">UI_HTML_SET</td><td class="func-args">(viewer, html, [base_url])</td><td class="func-desc">Set HTML content</td></tr>
                     <tr><td class="func-name">UI_HTML_CLEAR</td><td class="func-args">(viewer)</td><td class="func-desc">Clear content</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- UI SPREADSHEET -->
+    <!-- UI Spreadsheet -->
     <div class="section cat-ui" data-category="ui-sheet">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📊</span> UI Spreadsheet <span class="count">13</span></h2>
@@ -1422,7 +1372,7 @@
         </div>
     </div>
 
-    <!-- UI TABS -->
+    <!-- UI Tabs -->
     <div class="section cat-ui" data-category="ui-tabs">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📑</span> UI Tabs <span class="count">4</span></h2>
@@ -1441,7 +1391,7 @@
         </div>
     </div>
 
-    <!-- UI MENU -->
+    <!-- UI Menu -->
     <div class="section cat-ui" data-category="ui-menu">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📜</span> UI Menu <span class="count">11</span></h2>
@@ -1467,7 +1417,7 @@
         </div>
     </div>
 
-    <!-- UI STATUS -->
+    <!-- UI Status -->
     <div class="section cat-ui" data-category="ui-status">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📢</span> UI Status <span class="count">2</span></h2>
@@ -1484,7 +1434,7 @@
         </div>
     </div>
 
-    <!-- UI GENERIC -->
+    <!-- UI Generic -->
     <div class="section cat-ui" data-category="ui-generic">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🔧</span> UI Generic <span class="count">12</span></h2>
@@ -1511,7 +1461,7 @@
         </div>
     </div>
 
-    <!-- UI MARKDOWN -->
+    <!-- UI Markdown Editor -->
     <div class="section cat-ui" data-category="ui-md">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📝</span> UI Markdown Editor <span class="count">4</span></h2>
@@ -1530,10 +1480,10 @@
         </div>
     </div>
 
-    <!-- UI RICHTEXT -->
+    <!-- UI RichText Editor -->
     <div class="section cat-richtext" data-category="ui-richtext">
         <div class="section-header" onclick="toggleSection(this)">
-            <h2><span class="icon">📄</span> UI RichText Editor <span class="count">38</span></h2>
+            <h2><span class="icon">📄</span> UI RichText Editor <span class="count">42</span></h2>
             <span class="chevron">▼</span>
         </div>
         <div class="section-body">
@@ -1587,7 +1537,7 @@
         </div>
     </div>
 
-    <!-- ATTACHMENTS -->
+    <!-- Attachments -->
     <div class="section cat-misc" data-category="attachments">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📎</span> Attachments <span class="count">4</span></h2>
@@ -1606,7 +1556,7 @@
         </div>
     </div>
 
-    <!-- JOPLIN -->
+    <!-- Joplin Import/Export -->
     <div class="section cat-misc" data-category="joplin">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📓</span> Joplin Import/Export <span class="count">2</span></h2>
@@ -1623,8 +1573,8 @@
         </div>
     </div>
 
-    <!-- MARKDOWN & PDF -->
-    <div class="section cat-misc" data-category="md-pdf">
+    <!-- Markdown & PDF -->
+    <div class="section cat-misc" data-category="markdown">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📑</span> Markdown & PDF <span class="count">5</span></h2>
             <span class="chevron">▼</span>
@@ -1643,7 +1593,7 @@
         </div>
     </div>
 
-    <!-- CLIPBOARD -->
+    <!-- Clipboard -->
     <div class="section cat-misc" data-category="clipboard">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📋</span> Clipboard <span class="count">2</span></h2>
@@ -1660,14 +1610,14 @@
         </div>
     </div>
 
-    <!-- EVENT TYPES -->
-    <div class="section cat-ui" data-category="events">
+    <!-- Event Types -->
+    <div class="section cat-misc" data-category="events">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">🎯</span> Event Types (for UI_BIND) <span class="count">16</span></h2>
             <span class="chevron">▼</span>
         </div>
         <div class="section-body">
-            <p style="color:var(--text-dim); margin-bottom:12px;">Use these event names as the second argument to <code style="color:var(--accent)">UI_BIND(widget, "EVENT", "handler")</code></p>
+            <p style="color: var(--text-dim); margin-bottom: 12px;">Use these event names as the second argument to <code style="color: var(--accent);">UI_BIND(widget, "EVENT", "handler")</code></p>
             <div class="events-grid">
                 <span class="event-chip">CLICK</span>
                 <span class="event-chip">CHANGE</span>
@@ -1689,8 +1639,8 @@
         </div>
     </div>
 
-    <!-- SUMMARY -->
-    <div class="section open cat-misc" data-category="summary">
+    <!-- Summary Counts -->
+    <div class="section cat-misc open" data-category="summary">
         <div class="section-header" onclick="toggleSection(this)">
             <h2><span class="icon">📊</span> Summary Counts</h2>
             <span class="chevron">▼</span>
@@ -1703,22 +1653,23 @@
                 <tr><td>Date/Time</td><td>6</td></tr>
                 <tr><td>Type/Casting</td><td>6</td></tr>
                 <tr><td>Evaluation</td><td>5</td></tr>
-                <tr><td>Statistics</td><td>28</td></tr>
+                <tr><td>Statistics</td><td>30</td></tr>
                 <tr><td>Graphs</td><td>12</td></tr>
                 <tr><td>Dict/List</td><td>8</td></tr>
                 <tr><td>Database</td><td>6</td></tr>
-                <tr><td>File/Paths</td><td>20</td></tr>
+                <tr><td>File/Paths</td><td>22</td></tr>
                 <tr><td>CSV/Excel</td><td>17</td></tr>
-                <tr><td>Network/Email</td><td>4</td></tr>
+                <tr><td>Network/Email</td><td>6</td></tr>
                 <tr><td>DOCX</td><td>20</td></tr>
                 <tr><td>PPTX</td><td>17</td></tr>
                 <tr><td>Machine Learning</td><td>22</td></tr>
+                <tr><td>AI & RAG</td><td>12</td></tr>
                 <tr><td>Translation</td><td>5</td></tr>
                 <tr><td>Text-to-Speech</td><td>12</td></tr>
                 <tr><td>UI Window</td><td>4</td></tr>
                 <tr><td>UI Layout</td><td>15</td></tr>
-                <tr><td>UI Widgets</td><td>15</td></tr>
-                <tr><td>UI Text Editing</td><td>11</td></tr>
+                <tr><td>UI Widgets</td><td>22</td></tr>
+                <tr><td>UI Text Editing</td><td>13</td></tr>
                 <tr><td>UI Code Editor</td><td>7</td></tr>
                 <tr><td>UI Lists</td><td>15</td></tr>
                 <tr><td>UI Tree</td><td>7</td></tr>
@@ -1729,119 +1680,121 @@
                 <tr><td>UI Status</td><td>2</td></tr>
                 <tr><td>UI Generic</td><td>12</td></tr>
                 <tr><td>UI Markdown</td><td>4</td></tr>
-                <tr><td>UI RichText</td><td>38</td></tr>
+                <tr><td>UI RichText</td><td>42</td></tr>
                 <tr><td>Attachments</td><td>4</td></tr>
                 <tr><td>Joplin</td><td>2</td></tr>
                 <tr><td>MD/PDF</td><td>5</td></tr>
                 <tr><td>Clipboard</td><td>2</td></tr>
                 <tr><td>Event Types</td><td>16</td></tr>
-                <tr class="total"><td><strong>TOTAL</strong></td><td>450+</td></tr>
+                <tr class="total"><td>TOTAL</td><td>476</td></tr>
             </table>
         </div>
     </div>
 
-</div>
+</main>
 
-<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<button class="back-top" id="backTop" onclick="scrollToTop()">↑</button>
 
-<div class="footer">
-    <p>AnikaLang wxPython Edition — Complete API Reference</p>
-    <p style="margin-top:8px; font-size:0.85em;">Generated for AnikaLang v1 • 450+ Functions • 39 Categories</p>
-</div>
+<footer class="footer">
+    <p><strong>AnikaLang wxPython Edition — Complete API Reference v1.1</strong></p>
+    <p>476 Functions • 40 Categories • 13 Plugins • Modular Architecture</p>
+</footer>
 
 <script>
-    // Toggle section
+    // Toggle section open/closed
     function toggleSection(header) {
-        header.parentElement.classList.toggle('open');
+        const section = header.parentElement;
+        section.classList.toggle('open');
     }
 
-    // Expand all
-    function expandAll() {
-        document.querySelectorAll('.section').forEach(s => s.classList.add('open'));
+    // Expand/collapse all sections
+    function toggleAll(expand) {
+        const sections = document.querySelectorAll('.section');
+        sections.forEach(section => {
+            if (expand) {
+                section.classList.add('open');
+            } else {
+                section.classList.remove('open');
+            }
+        });
     }
 
-    // Collapse all
-    function collapseAll() {
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('open'));
-    }
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const visibleCountEl = document.getElementById('visibleCount');
+    let totalFunctions = 476;
 
-    // Filter/search
-    function filterAll() {
-        const query = document.getElementById('searchBox').value.toLowerCase().trim();
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
         let visibleCount = 0;
 
         document.querySelectorAll('.section').forEach(section => {
             const rows = section.querySelectorAll('tbody tr');
-            const keywords = section.querySelectorAll('.keyword-chip, .event-chip');
-            const header = section.querySelector('.section-header h2').textContent.toLowerCase();
             let sectionHasMatch = false;
 
-            if (!query) {
-                // Reset all
-                rows.forEach(r => r.classList.remove('hidden'));
-                sectionHasMatch = true;
-            } else {
-                // Check header match
-                if (header.includes(query)) {
-                    sectionHasMatch = true;
-                    rows.forEach(r => r.classList.remove('hidden'));
-                } else {
-                    // Check rows
-                    rows.forEach(row => {
-                        const text = row.textContent.toLowerCase();
-                        if (text.includes(query)) {
-                            row.classList.remove('hidden');
+            rows.forEach(row => {
+                const funcName = row.querySelector('.func-name');
+                const funcDesc = row.querySelector('.func-desc');
+                
+                if (!funcName) {
+                    // Keywords section - check keyword chips
+                    const chips = section.querySelectorAll('.keyword-chip, .event-chip');
+                    chips.forEach(chip => {
+                        const text = chip.textContent.toLowerCase();
+                        if (query === '' || text.includes(query)) {
+                            chip.style.display = '';
                             sectionHasMatch = true;
                         } else {
-                            row.classList.add('hidden');
+                            chip.style.display = 'none';
                         }
                     });
+                    return;
                 }
 
-                // Check keyword/event chips
-                keywords.forEach(chip => {
-                    if (chip.textContent.toLowerCase().includes(query)) {
-                        sectionHasMatch = true;
-                    }
-                });
-            }
+                const name = funcName.textContent.toLowerCase();
+                const desc = funcDesc ? funcDesc.textContent.toLowerCase() : '';
 
-            if (sectionHasMatch) {
+                if (query === '' || name.includes(query) || desc.includes(query)) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                    sectionHasMatch = true;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+
+            // Show/hide entire section based on matches
+            if (query === '' || sectionHasMatch) {
                 section.style.display = '';
-                if (query) section.classList.add('open');
-                // Count visible functions
-                const visible = section.querySelectorAll('tbody tr:not(.hidden)').length;
-                visibleCount += visible || (sectionHasMatch && rows.length === 0 ? 1 : 0);
+                if (query !== '') {
+                    section.classList.add('open');
+                }
             } else {
                 section.style.display = 'none';
             }
         });
 
-        document.getElementById('visibleCount').textContent = visibleCount || '0';
-    }
+        // Update visible count
+        if (query === '') {
+            visibleCountEl.textContent = totalFunctions;
+        } else {
+            visibleCountEl.textContent = visibleCount;
+        }
+    });
 
     // Back to top button
-    window.addEventListener('scroll', () => {
-        const btn = document.getElementById('backTop');
-        if (window.scrollY > 400) {
-            btn.classList.add('visible');
+    const backTopBtn = document.getElementById('backTop');
+    window.addEventListener('scroll', function() {
+        if (window.pageYOffset > 300) {
+            backTopBtn.classList.add('visible');
         } else {
-            btn.classList.remove('visible');
+            backTopBtn.classList.remove('visible');
         }
     });
 
-    // Keyboard shortcut: Ctrl+K to focus search
-    document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            document.getElementById('searchBox').focus();
-        }
-        if (e.key === 'Escape') {
-            document.getElementById('searchBox').value = '';
-            filterAll();
-            document.getElementById('searchBox').blur();
-        }
-    });
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 </script>
 
 </body>
