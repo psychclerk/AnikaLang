@@ -1,0 +1,56 @@
+# modules/db.fms
+# Database logic for Contacts App
+
+def initDatabase() {
+    db = db_connect("contacts.db")
+    createSql = "CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, email TEXT, address TEXT, notes TEXT)"
+    db_execute(db, createSql)
+}
+
+def escapeSql(s) {
+    if s == null { return "" }
+    return replace(s, "'", "''")
+}
+
+def queryContacts(filterText) {
+    if filterText == null { filterText = "" }
+    
+    sql = "SELECT id, name, phone, email FROM contacts"
+    
+    if len(trim(filterText)) > 0 {
+        safe = escapeSql(filterText)
+        sql = sql + " WHERE name LIKE '%" + safe + "%' OR phone LIKE '%" + safe + "%' OR email LIKE '%" + safe + "%'"
+    }
+    
+    # NO try/catch - just return the result directly
+    return db_query(db, sql)
+}
+
+def upsertContact(id, name, phone, email, address, notes) {
+    safeName = escapeSql(name)
+    safePhone = escapeSql(phone)
+    safeEmail = escapeSql(email)
+    safeAddress = escapeSql(address)
+    safeNotes = escapeSql(notes)
+    
+    if id == null {
+        sql = "INSERT INTO contacts (name, phone, email, address, notes) VALUES ('" + safeName + "', '" + safePhone + "', '" + safeEmail + "', '" + safeAddress + "', '" + safeNotes + "')"
+    } else {
+        sql = "UPDATE contacts SET name='" + safeName + "', phone='" + safePhone + "', email='" + safeEmail + "', address='" + safeAddress + "', notes='" + safeNotes + "' WHERE id=" + id
+    }
+    
+    # NO try/catch - just execute
+    db_execute(db, sql)
+    return true
+}
+
+def removeContact(id) {
+    db_execute(db, "DELETE FROM contacts WHERE id=" + id)
+    return true
+}
+
+def getContactById(id) {
+    rows = db_query(db, "SELECT * FROM contacts WHERE id = " + id)
+    if len(rows) > 0 { return rows[0] }
+    return null
+}

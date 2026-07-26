@@ -1,0 +1,452 @@
+# ==============================================================================
+# ANIKALANG TRANSLATOR - Multi-language Translation App
+# AnikaLang 1.2 wxPython Edition
+# ==============================================================================
+
+# --- GLOBAL STATE ---
+win = null
+source_text = null
+target_text = null
+source_lang_combo = null
+target_lang_combo = null
+detect_label = null
+status_label = null
+char_count_label = null
+word_count_label = null
+btn_translate = null
+btn_speak_src = null
+btn_speak_tgt = null
+btn_copy = null
+btn_clear = null
+btn_swap = null
+is_translating = false
+
+# Language display names (shown in dropdown)
+LANG_NAMES = [
+    "Auto-Detect", "English", "Spanish", "French", "German", "Italian",
+    "Portuguese", "Russian", "Japanese", "Korean", "Chinese (Simplified)",
+    "Chinese (Traditional)", "Arabic", "Hindi", "Bengali", "Urdu",
+    "Turkish", "Dutch", "Polish", "Swedish", "Danish", "Finnish",
+    "Norwegian", "Greek", "Hebrew", "Thai", "Vietnamese", "Indonesian",
+    "Malay", "Czech", "Hungarian", "Romanian", "Ukrainian",
+    "Tamil", "Telugu", "Filipino", "Persian", "Swahili"
+]
+
+# Language codes (used by translate function) - must match LANG_NAMES order
+LANG_CODES = [
+    "auto", "en", "es", "fr", "de", "it",
+    "pt", "ru", "ja", "ko", "zh-CN",
+    "zh-TW", "ar", "hi", "bn", "ur",
+    "tr", "nl", "pl", "sv", "da", "fi",
+    "no", "el", "he", "th", "vi", "id",
+    "ms", "cs", "hu", "ro", "uk",
+    "ta", "te", "fil", "fa", "sw"
+]
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+def get_lang_code(combo_widget) {
+    idx = 0
+    name = ui_get(combo_widget)
+    for n in LANG_NAMES {
+        if n == name {
+            return LANG_CODES[idx]
+        }
+        idx = idx + 1
+    }
+    return "en"
+}
+
+def update_counts() {
+    text = ui_text_get(source_text)
+    chars = len(text)
+    words = 0
+    trimmed = trim(text)
+    if len(trimmed) > 0 {
+        parts = split(trimmed, " ")
+        words = len(parts)
+    }
+    ui_set(char_count_label, rejoin("Characters: ", str(chars)))
+    ui_set(word_count_label, rejoin("Words: ", str(words)))
+}
+
+def on_source_change() {
+    update_counts()
+    # Auto-detect language when user types
+    text = ui_text_get(source_text)
+    if len(trim(text)) > 10 {
+        try {
+            detected = translate_detect(text)
+            # Find language name from code
+            idx = 0
+            found_name = "Unknown"
+            for code in LANG_CODES {
+                if code == detected {
+                    found_name = LANG_NAMES[idx]
+                }
+                idx = idx + 1
+            }
+            ui_set(detect_label, rejoin("🔍 Detected: ", found_name))
+            ui_color(detect_label, "#3498db", "")
+        } catch err {
+            # Silently ignore detection errors
+        }
+    }
+}
+
+def do_translate() {
+    text = ui_text_get(source_text)
+    if len(trim(text)) == 0 {
+        ui_set(target_text, "")
+        ui_set(status_label, "⚠ Please enter text to translate")
+        ui_color(status_label, "#e74c3c", "")
+        return
+    }
+    
+    src_code = get_lang_code(source_lang_combo)
+    tgt_code = get_lang_code(target_lang_combo)
+    
+    if tgt_code == "auto" {
+        ui_set(status_label, "⚠ Please select a target language")
+        ui_color(status_label, "#e74c3c", "")
+        return
+    }
+    
+    ui_set(status_label, "⏳ Translating...")
+    ui_color(status_label, "#f39c12", "")
+    ui_refresh(status_label)
+    
+    try {
+        result = translate(text, tgt_code, src_code)
+        ui_text_set(target_text, result)
+        ui_set(status_label, "✓ Translation complete")
+        ui_color(status_label, "#27ae60", "")
+    } catch err {
+        ui_set(target_text, "")
+        ui_set(status_label, rejoin("⚠ Translation failed: ", err))
+        ui_color(status_label, "#e74c3c", "")
+    }
+}
+
+def do_speak_source() {
+    text = ui_text_get(source_text)
+    if len(trim(text)) == 0 {
+        ui_set(status_label, " No text to speak")
+        ui_color(status_label, "#e74c3c", "")
+        return
+    }
+    
+    lang = get_lang_code(source_lang_combo)
+    if lang == "auto" {
+        try {
+            lang = translate_detect(text)
+        } catch err {
+            lang = "en"
+        }
+    }
+    
+    ui_set(status_label, "🔊 Speaking source text...")
+    ui_color(status_label, "#3498db", "")
+    ui_refresh(status_label)
+    
+    try {
+        tts_speak(text, 175, 1.0)
+        ui_set(status_label, "✓ Speech complete")
+        ui_color(status_label, "#27ae60", "")
+    } catch err {
+        ui_set(status_label, rejoin("⚠ TTS error: ", err))
+        ui_color(status_label, "#e74c3c", "")
+    }
+}
+
+def do_speak_target() {
+    text = ui_text_get(target_text)
+    if len(trim(text)) == 0 {
+        ui_set(status_label, "⚠ No translation to speak")
+        ui_color(status_label, "#e74c3c", "")
+        return
+    }
+    
+    lang = get_lang_code(target_lang_combo)
+    
+    ui_set(status_label, "🔊 Speaking translation...")
+    ui_color(status_label, "#3498db", "")
+    ui_refresh(status_label)
+    
+    try {
+        tts_speak(text, 175, 1.0)
+        ui_set(status_label, "✓ Speech complete")
+        ui_color(status_label, "#27ae60", "")
+    } catch err {
+        ui_set(status_label, rejoin("⚠ TTS error: ", err))
+        ui_color(status_label, "#e74c3c", "")
+    }
+}
+
+def do_copy() {
+    text = ui_text_get(target_text)
+    if len(trim(text)) == 0 {
+        ui_set(status_label, "⚠ Nothing to copy")
+        ui_color(status_label, "#e74c3c", "")
+        return
+    }
+    
+    try {
+        clipboard_set(text)
+        ui_set(status_label, "✓ Copied to clipboard")
+        ui_color(status_label, "#27ae60", "")
+    } catch err {
+        ui_set(status_label, rejoin("⚠ Copy failed: ", err))
+        ui_color(status_label, "#e74c3c", "")
+    }
+}
+
+def do_clear() {
+    ui_text_set(source_text, "")
+    ui_text_set(target_text, "")
+    ui_set(detect_label, "🔍 Detected: --")
+    ui_color(detect_label, "#8b949e", "")
+    ui_set(char_count_label, "Characters: 0")
+    ui_set(word_count_label, "Words: 0")
+    ui_set(status_label, "Ready")
+    ui_color(status_label, "#8b949e", "")
+    ui_focus(source_text)
+}
+
+def do_swap_languages() {
+    src_name = ui_get(source_lang_combo)
+    tgt_name = ui_get(target_lang_combo)
+    
+    # Don't swap if source is auto-detect
+    if src_name == "Auto-Detect" {
+        ui_set(status_label, " Can't swap when source is Auto-Detect")
+        ui_color(status_label, "#e74c3c", "")
+        return
+    }
+    
+    # Swap language selections
+    ui_set(source_lang_combo, tgt_name)
+    ui_set(target_lang_combo, src_name)
+    
+    # Swap text content
+    src_text = ui_text_get(source_text)
+    tgt_text = ui_text_get(target_text)
+    ui_text_set(source_text, tgt_text)
+    ui_text_set(target_text, src_text)
+    
+    ui_set(status_label, "✓ Languages swapped")
+    ui_color(status_label, "#27ae60", "")
+    update_counts()
+}
+
+def do_detect_language() {
+    text = ui_text_get(source_text)
+    if len(trim(text)) == 0 {
+        ui_set(detect_label, "🔍 Detected: --")
+        return
+    }
+    
+    try {
+        detected = translate_detect(text)
+        idx = 0
+        found_name = "Unknown"
+        for code in LANG_CODES {
+            if code == detected {
+                found_name = LANG_NAMES[idx]
+            }
+            idx = idx + 1
+        }
+        ui_set(detect_label, rejoin("🔍 Detected: ", found_name))
+        ui_color(detect_label, "#3498db", "")
+        ui_set(status_label, rejoin("✓ Language detected: ", found_name))
+        ui_color(status_label, "#27ae60", "")
+    } catch err {
+        ui_set(detect_label, "🔍 Detection failed")
+        ui_color(detect_label, "#e74c3c", "")
+    }
+}
+
+def show_about() {
+    ui_alert(rejoin("AnikaLang Translator v1.0\n\n",
+        "A multi-language translation app built with AnikaLang.\n\n",
+        "Features:\n",
+        "• 38 languages supported\n",
+        "• Auto language detection\n",
+        "• Text-to-speech in any language\n",
+        "• Swap languages instantly\n",
+        "• Copy translations to clipboard\n",
+        "• Real-time character/word count\n\n",
+        "Powered by Google Translate & pyttsx3\n",
+        "Built with AnikaLang wxPython"))
+}
+
+def exit_app() {
+    ui_close(win)
+}
+
+# ==============================================================================
+# RESIZE HANDLER
+# ==============================================================================
+
+def on_window_resize(widget, new_w, new_h) {
+    cs = ui_get_client_size(win)
+    cw = cs[0]
+    ch = cs[1]
+    
+    header_h = 120
+    footer_h = 70
+    content_h = ch - header_h - footer_h - 10
+    half_w = (cw - 30) / 2
+    
+    if content_h < 200 { content_h = 200 }
+    if half_w < 200 { half_w = 200 }
+    
+    # Resize text areas
+    ui_pos(source_text, 10, header_h, half_w, content_h)
+    ui_size(source_text, half_w, content_h)
+    
+    ui_pos(target_text, half_w + 20, header_h, half_w, content_h)
+    ui_size(target_text, half_w, content_h)
+    
+    # Resize footer
+    ui_pos(status_label, 10, ch - 30, cw - 20, 25)
+}
+
+# ==============================================================================
+# UI LAYOUT
+# ==============================================================================
+
+win = ui_window("AnikaLang Translator", 1100, 750)
+
+# --- MENU BAR ---
+menubar = ui_menu(win)
+
+file_menu = ui_menu_add(menubar, "File")
+ui_menu_item(file_menu, "Clear All\t\tCtrl+L", "do_clear")
+ui_menu_separator(file_menu)
+ui_menu_item(file_menu, "Exit", "exit_app")
+
+tools_menu = ui_menu_add(menubar, "Tools")
+ui_menu_item(tools_menu, "Swap Languages\tCtrl+S", "do_swap_languages")
+ui_menu_item(tools_menu, "Detect Language\tCtrl+D", "do_detect_language")
+ui_menu_separator(tools_menu)
+ui_menu_item(tools_menu, "Speak Source\tCtrl+1", "do_speak_source")
+ui_menu_item(tools_menu, "Speak Translation\tCtrl+2", "do_speak_target")
+ui_menu_item(tools_menu, "Copy Translation\tCtrl+C", "do_copy")
+
+help_menu = ui_menu_add(menubar, "Help")
+ui_menu_item(help_menu, "About", "show_about")
+
+ui_set_menu(win, menubar)
+
+# --- HEADER PANEL (language selectors + buttons) ---
+header_bg = ui_panel(win, 0, 0, 1100, 120)
+ui_color(header_bg, "", "#1a1f35")
+
+# Title
+title_lbl = ui_label(header_bg, "🌐 AnikaLang Translator", 20, 10, 400, 35)
+ui_color(title_lbl, "#ffffff", "")
+ui_font(title_lbl, 18, "Segoe UI", true)
+
+subtitle_lbl = ui_label(header_bg, "Translate between 38 languages with voice support", 20, 45, 500, 20)
+ui_color(subtitle_lbl, "#8b949e", "")
+ui_font(subtitle_lbl, 10, "Segoe UI", false)
+
+# Source language selector
+src_lang_lbl = ui_label(header_bg, "From:", 450, 15, 50, 20)
+ui_color(src_lang_lbl, "#8b949e", "")
+ui_font(src_lang_lbl, 10, "Segoe UI", true)
+
+source_lang_combo = ui_combobox(header_bg, LANG_NAMES, 505, 12, 180, 26)
+ui_set(source_lang_combo, "Auto-Detect")
+
+# Swap button (between language selectors)
+btn_swap = ui_button(header_bg, "⇄", "do_swap_languages", 695, 10, 40, 30)
+ui_color(btn_swap, "#ffffff", "#3498db")
+ui_font(btn_swap, 14, "Segoe UI", true)
+
+# Target language selector
+tgt_lang_lbl = ui_label(header_bg, "To:", 745, 15, 30, 20)
+ui_color(tgt_lang_lbl, "#8b949e", "")
+ui_font(tgt_lang_lbl, 10, "Segoe UI", true)
+
+target_lang_combo = ui_combobox(header_bg, LANG_NAMES, 780, 12, 180, 26)
+ui_set(target_lang_combo, "Spanish")
+
+# Detection indicator
+detect_label = ui_label(header_bg, "🔍 Detected: --", 450, 48, 300, 20)
+ui_color(detect_label, "#8b949e", "")
+ui_font(detect_label, 9, "Segoe UI", false)
+
+# Action buttons row
+btn_translate = ui_button(header_bg, "🌐 Translate", "do_translate", 450, 75, 130, 35)
+ui_color(btn_translate, "#ffffff", "#27ae60")
+ui_font(btn_translate, 11, "Segoe UI", true)
+
+btn_speak_src = ui_button(header_bg, "🔊 Speak Source", "do_speak_source", 590, 75, 130, 35)
+ui_color(btn_speak_src, "#ffffff", "#3498db")
+ui_font(btn_speak_src, 10, "Segoe UI", false)
+
+btn_speak_tgt = ui_button(header_bg, " Speak Result", "do_speak_target", 730, 75, 130, 35)
+ui_color(btn_speak_tgt, "#ffffff", "#9b59b6")
+ui_font(btn_speak_tgt, 10, "Segoe UI", false)
+
+btn_copy = ui_button(header_bg, "📋 Copy", "do_copy", 870, 75, 90, 35)
+ui_color(btn_copy, "#ffffff", "#e67e22")
+ui_font(btn_copy, 10, "Segoe UI", false)
+
+btn_clear = ui_button(header_bg, "🗑 Clear", "do_clear", 970, 75, 90, 35)
+ui_color(btn_clear, "#ffffff", "#e74c3c")
+ui_font(btn_clear, 10, "Segoe UI", false)
+
+# --- SOURCE TEXT AREA (left) ---
+source_label = ui_label(win, "📝 SOURCE TEXT", 10, 122, 200, 20)
+ui_color(source_label, "#2c3e50", "")
+ui_font(source_label, 10, "Segoe UI", true)
+
+source_text = ui_text(win, "", true, 10, 145, 530, 530)
+ui_font(source_text, 12, "Segoe UI", false)
+ui_color(source_text, "#2c3e50", "#ffffff")
+ui_bind(source_text, "CHANGE", "on_source_change")
+
+# --- TARGET TEXT AREA (right) ---
+target_label = ui_label(win, "🌍 TRANSLATION", 560, 122, 200, 20)
+ui_color(target_label, "#2c3e50", "")
+ui_font(target_label, 10, "Segoe UI", true)
+
+target_text = ui_text(win, "", true, 560, 145, 530, 530)
+ui_font(target_text, 12, "Segoe UI", false)
+ui_color(target_text, "#2c3e50", "#f8f9fa")
+
+# --- FOOTER / STATUS BAR ---
+footer_bg = ui_panel(win, 0, 680, 1100, 70)
+ui_color(footer_bg, "", "#2c3e50")
+
+status_label = ui_label(footer_bg, "Ready", 15, 8, 500, 22)
+ui_color(status_label, "#8b949e", "")
+ui_font(status_label, 10, "Segoe UI", false)
+
+char_count_label = ui_label(footer_bg, "Characters: 0", 15, 38, 150, 22)
+ui_color(char_count_label, "#bdc3c7", "")
+ui_font(char_count_label, 9, "Segoe UI", false)
+
+word_count_label = ui_label(footer_bg, "Words: 0", 175, 38, 120, 22)
+ui_color(word_count_label, "#bdc3c7", "")
+ui_font(word_count_label, 9, "Segoe UI", false)
+
+powered_lbl = ui_label(footer_bg, "Powered by Google Translate • AnikaLang v7.1", 700, 38, 400, 22)
+ui_color(powered_lbl, "#7f8c8d", "")
+ui_font(powered_lbl, 9, "Segoe UI", false)
+
+# ==============================================================================
+# BIND EVENTS & START
+# ==============================================================================
+
+ui_bind(win, "RESIZE", "on_window_resize")
+
+# Focus source text area
+ui_focus(source_text)
+
+ui_mainloop(win)

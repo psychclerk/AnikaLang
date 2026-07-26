@@ -1,0 +1,96 @@
+# modules/handlers.fms
+# Event handlers and UI logic
+
+def updateStatus(msg) {
+    ui_set(statusLbl, "  " + msg)
+}
+
+def refreshList() {
+    ui_listview_clear(lst)
+    filterText = ""
+    if entSearch != null { filterText = ui_get(entSearch) }
+    
+    # Call queryContacts WITHOUT try/catch
+    rows = queryContacts(filterText)
+    
+    for row in rows {
+        ui_listview_insert(lst, [row["id"], row["name"], row["phone"], row["email"]])
+    }
+    updateStatus("Loaded " + len(rows) + " contacts")
+}
+
+def onRowSelect(widget) {
+    sel = ui_listview_get_selected(lst)
+    if sel == null {
+        selectedId = null
+        clearForm()
+        return
+    }
+    
+    selectedId = int(sel[0])
+    c = getContactById(selectedId)
+    
+    if c != null {
+        ui_set(entName, c["name"])
+        ui_set(entPhone, c["phone"])
+        ui_set(entEmail, c["email"])
+        ui_set(entAddress, c["address"])
+        ui_text_set(txtNotes, c["notes"])
+        updateStatus("Editing: " + c["name"])
+    }
+}
+
+def clearForm() {
+    ui_set(entName, "")
+    ui_set(entPhone, "")
+    ui_set(entEmail, "")
+    ui_set(entAddress, "")
+    ui_text_set(txtNotes, "")
+    selectedId = null
+    updateStatus("Form cleared - ready for new contact")
+}
+
+def doSave() {
+    name = trim(ui_get(entName))
+    phone = trim(ui_get(entPhone))
+    email = trim(ui_get(entEmail))
+    address = trim(ui_get(entAddress))
+    notes = trim(ui_text_get(txtNotes))
+    
+    if len(name) == 0 {
+        ui_alert_err("Contact Name is required!")
+        return
+    }
+    
+    if upsertContact(selectedId, name, phone, email, address, notes) {
+        refreshList()
+        clearForm()
+        ui_alert("Contact saved successfully!")
+    }
+}
+
+def doDelete() {
+    if selectedId == null {
+        ui_alert_err("Please select a contact from the list first!")
+        return
+    }
+    
+    if removeContact(selectedId) {
+        refreshList()
+        clearForm()
+        ui_alert("Contact deleted.")
+    }
+}
+
+def doSearch() {
+    refreshList()
+}
+
+def doRefresh() {
+    ui_set(entSearch, "")
+    refreshList()
+}
+
+def exitApp() {
+    ui_close(win)
+}

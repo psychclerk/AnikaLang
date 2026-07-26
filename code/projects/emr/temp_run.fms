@@ -1,0 +1,1386 @@
+# ==============================================================================
+# PSYCHIATRY EMR - PROFESSIONAL EDITION (AnikaLang 1.2 Index-Based Tabs)
+# Single-user Electronic Medical Record System
+# ==============================================================================
+
+# --- GLOBAL STATE ---
+db = null
+current_patient_id = null
+current_appointment_id = null
+main_notebook = null
+patient_list = null
+appointment_list = null
+activity_list = null
+medication_list = null
+status_bar = null
+
+# UI widget references
+sb_message = null
+today_count_lbl = null
+patient_count_lbl = null
+pending_lbl = null
+meds_lbl = null
+
+# Patient management widgets
+search_entry = null
+mrn_lbl = null
+name_lbl = null
+dob_lbl = null
+phone_lbl = null
+diagnosis_lbl = null
+med_patient_combo = null
+
+# Popup dialogs and data
+schedule_popup = null
+schedule_data = null
+note_data = null
+assessment_data = null
+new_patient_popup = null
+new_patient_data = null
+med_popup = null
+med_data = null
+plan_list = null
+plan_popup = null
+plan_data = null
+plan_patient_combo = null
+
+# Assessment widgets
+score_lbl = null
+interpretation_lbl = null
+
+# Tab index constants for safe navigation
+TAB_DASHBOARD = 0
+TAB_PATIENTS = 1
+TAB_APPOINTMENTS = 2
+TAB_NOTES = 3
+TAB_ASSESSMENTS = 4
+TAB_MEDICATIONS = 5
+TAB_PLANS = 6
+
+# ==============================================================================
+# MODULE: DATABASE
+# ==============================================================================
+
+def init_database() {
+    db = db_connect("psychiatry_emr.db")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, mrn TEXT UNIQUE NOT NULL, first_name TEXT NOT NULL, last_name TEXT NOT NULL, dob TEXT NOT NULL, gender TEXT, phone TEXT, email TEXT, address TEXT, emergency_contact TEXT, emergency_phone TEXT, insurance_info TEXT, primary_diagnosis TEXT, created_date TEXT DEFAULT (datetime('now')), last_visit TEXT, status TEXT DEFAULT 'Active')")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS appointments (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, appointment_date TEXT NOT NULL, appointment_time TEXT NOT NULL, duration_minutes INTEGER DEFAULT 50, appointment_type TEXT, status TEXT DEFAULT 'Scheduled', notes TEXT, created_date TEXT DEFAULT (datetime('now')), FOREIGN KEY (patient_id) REFERENCES patients(id))")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS clinical_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, appointment_id INTEGER, note_date TEXT DEFAULT (datetime('now')), note_type TEXT DEFAULT 'Progress', subjective TEXT, objective TEXT, assessment TEXT, plan TEXT, risk_assessment TEXT, provider_signature TEXT, created_date TEXT DEFAULT (datetime('now')), FOREIGN KEY (patient_id) REFERENCES patients(id))")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS assessments (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, appointment_id INTEGER, assessment_date TEXT DEFAULT (datetime('now')), assessment_type TEXT NOT NULL, score INTEGER, interpretation TEXT, details TEXT, FOREIGN KEY (patient_id) REFERENCES patients(id))")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS medications (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, medication_name TEXT NOT NULL, dosage TEXT, frequency TEXT, start_date TEXT, end_date TEXT, prescriber TEXT, indication TEXT, side_effects TEXT, status TEXT DEFAULT 'Active', created_date TEXT DEFAULT (datetime('now')), FOREIGN KEY (patient_id) REFERENCES patients(id))")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS diagnoses (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, icd_code TEXT NOT NULL, diagnosis_name TEXT NOT NULL, diagnosis_date TEXT DEFAULT (datetime('now')), status TEXT DEFAULT 'Active', notes TEXT, FOREIGN KEY (patient_id) REFERENCES patients(id))")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS treatment_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, plan_date TEXT DEFAULT (datetime('now')), goals TEXT, interventions TEXT, frequency TEXT, duration TEXT, progress_notes TEXT, status TEXT DEFAULT 'Active', FOREIGN KEY (patient_id) REFERENCES patients(id))")
+}
+
+# ==============================================================================
+# MODULE: STATUS BAR HELPERS
+# ==============================================================================
+
+def sb_set_message(msg) {
+    ui_set(sb_message, rejoin("  ", msg))
+    ui_color(sb_message, "#ecf0f1", "#2d2d2d")
+}
+
+def sb_set_error(msg) {
+    ui_set(sb_message, rejoin("  ⚠ ", msg))
+    ui_color(sb_message, "white", "#c0392b")
+}
+
+def sb_set_success(msg) {
+    ui_set(sb_message, rejoin("  ✓ ", msg))
+    ui_color(sb_message, "white", "#16a085")
+}
+
+def sb_set_info(msg) {
+    ui_set(sb_message, rejoin("   ", msg))
+    ui_color(sb_message, "white", "#2980b9")
+}
+
+# ==============================================================================
+# MODULE: UTILITY FUNCTIONS
+# ==============================================================================
+
+def escape_sql(text) {
+    return replace(str(text), "'", "''")
+}
+
+def get_patient_names() {
+    patients = db_query(db, "SELECT first_name || ' ' || last_name as name FROM patients ORDER BY last_name")
+    names = []
+    for p in patients {
+        list_append(names, p["name"])
+    }
+    return names
+}
+
+def find_patient_id_by_name(full_name) {
+    parts = split(full_name, " ")
+    if len(parts) < 2 { return null }
+    
+    first = parts[0]
+    last = parts[len(parts) - 1]
+    
+    result = db_query(db, rejoin("SELECT id FROM patients WHERE first_name = '", escape_sql(first), "' AND last_name = '", escape_sql(last), "'"))
+    if len(result) == 0 { return null }
+    return result[0]["id"]
+}
+
+def close_popup() {
+    if new_patient_popup != null {
+        ui_close(new_patient_popup)
+        new_patient_popup = null
+    }
+    if schedule_popup != null {
+        ui_close(schedule_popup)
+        schedule_popup = null
+    }
+    if med_popup != null {
+        ui_close(med_popup)
+        med_popup = null
+    }
+    if plan_popup != null {
+        ui_close(plan_popup)
+        plan_popup = null
+    }
+}
+
+def backup_database() {
+    backup_path = ui_file_save(null)
+    if backup_path == "" { return }
+    try {
+        content = file_read("psychiatry_emr.db")
+        result = file_write(backup_path, content)
+        if result == "SUCCESS" {
+            sb_set_success(rejoin("Database backed up to ", path_file(backup_path)))
+        } else {
+            sb_set_error("Backup failed")
+        }
+    } catch err {
+        sb_set_error(rejoin("Backup failed: ", err))
+    }
+}
+
+def exit_app() {
+    ui_close(win)
+}
+
+def show_about() {
+    ui_alert(rejoin(
+        "Psychiatry EMR - Professional Edition\n\n",
+        "Version 1.1 (Index-Based Tabs)\n\n",
+        "Comprehensive EMR for psychiatric practice.\n\n",
+        "Features:\n",
+        "• Patient management\n",
+        "• Appointment scheduling\n",
+        "• SOAP clinical notes\n",
+        "• PHQ-9, GAD-7 assessments\n",
+        "• Medication tracking\n",
+        "• Treatment planning\n",
+        "• Reporting"
+    ))
+}
+
+# ✅ FIX: Tab navigation helpers now use INDEX instead of fragile string matching
+def show_patients_tab() { ui_tab_select(main_notebook, TAB_PATIENTS) }
+def show_notes_tab() { ui_tab_select(main_notebook, TAB_NOTES) }
+def show_assessments_tab() { ui_tab_select(main_notebook, TAB_ASSESSMENTS) }
+def show_meds_tab() { ui_tab_select(main_notebook, TAB_MEDICATIONS) }
+def show_plans_tab() { ui_tab_select(main_notebook, TAB_PLANS) }
+
+# ==============================================================================
+# MODULE: MAIN APPLICATION UI
+# ==============================================================================
+
+def create_main_window() {
+    win = ui_window("Psychiatry EMR - Professional Edition", 1400, 1000)
+    
+    # === MENU BAR ===
+    menubar = ui_menu(win)
+    
+    file_menu = ui_menu_add(menubar, "File")
+    ui_menu_item(file_menu, "Backup Database", "backup_database")
+    ui_menu_separator(file_menu)
+    ui_menu_item(file_menu, "Exit", "exit_app")
+    
+    patient_menu = ui_menu_add(menubar, "Patient")
+    ui_menu_item(patient_menu, "New Patient", "new_patient_dialog")
+    ui_menu_item(patient_menu, "Patient List", "show_patients_tab")
+    
+    clinical_menu = ui_menu_add(menubar, "Clinical")
+    ui_menu_item(clinical_menu, "New Progress Note", "show_notes_tab")
+    ui_menu_item(clinical_menu, "Assessment Tools", "show_assessments_tab")
+    ui_menu_item(clinical_menu, "Medication Management", "show_meds_tab")
+    ui_menu_separator(clinical_menu)
+    ui_menu_item(clinical_menu, "Treatment Plans", "show_plans_tab")
+    
+    help_menu = ui_menu_add(menubar, "Help")
+    ui_menu_item(help_menu, "About", "show_about")
+    
+    ui_set_menu(win, menubar)
+    
+    # === TOOLBAR (y=0, h=40) ===
+    toolbar_bg = ui_panel(win, 0, 0, 1400, 40)
+    ui_color(toolbar_bg, "white", "#ecf0f1")
+    
+    ui_color(ui_button(toolbar_bg, " New Patient", "new_patient_dialog", 10, 5, 130, 30), "white", "#3498db")
+    ui_color(ui_button(toolbar_bg, " Schedule", "schedule_appointment", 150, 5, 120, 30), "white", "#9b59b6")
+    ui_color(ui_button(toolbar_bg, " Progress Note", "show_notes_tab", 280, 5, 140, 30), "white", "#e74c3c")
+    ui_color(ui_button(toolbar_bg, "📊 Assessments", "show_assessments_tab", 430, 5, 130, 30), "white", "#f39c12")
+    ui_color(ui_button(toolbar_bg, "💊 Medications", "show_meds_tab", 570, 5, 130, 30), "white", "#1abc9c")
+    ui_color(ui_button(toolbar_bg, "📋 Treatment Plans", "show_plans_tab", 710, 5, 150, 30), "white", "#34495e")
+    ui_color(ui_button(toolbar_bg, "💾 Backup", "backup_database", 870, 5, 100, 30), "white", "#7f8c8d")
+    
+    # === MAIN NOTEBOOK (y=40, h=830) ===
+    main_notebook = ui_tabs(win, 0, 40, 1400, 830)
+    
+    dashboard_tab = ui_tab_add(main_notebook, "📊 Dashboard")
+    create_dashboard(dashboard_tab)
+    
+    patient_tab = ui_tab_add(main_notebook, " Patients")
+    create_patient_management(patient_tab)
+    
+    appointment_tab = ui_tab_add(main_notebook, " Appointments")
+    create_appointment_management(appointment_tab)
+    
+    notes_tab = ui_tab_add(main_notebook, "📝 Clinical Notes")
+    create_clinical_notes(notes_tab)
+    
+    assess_tab = ui_tab_add(main_notebook, "📈 Assessments")
+    create_assessment_tools(assess_tab)
+    
+    meds_tab = ui_tab_add(main_notebook, "💊 Medications")
+    create_medication_management(meds_tab)
+    
+    plans_tab = ui_tab_add(main_notebook, "📋 Treatment Plans")
+    create_treatment_plans(plans_tab)
+    
+    # === STATUS BAR (y=870, h=30) ===
+    statusbar_bg = ui_panel(win, 0, 870, 1400, 30)
+    ui_color(statusbar_bg, "white", "#34495e")
+    
+    ui_color(ui_label(statusbar_bg, "  Psychiatry EMR  ", 0, 0, 180, 30), "white", "#34495e")
+    sb_message = ui_label(statusbar_bg, "  Ready  ", 180, 0, 900, 30)
+    ui_color(sb_message, "#ecf0f1", "#34495e")
+    ui_color(ui_label(statusbar_bg, "  v1.1  ", 1300, 0, 100, 30), "white", "#34495e")
+    
+    ui_mainloop(win)
+}
+
+# ==============================================================================
+# MODULE: DASHBOARD TAB
+# ==============================================================================
+
+def create_dashboard(parent) {
+    # Card 1: Today's Appointments
+    card1 = ui_panel(parent, 15, 10, 320, 100)
+    ui_color(card1, "white", "#3498db")
+    ui_color(ui_label(card1, "  Today's Appointments", 0, 5, 320, 25), "white", "#3498db")
+    today_count_lbl = ui_label(card1, "0", 0, 35, 320, 60)
+    ui_color(today_count_lbl, "white", "#3498db")
+    ui_font(today_count_lbl, 32, "Segoe UI", true)
+    
+    # Card 2: Total Patients
+    card2 = ui_panel(parent, 350, 10, 320, 100)
+    ui_color(card2, "white", "#9b59b6")
+    ui_color(ui_label(card2, "  Total Patients", 0, 5, 320, 25), "white", "#9b59b6")
+    patient_count_lbl = ui_label(card2, "0", 0, 35, 320, 60)
+    ui_color(patient_count_lbl, "white", "#9b59b6")
+    ui_font(patient_count_lbl, 32, "Segoe UI", true)
+    
+    # Card 3: Active Medications
+    card3 = ui_panel(parent, 685, 10, 320, 100)
+    ui_color(card3, "white", "#e74c3c")
+    ui_color(ui_label(card3, "  Active Medications", 0, 5, 320, 25), "white", "#e74c3c")
+    pending_lbl = ui_label(card3, "0", 0, 35, 320, 60)
+    ui_color(pending_lbl, "white", "#e74c3c")
+    ui_font(pending_lbl, 32, "Segoe UI", true)
+    
+    # Card 4: Scheduled Today
+    card4 = ui_panel(parent, 1020, 10, 320, 100)
+    ui_color(card4, "white", "#1abc9c")
+    ui_color(ui_label(card4, "  Scheduled Today", 0, 5, 320, 25), "white", "#1abc9c")
+    meds_lbl = ui_label(card4, "0", 0, 35, 320, 60)
+    ui_color(meds_lbl, "white", "#1abc9c")
+    ui_font(meds_lbl, 32, "Segoe UI", true)
+    
+    # Recent Activity Section
+    ui_color(ui_label(parent, "  Recent Activity", 15, 125, 300, 25), "#2c3e50", "")
+    ui_font(ui_label(parent, "  Recent Activity", 15, 125, 300, 25), 12, "Segoe UI", true)
+    
+    activity_list = ui_listview(parent, ["Date", "Patient", "Activity", "Type"], 15, 155, 1325, 480)
+    
+    # Quick Actions
+    ui_color(ui_label(parent, "  Quick Actions", 15, 650, 300, 25), "#2c3e50", "")
+    ui_color(ui_button(parent, "➕ Add Patient", "new_patient_dialog", 15, 685, 180, 40), "white", "#3498db")
+    ui_color(ui_button(parent, " Schedule Appointment", "schedule_appointment", 210, 685, 220, 40), "white", "#9b59b6")
+    ui_color(ui_button(parent, "📝 New Progress Note", "show_notes_tab", 445, 685, 220, 40), "white", "#e74c3c")
+    ui_color(ui_button(parent, "💊 Add Medication", "show_meds_tab", 680, 685, 200, 40), "white", "#1abc9c")
+    ui_color(ui_button(parent, "📋 New Treatment Plan", "show_plans_tab", 895, 685, 230, 40), "white", "#34495e")
+    ui_color(ui_button(parent, "🔄 Refresh", "refresh_dashboard", 1140, 685, 200, 40), "white", "#7f8c8d")
+    
+    refresh_dashboard()
+}
+
+def refresh_dashboard() {
+    today = date()
+    
+    today_appts = db_query(db, rejoin("SELECT COUNT(*) as count FROM appointments WHERE appointment_date = '", today, "'"))
+    total_patients = db_query(db, "SELECT COUNT(*) as count FROM patients")
+    active_meds = db_query(db, "SELECT COUNT(*) as count FROM medications WHERE status = 'Active'")
+    scheduled_today = db_query(db, rejoin("SELECT COUNT(*) as count FROM appointments WHERE appointment_date = '", today, "' AND status = 'Scheduled'"))
+    
+    if len(today_appts) > 0 { ui_set(today_count_lbl, str(today_appts[0]["count"])) }
+    if len(total_patients) > 0 { ui_set(patient_count_lbl, str(total_patients[0]["count"])) }
+    if len(active_meds) > 0 { ui_set(pending_lbl, str(active_meds[0]["count"])) }
+    if len(scheduled_today) > 0 { ui_set(meds_lbl, str(scheduled_today[0]["count"])) }
+    
+    # Recent activity
+    ui_listview_clear(activity_list)
+    recent = db_query(db, "SELECT cn.note_date, p.first_name || ' ' || p.last_name as patient_name, cn.note_type FROM clinical_notes cn JOIN patients p ON cn.patient_id = p.id ORDER BY cn.created_date DESC LIMIT 15")
+    for note in recent {
+        ui_listview_insert(activity_list, [note["note_date"], note["patient_name"], "Progress Note", note["note_type"]])
+    }
+    
+    recent_assess = db_query(db, "SELECT a.assessment_date, p.first_name || ' ' || p.last_name as patient_name, a.assessment_type, a.score FROM assessments a JOIN patients p ON a.patient_id = p.id ORDER BY a.assessment_date DESC LIMIT 10")
+    for a in recent_assess {
+        ui_listview_insert(activity_list, [a["assessment_date"], a["patient_name"], rejoin("Assessment: ", str(a["score"])), a["assessment_type"]])
+    }
+    
+    sb_set_info("Dashboard refreshed")
+}
+
+# ==============================================================================
+# MODULE: PATIENT MANAGEMENT TAB
+# ==============================================================================
+
+def create_patient_management(parent) {
+    # Left panel (40% = 540px): search + list
+    ui_color(ui_label(parent, "  Search Patients", 10, 10, 200, 25), "#2c3e50", "")
+    search_entry = ui_entry(parent, "Type name or MRN...", 10, 40, 380, 28)
+    ui_color(ui_button(parent, " Search", "search_patients", 400, 40, 130, 28), "white", "#3498db")
+    
+    ui_color(ui_button(parent, "➕ New Patient", "new_patient_dialog", 10, 78, 520, 35), "white", "#27ae60")
+    
+    patient_list = ui_listview(parent, ["MRN", "Name", "DOB", "Phone"], 10, 123, 520, 680)
+    ui_bind(patient_list, "SELECT", "open_patient_record")
+    
+    # Right panel (60% = 810px): patient details
+    details_panel = ui_panel(parent, 550, 10, 810, 793)
+    ui_color(details_panel, "", "#f8f9fa")
+    
+    ui_color(ui_label(details_panel, "  Patient Details", 0, 5, 810, 30), "white", "#34495e")
+    ui_font(ui_label(details_panel, "  Patient Details", 0, 5, 810, 30), 13, "Segoe UI", true)
+    
+    # Info rows
+    y = 50
+    ui_color(ui_label(details_panel, "MRN:", 20, y, 120, 25), "#2c3e50", "")
+    mrn_lbl = ui_label(details_panel, "-", 150, y, 640, 25)
+    
+    y = 85
+    ui_color(ui_label(details_panel, "Full Name:", 20, y, 120, 25), "#2c3e50", "")
+    name_lbl = ui_label(details_panel, "-", 150, y, 640, 25)
+    ui_font(name_lbl, 12, "Segoe UI", true)
+    
+    y = 120
+    ui_color(ui_label(details_panel, "Date of Birth:", 20, y, 120, 25), "#2c3e50", "")
+    dob_lbl = ui_label(details_panel, "-", 150, y, 640, 25)
+    
+    y = 155
+    ui_color(ui_label(details_panel, "Phone:", 20, y, 120, 25), "#2c3e50", "")
+    phone_lbl = ui_label(details_panel, "-", 150, y, 640, 25)
+    
+    y = 190
+    ui_color(ui_label(details_panel, "Primary Diagnosis:", 20, y, 150, 25), "#2c3e50", "")
+    diagnosis_lbl = ui_label(details_panel, "-", 180, y, 610, 25)
+    ui_color(diagnosis_lbl, "#c0392b", "")
+    ui_font(diagnosis_lbl, 11, "Segoe UI", true)
+    
+    # Action buttons
+    y = 240
+    ui_color(ui_button(details_panel, "📅 Schedule Appt", "schedule_for_current", 20, y, 180, 35), "white", "#9b59b6")
+    ui_color(ui_button(details_panel, "📝 New Note", "note_for_current", 210, y, 180, 35), "white", "#e74c3c")
+    ui_color(ui_button(details_panel, "💊 Medications", "meds_for_current", 400, y, 180, 35), "white", "#1abc9c")
+    ui_color(ui_button(details_panel, " Treatment Plan", "plan_for_current", 590, y, 200, 35), "white", "#34495e")
+    
+    # Recent notes for current patient
+    y = 295
+    ui_color(ui_label(details_panel, "  Recent Clinical Notes", 20, y, 400, 25), "#2c3e50", "")
+    ui_font(ui_label(details_panel, "  Recent Clinical Notes", 20, y, 400, 25), 11, "Segoe UI", true)
+    
+    # Patient history listview
+    patient_history_list = ui_listview(details_panel, ["Date", "Type", "Provider"], 20, 325, 770, 450)
+    
+    load_patient_list()
+}
+
+def load_patient_list() {
+    ui_listview_clear(patient_list)
+    patients = db_query(db, "SELECT mrn, first_name || ' ' || last_name as name, dob, phone FROM patients ORDER BY last_name, first_name")
+    for patient in patients {
+        ui_listview_insert(patient_list, [patient["mrn"], patient["name"], patient["dob"], patient["phone"]])
+    }
+}
+
+def search_patients() {
+    search_term = ui_get(search_entry)
+    if len(trim(search_term)) == 0 {
+        load_patient_list()
+        return
+    }
+    
+    ui_listview_clear(patient_list)
+    pattern = rejoin("%", search_term, "%")
+    sql = rejoin("SELECT mrn, first_name || ' ' || last_name as name, dob, phone FROM patients WHERE first_name LIKE '", pattern, "' OR last_name LIKE '", pattern, "' OR mrn LIKE '", pattern, "' ORDER BY last_name, first_name")
+    patients = db_query(db, sql)
+    for patient in patients {
+        ui_listview_insert(patient_list, [patient["mrn"], patient["name"], patient["dob"], patient["phone"]])
+    }
+    sb_set_info(rejoin("Found ", str(len(patients)), " patient(s)"))
+}
+
+def open_patient_record(widget) {
+    selected = ui_listview_get_selected(patient_list)
+    if selected == null { return }
+    
+    mrn = selected[0]
+    patient = db_query(db, rejoin("SELECT * FROM patients WHERE mrn = '", escape_sql(mrn), "'"))
+    
+    if len(patient) == 0 { return }
+    
+    p = patient[0]
+    current_patient_id = p["id"]
+    
+    ui_set(mrn_lbl, p["mrn"])
+    ui_set(name_lbl, rejoin(p["first_name"], " ", p["last_name"]))
+    ui_set(dob_lbl, p["dob"])
+    ui_set(phone_lbl, p["phone"])
+    ui_set(diagnosis_lbl, p["primary_diagnosis"])
+    
+    sb_set_info(rejoin("Viewing: ", p["first_name"], " ", p["last_name"]))
+}
+
+# Context-aware actions
+def schedule_for_current() {
+    if current_patient_id == null {
+        ui_alert_err("Please select a patient first")
+        return
+    }
+    schedule_appointment()
+}
+
+def note_for_current() {
+    if current_patient_id == null {
+        ui_alert_err("Please select a patient first")
+        return
+    }
+    show_notes_tab()
+}
+
+def meds_for_current() {
+    if current_patient_id == null {
+        ui_alert_err("Please select a patient first")
+        return
+    }
+    show_meds_tab()
+}
+
+def plan_for_current() {
+    if current_patient_id == null {
+        ui_alert_err("Please select a patient first")
+        return
+    }
+    show_plans_tab()
+}
+
+# ==============================================================================
+# MODULE: NEW PATIENT DIALOG
+# ==============================================================================
+
+def new_patient_dialog() {
+    if new_patient_popup != null {
+        ui_close(new_patient_popup)
+    }
+    
+    popup = ui_popup("New Patient Registration", 750, 850)
+    
+    # Form fields
+    y = 15
+    ui_color(ui_label(popup, "Medical Record Number (MRN):", 15, y, 300, 22), "#2c3e50", "")
+    mrn_entry = ui_entry(popup, "", 15, y + 25, 715, 28)
+    ui_color(mrn_entry, "#c0392b", "")
+    
+    y = 75
+    ui_color(ui_label(popup, "First Name:", 15, y, 300, 22), "#2c3e50", "")
+    fname_entry = ui_entry(popup, "", 15, y + 25, 350, 28)
+    
+    ui_color(ui_label(popup, "Last Name:", 380, y, 300, 22), "#2c3e50", "")
+    lname_entry = ui_entry(popup, "", 380, y + 25, 350, 28)
+    
+    y = 135
+    ui_color(ui_label(popup, "Date of Birth:", 15, y, 300, 22), "#2c3e50", "")
+    dob_entry = ui_datepicker(popup, 15, y + 25, 350, 28)
+    
+    ui_color(ui_label(popup, "Gender:", 380, y, 300, 22), "#2c3e50", "")
+    gender_combo = ui_combobox(popup, ["Male", "Female", "Other", "Prefer not to say"], 380, y + 25, 350, 28)
+    
+    y = 195
+    ui_color(ui_label(popup, "Phone:", 15, y, 300, 22), "#2c3e50", "")
+    phone_entry = ui_entry(popup, "", 15, y + 25, 350, 28)
+    
+    ui_color(ui_label(popup, "Email:", 380, y, 300, 22), "#2c3e50", "")
+    email_entry = ui_entry(popup, "", 380, y + 25, 350, 28)
+    
+    y = 255
+    ui_color(ui_label(popup, "Address:", 15, y, 715, 22), "#2c3e50", "")
+    address_entry = ui_entry(popup, "", 15, y + 25, 715, 28)
+    
+    y = 315
+    ui_color(ui_label(popup, "Emergency Contact:", 15, y, 350, 22), "#2c3e50", "")
+    ec_entry = ui_entry(popup, "", 15, y + 25, 350, 28)
+    
+    ui_color(ui_label(popup, "Emergency Phone:", 380, y, 350, 22), "#2c3e50", "")
+    ec_phone_entry = ui_entry(popup, "", 380, y + 25, 350, 28)
+    
+    y = 375
+    ui_color(ui_label(popup, "Insurance Information:", 15, y, 715, 22), "#2c3e50", "")
+    insurance_entry = ui_entry(popup, "", 15, y + 25, 715, 28)
+    
+    y = 435
+    ui_color(ui_label(popup, "Primary Diagnosis (ICD description):", 15, y, 715, 22), "#2c3e50", "")
+    diagnosis_entry = ui_entry(popup, "", 15, y + 25, 715, 28)
+    
+    # Buttons at bottom
+    y = 515
+    ui_color(ui_button(popup, "💾 Save Patient", "save_new_patient", 15, y, 350, 40), "white", "#27ae60")
+    ui_color(ui_button(popup, "Cancel", "close_popup", 380, y, 350, 40), "white", "#95a5a6")
+    
+    new_patient_popup = popup
+    new_patient_data = {
+        "mrn": mrn_entry,
+        "fname": fname_entry,
+        "lname": lname_entry,
+        "dob": dob_entry,
+        "gender": gender_combo,
+        "phone": phone_entry,
+        "email": email_entry,
+        "address": address_entry,
+        "ec": ec_entry,
+        "ec_phone": ec_phone_entry,
+        "insurance": insurance_entry,
+        "diagnosis": diagnosis_entry
+    }
+}
+
+def save_new_patient() {
+    mrn = trim(ui_get(new_patient_data["mrn"]))
+    fname = trim(ui_get(new_patient_data["fname"]))
+    lname = trim(ui_get(new_patient_data["lname"]))
+    dob = ui_get(new_patient_data["dob"])
+    
+    if len(mrn) == 0 or len(fname) == 0 or len(lname) == 0 or len(dob) == 0 {
+        ui_alert_err("Please fill in all required fields (MRN, First Name, Last Name, DOB)")
+        return
+    }
+    
+    existing = db_query(db, rejoin("SELECT id FROM patients WHERE mrn = '", escape_sql(mrn), "'"))
+    if len(existing) > 0 {
+        ui_alert_err(rejoin("A patient with MRN '", mrn, "' already exists"))
+        return
+    }
+    
+    gender = ui_get(new_patient_data["gender"])
+    phone = ui_get(new_patient_data["phone"])
+    email = ui_get(new_patient_data["email"])
+    address = ui_get(new_patient_data["address"])
+    ec = ui_get(new_patient_data["ec"])
+    ec_phone = ui_get(new_patient_data["ec_phone"])
+    insurance = ui_get(new_patient_data["insurance"])
+    diagnosis = ui_get(new_patient_data["diagnosis"])
+    
+    sql = rejoin(
+        "INSERT INTO patients (mrn, first_name, last_name, dob, gender, phone, email, address, emergency_contact, emergency_phone, insurance_info, primary_diagnosis) VALUES ('",
+        escape_sql(mrn), "', '", escape_sql(fname), "', '", escape_sql(lname), "', '", escape_sql(dob), "', '",
+        escape_sql(gender), "', '", escape_sql(phone), "', '", escape_sql(email), "', '", escape_sql(address), "', '",
+        escape_sql(ec), "', '", escape_sql(ec_phone), "', '", escape_sql(insurance), "', '", escape_sql(diagnosis), "')"
+    )
+    
+    try {
+        db_execute(db, sql)
+        ui_close(new_patient_popup)
+        new_patient_popup = null
+        load_patient_list()
+        refresh_dashboard()
+        sb_set_success(rejoin("Patient ", fname, " ", lname, " added successfully"))
+    } catch err {
+        ui_alert_err(rejoin("Failed to save patient: ", err))
+    }
+}
+
+# ==============================================================================
+# MODULE: APPOINTMENT MANAGEMENT TAB
+# ==============================================================================
+
+def create_appointment_management(parent) {
+    # Header buttons
+    ui_color(ui_button(parent, "➕ New Appointment", "schedule_appointment", 10, 10, 200, 35), "white", "#9b59b6")
+    ui_color(ui_button(parent, "🔄 Refresh", "refresh_appointments", 220, 10, 120, 35), "white", "#3498db")
+    
+    # Filter
+    ui_color(ui_label(parent, "Filter by Date:", 360, 15, 120, 25), "#2c3e50", "")
+    appt_date_filter = ui_datepicker(parent, 490, 12, 180, 28)
+    ui_color(ui_button(parent, "Show All", "show_all_appointments", 680, 10, 120, 35), "white", "#7f8c8d")
+    
+    # Appointment list
+    appointment_list = ui_listview(parent, ["Date", "Time", "Patient", "Type", "Status", "Duration"], 10, 55, 1360, 740)
+    ui_bind(appointment_list, "DOUBLE_CLICK", "open_appointment")
+    
+    refresh_appointments()
+}
+
+def show_all_appointments() {
+    refresh_appointments()
+}
+
+def open_appointment(widget) {
+    selected = ui_listview_get_selected(appointment_list)
+    if selected == null { return }
+    
+    appt_date = selected[0]
+    appt_time = selected[1]
+    patient_name = selected[2]
+    
+    info = rejoin(
+        "Appointment Details\n\n",
+        "Date: ", appt_date, "\n",
+        "Time: ", appt_time, "\n",
+        "Patient: ", patient_name, "\n",
+        "Type: ", selected[3], "\n",
+        "Status: ", selected[4], "\n",
+        "Duration: ", selected[5], " minutes"
+    )
+    
+    ui_alert(info)
+}
+
+def schedule_appointment() {
+    if schedule_popup != null {
+        ui_close(schedule_popup)
+    }
+    
+    popup = ui_popup("Schedule Appointment", 550, 500)
+    
+    y = 15
+    ui_color(ui_label(popup, "Patient:", 15, y, 200, 22), "#2c3e50", "")
+    patient_combo = ui_combobox(popup, get_patient_names(), 15, y + 25, 515, 28)
+    
+    y = 75
+    ui_color(ui_label(popup, "Date:", 15, y, 200, 22), "#2c3e50", "")
+    appt_date = ui_datepicker(popup, 15, y + 25, 250, 28)
+    
+    ui_color(ui_label(popup, "Time:", 280, y, 200, 22), "#2c3e50", "")
+    appt_time = ui_entry(popup, "09:00", 280, y + 25, 250, 28)
+    
+    y = 135
+    ui_color(ui_label(popup, "Duration (minutes):", 15, y, 200, 22), "#2c3e50", "")
+    duration_combo = ui_combobox(popup, ["30", "50", "60", "90"], 15, y + 25, 250, 28)
+    ui_set(duration_combo, "50")
+    
+    ui_color(ui_label(popup, "Appointment Type:", 280, y, 200, 22), "#2c3e50", "")
+    type_combo = ui_combobox(popup, ["Initial Evaluation", "Follow-up", "Medication Check", "Therapy", "Crisis"], 280, y + 25, 250, 28)
+    
+    y = 195
+    ui_color(ui_label(popup, "Notes:", 15, y, 515, 22), "#2c3e50", "")
+    notes_text = ui_text(popup, "", 15, y + 25, 515, 180)
+    
+    y = 415
+    ui_color(ui_button(popup, " Schedule", "save_appointment", 15, y, 250, 40), "white", "#27ae60")
+    ui_color(ui_button(popup, "Cancel", "close_popup", 280, y, 250, 40), "white", "#95a5a6")
+    
+    schedule_popup = popup
+    schedule_data = {
+        "patient": patient_combo,
+        "date": appt_date,
+        "time": appt_time,
+        "duration": duration_combo,
+        "type": type_combo,
+        "notes": notes_text
+    }
+}
+
+def save_appointment() {
+    patient_name = ui_get(schedule_data["patient"])
+    appt_date = ui_get(schedule_data["date"])
+    appt_time = ui_get(schedule_data["time"])
+    duration = ui_get(schedule_data["duration"])
+    appt_type = ui_get(schedule_data["type"])
+    notes = ui_text_get(schedule_data["notes"])
+    
+    if len(patient_name) == 0 or len(appt_date) == 0 or len(appt_time) == 0 {
+        ui_alert_err("Please fill in patient, date, and time")
+        return
+    }
+    
+    patient_id = find_patient_id_by_name(patient_name)
+    if patient_id == null {
+        ui_alert_err(rejoin("Patient not found: ", patient_name))
+        return
+    }
+    
+    sql = rejoin(
+        "INSERT INTO appointments (patient_id, appointment_date, appointment_time, duration_minutes, appointment_type, notes) VALUES (",
+        patient_id, ", '", escape_sql(appt_date), "', '", escape_sql(appt_time), "', ", duration, ", '",
+        escape_sql(appt_type), "', '", escape_sql(notes), "')"
+    )
+    
+    try {
+        db_execute(db, sql)
+        ui_close(schedule_popup)
+        schedule_popup = null
+        refresh_appointments()
+        refresh_dashboard()
+        sb_set_success(rejoin("Appointment scheduled for ", patient_name))
+    } catch err {
+        ui_alert_err(rejoin("Failed to schedule: ", err))
+    }
+}
+
+def refresh_appointments() {
+    ui_listview_clear(appointment_list)
+    sql = "SELECT a.appointment_date, a.appointment_time, p.first_name || ' ' || p.last_name as patient_name, a.appointment_type, a.status, a.duration_minutes FROM appointments a JOIN patients p ON a.patient_id = p.id ORDER BY a.appointment_date DESC, a.appointment_time DESC"
+    appointments = db_query(db, sql)
+    for appt in appointments {
+        ui_listview_insert(appointment_list, [appt["appointment_date"], appt["appointment_time"], appt["patient_name"], appt["appointment_type"], appt["status"], str(appt["duration_minutes"])])
+    }
+}
+
+# ==============================================================================
+# MODULE: CLINICAL NOTES TAB (SOAP FORMAT)
+# ==============================================================================
+
+def create_clinical_notes(parent) {
+    # Patient selector
+    ui_color(ui_label(parent, "Patient:", 10, 15, 80, 25), "#2c3e50", "")
+    note_patient_combo = ui_combobox(parent, get_patient_names(), 100, 12, 500, 28)
+    
+    ui_color(ui_label(parent, "Note Type:", 620, 15, 90, 25), "#2c3e50", "")
+    note_type_combo = ui_combobox(parent, ["Progress", "Initial Evaluation", "Discharge Summary", "Group Therapy"], 720, 12, 250, 28)
+    
+    ui_color(ui_button(parent, "🗑 Clear", "clear_note", 990, 10, 100, 30), "white", "#95a5a6")
+    ui_color(ui_button(parent, "💾 Save Note", "save_clinical_note", 1100, 10, 150, 30), "white", "#27ae60")
+    
+    # SOAP sections
+    # Subjective
+    ui_color(ui_label(parent, "  SUBJECTIVE (Patient's complaints, history of present illness):", 10, 50, 1370, 22), "#2980b9", "")
+    ui_font(ui_label(parent, "  SUBJECTIVE (Patient's complaints, history of present illness):", 10, 50, 1370, 22), 10, "Segoe UI", true)
+    subjective_text = ui_text(parent, "", 10, 75, 1370, 130)
+    
+    # Objective
+    ui_color(ui_label(parent, "  OBJECTIVE (Mental status exam, observations, vitals):", 10, 215, 1370, 22), "#27ae60", "")
+    ui_font(ui_label(parent, "  OBJECTIVE (Mental status exam, observations, vitals):", 10, 215, 1370, 22), 10, "Segoe UI", true)
+    objective_text = ui_text(parent, "", 10, 240, 1370, 130)
+    
+    # Assessment
+    ui_color(ui_label(parent, "  ASSESSMENT (Diagnosis, clinical impression):", 10, 380, 1370, 22), "#f39c12", "")
+    ui_font(ui_label(parent, "  ASSESSMENT (Diagnosis, clinical impression):", 10, 380, 1370, 22), 10, "Segoe UI", true)
+    assessment_text = ui_text(parent, "", 10, 405, 1370, 110)
+    
+    # Plan
+    ui_color(ui_label(parent, "  PLAN (Treatment plan, follow-up, referrals):", 10, 525, 1370, 22), "#9b59b6", "")
+    ui_font(ui_label(parent, "  PLAN (Treatment plan, follow-up, referrals):", 10, 525, 1370, 22), 10, "Segoe UI", true)
+    plan_text = ui_text(parent, "", 10, 550, 1370, 110)
+    
+    # Risk Assessment
+    ui_color(ui_label(parent, "  RISK ASSESSMENT (Suicidal/homicidal ideation, self-harm):", 10, 670, 1370, 22), "#c0392b", "")
+    ui_font(ui_label(parent, "  RISK ASSESSMENT (Suicidal/homicidal ideation, self-harm):", 10, 670, 1370, 22), 10, "Segoe UI", true)
+    risk_text = ui_text(parent, "", 10, 695, 1370, 100)
+    
+    note_data = {
+        "patient": note_patient_combo,
+        "type": note_type_combo,
+        "subjective": subjective_text,
+        "objective": objective_text,
+        "assessment": assessment_text,
+        "plan": plan_text,
+        "risk": risk_text
+    }
+}
+
+def clear_note() {
+    ui_text_set(note_data["subjective"], "")
+    ui_text_set(note_data["objective"], "")
+    ui_text_set(note_data["assessment"], "")
+    ui_text_set(note_data["plan"], "")
+    ui_text_set(note_data["risk"], "")
+}
+
+def save_clinical_note() {
+    patient_name = ui_get(note_data["patient"])
+    note_type = ui_get(note_data["type"])
+    subjective = ui_text_get(note_data["subjective"])
+    objective = ui_text_get(note_data["objective"])
+    assessment = ui_text_get(note_data["assessment"])
+    plan = ui_text_get(note_data["plan"])
+    risk = ui_text_get(note_data["risk"])
+    
+    if len(patient_name) == 0 {
+        ui_alert_err("Please select a patient")
+        return
+    }
+    
+    if len(subjective) == 0 and len(objective) == 0 and len(assessment) == 0 and len(plan) == 0 {
+        ui_alert_err("Please fill in at least one SOAP section")
+        return
+    }
+    
+    patient_id = find_patient_id_by_name(patient_name)
+    if patient_id == null {
+        ui_alert_err(rejoin("Patient not found: ", patient_name))
+        return
+    }
+    
+    sql = rejoin(
+        "INSERT INTO clinical_notes (patient_id, note_type, subjective, objective, assessment, plan, risk_assessment) VALUES (",
+        patient_id, ", '", escape_sql(note_type), "', '", escape_sql(subjective), "', '", escape_sql(objective),
+        "', '", escape_sql(assessment), "', '", escape_sql(plan), "', '", escape_sql(risk), "')"
+    )
+    
+    try {
+        db_execute(db, sql)
+        clear_note()
+        refresh_dashboard()
+        sb_set_success(rejoin("Clinical note saved for ", patient_name))
+    } catch err {
+        ui_alert_err(rejoin("Failed to save note: ", err))
+    }
+}
+
+# ==============================================================================
+# MODULE: PSYCHIATRIC ASSESSMENT TOOLS (PHQ-9, GAD-7)
+# ==============================================================================
+
+def create_assessment_tools(parent) {
+    # Top controls
+    ui_color(ui_label(parent, "Assessment Tool:", 10, 15, 130, 25), "#2c3e50", "")
+    assessment_type_combo = ui_combobox(parent, ["PHQ-9 (Depression)", "GAD-7 (Anxiety)", "PCL-5 (PTSD)", "AUDIT (Alcohol)", "Columbia Suicide Severity"], 150, 12, 280, 28)
+    
+    ui_color(ui_button(parent, "📋 Load", "load_assessment", 440, 10, 100, 30), "white", "#f39c12")
+    
+    ui_color(ui_label(parent, "Patient:", 560, 15, 70, 25), "#2c3e50", "")
+    assess_patient_combo = ui_combobox(parent, get_patient_names(), 640, 12, 400, 28)
+    
+    ui_color(ui_button(parent, "💾 Save", "save_assessment", 1060, 10, 120, 30), "white", "#27ae60")
+    ui_color(ui_button(parent, "📊 History", "view_assessment_history", 1190, 10, 120, 30), "white", "#9b59b6")
+    
+    # Question content area
+    assess_content = ui_panel(parent, 10, 50, 1370, 680)
+    ui_color(assess_content, "", "#f8f9fa")
+    ui_color(ui_label(assess_content, "  Select an assessment tool and click 'Load' to begin", 20, 20, 1330, 30), "#7f8c8d", "")
+    
+    # Score display
+    score_panel = ui_panel(parent, 10, 740, 1370, 55)
+    ui_color(score_panel, "", "#34495e")
+    ui_color(ui_label(score_panel, "  Total Score:", 10, 15, 120, 25), "white", "#34495e")
+    score_lbl = ui_label(score_panel, "0", 140, 10, 80, 35)
+    ui_color(score_lbl, "#f1c40f", "#34495e")
+    ui_font(score_lbl, 20, "Segoe UI", true)
+    
+    ui_color(ui_label(score_panel, "Interpretation:", 240, 15, 120, 25), "white", "#34495e")
+    interpretation_lbl = ui_label(score_panel, "-", 370, 15, 980, 25)
+    ui_color(interpretation_lbl, "white", "#34495e")
+    ui_font(interpretation_lbl, 12, "Segoe UI", true)
+    
+    assessment_data = {
+        "type": assessment_type_combo,
+        "patient": assess_patient_combo,
+        "content": assess_content,
+        "score": score_lbl,
+        "interpretation": interpretation_lbl,
+        "combos": []
+    }
+}
+
+def view_assessment_history() {
+    patient_name = ui_get(assessment_data["patient"])
+    if len(patient_name) == 0 {
+        ui_alert_err("Please select a patient")
+        return
+    }
+    
+    patient_id = find_patient_id_by_name(patient_name)
+    if patient_id == null { return }
+    
+    history = db_query(db, rejoin("SELECT assessment_date, assessment_type, score, interpretation FROM assessments WHERE patient_id = ", patient_id, " ORDER BY assessment_date DESC LIMIT 20"))
+    
+    report = rejoin("Assessment History for ", patient_name, "\n============================================\n\n")
+    
+    if len(history) == 0 {
+        report = rejoin(report, "No assessments recorded.")
+    } else {
+        for h in history {
+            report = rejoin(report, h["assessment_date"], " | ", h["assessment_type"], "\n   Score: ", str(h["score"]), " - ", h["interpretation"], "\n\n")
+        }
+    }
+    
+    ui_alert(report)
+}
+
+def load_assessment() {
+    assess_type = ui_get(assessment_data["type"])
+    
+    # Clear existing questions
+    combos = assessment_data["combos"]
+    for c in combos {
+        ui_destroy(c)
+    }
+    dict_set(assessment_data, "combos", [])
+    
+    handled = false
+    
+    if assess_type == "PHQ-9 (Depression)" {
+        load_phq9()
+        handled = true
+    }
+    if assess_type == "GAD-7 (Anxiety)" {
+        load_gad7()
+        handled = true
+    }
+    if handled == false {
+        ui_alert(rejoin("Assessment template for '", assess_type, "' is not yet implemented.\n\nAvailable: PHQ-9, GAD-7"))
+    }
+}
+
+def load_phq9() {
+    questions = [
+        "Little interest or pleasure in doing things",
+        "Feeling down, depressed, or hopeless",
+        "Trouble falling or staying asleep, or sleeping too much",
+        "Feeling tired or having little energy",
+        "Poor appetite or overeating",
+        "Feeling bad about yourself - or that you are a failure",
+        "Trouble concentrating on things",
+        "Moving or speaking slowly, or being fidgety/restless",
+        "Thoughts that you would be better off dead, or of hurting yourself"
+    ]
+    
+    options = ["0 - Not at all", "1 - Several days", "2 - More than half the days", "3 - Nearly every day"]
+    
+    title_lbl = ui_label(assessment_data["content"], "  PHQ-9: Over the last 2 weeks, how often have you been bothered by:", 10, 10, 1340, 25)
+    ui_color(title_lbl, "#2c3e50", "")
+    ui_font(title_lbl, 11, "Segoe UI", true)
+    
+    i = 0
+    y = 45
+    while i < len(questions) {
+        q_lbl = ui_label(assessment_data["content"], rejoin(str(i + 1), ". ", questions[i]), 15, y, 900, 25)
+        ui_color(q_lbl, "#2c3e50", "")
+        
+        combo = ui_combobox(assessment_data["content"], options, 930, y - 2, 420, 28)
+        
+        combos = assessment_data["combos"]
+        list_append(combos, combo)
+        
+        i = i + 1
+        y = y + 35
+    }
+    
+    hint_lbl = ui_label(assessment_data["content"], "  Scoring: 0-4 Minimal | 5-9 Mild | 10-14 Moderate | 15-19 Moderately Severe | 20-27 Severe", 15, y + 10, 1340, 22)
+    ui_color(hint_lbl, "#7f8c8d", "")
+    
+    ui_set(score_lbl, "0")
+    ui_set(assessment_data["interpretation"], "Complete the assessment to see score")
+}
+
+def load_gad7() {
+    questions = [
+        "Feeling nervous, anxious, or on edge",
+        "Not being able to stop or control worrying",
+        "Worrying too much about different things",
+        "Trouble relaxing",
+        "Being so restless that it's hard to sit still",
+        "Becoming easily annoyed or irritable",
+        "Feeling afraid, as if something awful might happen"
+    ]
+    
+    options = ["0 - Not at all", "1 - Several days", "2 - More than half the days", "3 - Nearly every day"]
+    
+    title_lbl = ui_label(assessment_data["content"], "  GAD-7: Over the last 2 weeks, how often have you been bothered by:", 10, 10, 1340, 25)
+    ui_color(title_lbl, "#2c3e50", "")
+    ui_font(title_lbl, 11, "Segoe UI", true)
+    
+    i = 0
+    y = 45
+    while i < len(questions) {
+        q_lbl = ui_label(assessment_data["content"], rejoin(str(i + 1), ". ", questions[i]), 15, y, 900, 25)
+        ui_color(q_lbl, "#2c3e50", "")
+        
+        combo = ui_combobox(assessment_data["content"], options, 930, y - 2, 420, 28)
+        
+        combos = assessment_data["combos"]
+        list_append(combos, combo)
+        
+        i = i + 1
+        y = y + 35
+    }
+    
+    hint_lbl = ui_label(assessment_data["content"], "  Scoring: 0-4 Minimal | 5-9 Mild | 10-14 Moderate | 15-21 Severe", 15, y + 10, 1340, 22)
+    ui_color(hint_lbl, "#7f8c8d", "")
+    
+    ui_set(score_lbl, "0")
+    ui_set(assessment_data["interpretation"], "Complete the assessment to see score")
+}
+
+def compute_assessment_score() {
+    combos = assessment_data["combos"]
+    total = 0
+    answered = 0
+    
+    for c in combos {
+        val = ui_get(c)
+        if len(val) > 0 {
+            first_char = left(val, 1)
+            try {
+                num = int(first_char)
+                total = total + num
+                answered = answered + 1
+            } catch e {
+                # Skip non-numeric
+            }
+        }
+    }
+    
+    return total
+}
+
+def get_phq9_interpretation(score) {
+    if score <= 4 { return "Minimal depression" }
+    if score <= 9 { return "Mild depression" }
+    if score <= 14 { return "Moderate depression" }
+    if score <= 19 { return "Moderately severe depression" }
+    return "Severe depression"
+}
+
+def get_gad7_interpretation(score) {
+    if score <= 4 { return "Minimal anxiety" }
+    if score <= 9 { return "Mild anxiety" }
+    if score <= 14 { return "Moderate anxiety" }
+    return "Severe anxiety"
+}
+
+def save_assessment() {
+    patient_name = ui_get(assessment_data["patient"])
+    assess_type = ui_get(assessment_data["type"])
+    
+    if len(patient_name) == 0 {
+        ui_alert_err("Please select a patient")
+        return
+    }
+    
+    patient_id = find_patient_id_by_name(patient_name)
+    if patient_id == null {
+        ui_alert_err(rejoin("Patient not found: ", patient_name))
+        return
+    }
+    
+    score = compute_assessment_score()
+    
+    # Determine interpretation using default + override pattern
+    interpretation = rejoin("Score: ", str(score))
+    if assess_type == "PHQ-9 (Depression)" {
+        interpretation = get_phq9_interpretation(score)
+    }
+    if assess_type == "GAD-7 (Anxiety)" {
+        interpretation = get_gad7_interpretation(score)
+    }
+    
+    ui_set(score_lbl, str(score))
+    ui_set(assessment_data["interpretation"], interpretation)
+    
+    sql = rejoin(
+        "INSERT INTO assessments (patient_id, assessment_type, score, interpretation) VALUES (",
+        patient_id, ", '", escape_sql(assess_type), "', ", score, ", '", escape_sql(interpretation), "')"
+    )
+    
+    try {
+        db_execute(db, sql)
+        refresh_dashboard()
+        sb_set_success(rejoin("Assessment saved: ", assess_type, " - Score ", str(score), " (", interpretation, ")"))
+    } catch err {
+        ui_alert_err(rejoin("Failed to save assessment: ", err))
+    }
+}
+
+# ==============================================================================
+# MODULE: MEDICATION MANAGEMENT TAB
+# ==============================================================================
+
+def create_medication_management(parent) {
+    # Patient selector
+    ui_color(ui_label(parent, "Patient:", 10, 15, 80, 25), "#2c3e50", "")
+    med_patient_combo = ui_combobox(parent, get_patient_names(), 100, 12, 500, 28)
+    ui_color(ui_button(parent, "➕ Add Medication", "add_medication_dialog", 620, 10, 180, 30), "white", "#1abc9c")
+    ui_color(ui_button(parent, "🔄 Refresh", "refresh_medications", 810, 10, 120, 30), "white", "#3498db")
+    
+    # Medication list
+    medication_list = ui_listview(parent, ["Medication", "Dosage", "Frequency", "Start Date", "Prescriber", "Status"], 10, 50, 1370, 740)
+    
+    refresh_medications()
+}
+
+def refresh_medications() {
+    ui_listview_clear(medication_list)
+    patient_name = ui_get(med_patient_combo)
+    
+    if len(patient_name) == 0 {
+        # Show all active medications
+        meds = db_query(db, "SELECT m.medication_name, m.dosage, m.frequency, m.start_date, m.prescriber, m.status, p.first_name || ' ' || p.last_name as patient FROM medications m JOIN patients p ON m.patient_id = p.id WHERE m.status = 'Active' ORDER BY m.created_date DESC")
+        for m in meds {
+            ui_listview_insert(medication_list, [m["medication_name"], m["dosage"], m["frequency"], m["start_date"], m["prescriber"], m["status"]])
+        }
+    } else {
+        patient_id = find_patient_id_by_name(patient_name)
+        if patient_id != null {
+            meds = db_query(db, rejoin("SELECT medication_name, dosage, frequency, start_date, prescriber, status FROM medications WHERE patient_id = ", patient_id, " ORDER BY start_date DESC"))
+            for m in meds {
+                ui_listview_insert(medication_list, [m["medication_name"], m["dosage"], m["frequency"], m["start_date"], m["prescriber"], m["status"]])
+            }
+        }
+    }
+}
+
+def add_medication_dialog() {
+    patient_name = ui_get(med_patient_combo)
+    if len(patient_name) == 0 {
+        ui_alert_err("Please select a patient first")
+        return
+    }
+    
+    if med_popup != null {
+        ui_close(med_popup)
+    }
+    
+    popup = ui_popup(rejoin("Add Medication - ", patient_name), 550, 550)
+    
+    y = 15
+    ui_color(ui_label(popup, "Medication Name:", 15, y, 250, 22), "#2c3e50", "")
+    med_name_entry = ui_entry(popup, "", 15, y + 25, 515, 28)
+    
+    y = 75
+    ui_color(ui_label(popup, "Dosage:", 15, y, 250, 22), "#2c3e50", "")
+    dosage_entry = ui_entry(popup, "e.g., 50mg", 15, y + 25, 250, 28)
+    
+    ui_color(ui_label(popup, "Frequency:", 280, y, 250, 22), "#2c3e50", "")
+    freq_combo = ui_combobox(popup, ["Once daily", "Twice daily", "Three times daily", "Four times daily", "As needed (PRN)", "Weekly", "Monthly", "At bedtime"], 280, y + 25, 250, 28)
+    
+    y = 135
+    ui_color(ui_label(popup, "Start Date:", 15, y, 250, 22), "#2c3e50", "")
+    start_date = ui_datepicker(popup, 15, y + 25, 250, 28)
+    
+    ui_color(ui_label(popup, "Prescriber:", 280, y, 250, 22), "#2c3e50", "")
+    prescriber_entry = ui_entry(popup, "", 280, y + 25, 250, 28)
+    
+    y = 195
+    ui_color(ui_label(popup, "Indication:", 15, y, 515, 22), "#2c3e50", "")
+    indication_entry = ui_entry(popup, "", 15, y + 25, 515, 28)
+    
+    y = 255
+    ui_color(ui_label(popup, "Side Effects / Notes:", 15, y, 515, 22), "#2c3e50", "")
+    side_effects_text = ui_text(popup, "", 15, y + 25, 515, 150)
+    
+    y = 445
+    ui_color(ui_button(popup, "💾 Save", "save_medication", 15, y, 250, 40), "white", "#27ae60")
+    ui_color(ui_button(popup, "Cancel", "close_popup", 280, y, 250, 40), "white", "#95a5a6")
+    
+    med_popup = popup
+    med_data = {
+        "patient_name": patient_name,
+        "name": med_name_entry,
+        "dosage": dosage_entry,
+        "frequency": freq_combo,
+        "start_date": start_date,
+        "prescriber": prescriber_entry,
+        "indication": indication_entry,
+        "side_effects": side_effects_text
+    }
+}
+
+def save_medication() {
+    patient_name = med_data["patient_name"]
+    med_name = trim(ui_get(med_data["name"]))
+    dosage = ui_get(med_data["dosage"])
+    frequency = ui_get(med_data["frequency"])
+    start_date = ui_get(med_data["start_date"])
+    prescriber = ui_get(med_data["prescriber"])
+    indication = ui_get(med_data["indication"])
+    side_effects = ui_text_get(med_data["side_effects"])
+    
+    if len(med_name) == 0 {
+        ui_alert_err("Please enter medication name")
+        return
+    }
+    
+    patient_id = find_patient_id_by_name(patient_name)
+    if patient_id == null {
+        ui_alert_err("Patient not found")
+        return
+    }
+    
+    sql = rejoin(
+        "INSERT INTO medications (patient_id, medication_name, dosage, frequency, start_date, prescriber, indication, side_effects) VALUES (",
+        patient_id, ", '", escape_sql(med_name), "', '", escape_sql(dosage), "', '", escape_sql(frequency),
+        "', '", escape_sql(start_date), "', '", escape_sql(prescriber), "', '", escape_sql(indication),
+        "', '", escape_sql(side_effects), "')"
+    )
+    
+    try {
+        db_execute(db, sql)
+        ui_close(med_popup)
+        med_popup = null
+        refresh_medications()
+        refresh_dashboard()
+        sb_set_success(rejoin("Medication added: ", med_name))
+    } catch err {
+        ui_alert_err(rejoin("Failed to save medication: ", err))
+    }
+}
+
+# ==============================================================================
+# MODULE: TREATMENT PLANS TAB
+# ==============================================================================
+
+def create_treatment_plans(parent) {
+    # Patient selector
+    ui_color(ui_label(parent, "Patient:", 10, 15, 80, 25), "#2c3e50", "")
+    plan_patient_combo = ui_combobox(parent, get_patient_names(), 100, 12, 500, 28)
+    ui_color(ui_button(parent, " New Plan", "add_plan_dialog", 620, 10, 150, 30), "white", "#34495e")
+    ui_color(ui_button(parent, " Refresh", "refresh_plans", 780, 10, 120, 30), "white", "#3498db")
+    
+    # Plans list
+    plan_list = ui_listview(parent, ["Date", "Goals", "Interventions", "Frequency", "Status"], 10, 50, 1370, 300)
+    
+    # Current plan details
+    ui_color(ui_label(parent, "  Current Plan Details", 10, 360, 400, 25), "#2c3e50", "")
+    ui_font(ui_label(parent, "  Current Plan Details", 10, 360, 400, 25), 11, "Segoe UI", true)
+    
+    plan_details_text = ui_text(parent, "Select a treatment plan to view details.", 10, 390, 1370, 400)
+    
+    refresh_plans()
+}
+
+def refresh_plans() {
+    ui_listview_clear(plan_list)
+    patient_name = ui_get(plan_patient_combo)
+    
+    if len(patient_name) == 0 {
+        plans = db_query(db, "SELECT tp.plan_date, tp.goals, tp.interventions, tp.frequency, tp.status, p.first_name || ' ' || p.last_name as patient FROM treatment_plans tp JOIN patients p ON tp.patient_id = p.id ORDER BY tp.plan_date DESC LIMIT 50")
+        for p in plans {
+            goals_short = left(p["goals"], 60)
+            ui_listview_insert(plan_list, [p["plan_date"], goals_short, left(p["interventions"], 40), p["frequency"], p["status"]])
+        }
+    } else {
+        patient_id = find_patient_id_by_name(patient_name)
+        if patient_id != null {
+            plans = db_query(db, rejoin("SELECT plan_date, goals, interventions, frequency, status FROM treatment_plans WHERE patient_id = ", patient_id, " ORDER BY plan_date DESC"))
+            for p in plans {
+                goals_short = left(p["goals"], 60)
+                ui_listview_insert(plan_list, [p["plan_date"], goals_short, left(p["interventions"], 40), p["frequency"], p["status"]])
+            }
+        }
+    }
+}
+
+def add_plan_dialog() {
+    patient_name = ui_get(plan_patient_combo)
+    if len(patient_name) == 0 {
+        ui_alert_err("Please select a patient first")
+        return
+    }
+    
+    if plan_popup != null {
+        ui_close(plan_popup)
+    }
+    
+    popup = ui_popup(rejoin("New Treatment Plan - ", patient_name), 600, 600)
+    
+    y = 15
+    ui_color(ui_label(popup, "Treatment Goals:", 15, y, 570, 22), "#2c3e50", "")
+    goals_text = ui_text(popup, "", 15, y + 25, 570, 100)
+    
+    y = 150
+    ui_color(ui_label(popup, "Interventions:", 15, y, 570, 22), "#2c3e50", "")
+    interventions_text = ui_text(popup, "", 15, y + 25, 570, 100)
+    
+    y = 285
+    ui_color(ui_label(popup, "Frequency:", 15, y, 280, 22), "#2c3e50", "")
+    freq_combo = ui_combobox(popup, ["Weekly", "Bi-weekly", "Monthly", "As needed"], 15, y + 25, 280, 28)
+    
+    ui_color(ui_label(popup, "Duration:", 305, y, 280, 22), "#2c3e50", "")
+    duration_entry = ui_entry(popup, "e.g., 12 weeks", 305, y + 25, 280, 28)
+    
+    y = 345
+    ui_color(ui_label(popup, "Progress Notes:", 15, y, 570, 22), "#2c3e50", "")
+    progress_text = ui_text(popup, "", 15, y + 25, 570, 130)
+    
+    y = 510
+    ui_color(ui_button(popup, "💾 Save Plan", "save_plan", 15, y, 280, 40), "white", "#27ae60")
+    ui_color(ui_button(popup, "Cancel", "close_popup", 305, y, 280, 40), "white", "#95a5a6")
+    
+    plan_popup = popup
+    plan_data = {
+        "patient_name": patient_name,
+        "goals": goals_text,
+        "interventions": interventions_text,
+        "frequency": freq_combo,
+        "duration": duration_entry,
+        "progress": progress_text
+    }
+}
+
+def save_plan() {
+    patient_name = plan_data["patient_name"]
+    goals = ui_text_get(plan_data["goals"])
+    interventions = ui_text_get(plan_data["interventions"])
+    frequency = ui_get(plan_data["frequency"])
+    duration = ui_get(plan_data["duration"])
+    progress = ui_text_get(plan_data["progress"])
+    
+    if len(goals) == 0 {
+        ui_alert_err("Please enter treatment goals")
+        return
+    }
+    
+    patient_id = find_patient_id_by_name(patient_name)
+    if patient_id == null {
+        ui_alert_err("Patient not found")
+        return
+    }
+    
+    sql = rejoin(
+        "INSERT INTO treatment_plans (patient_id, goals, interventions, frequency, duration, progress_notes) VALUES (",
+        patient_id, ", '", escape_sql(goals), "', '", escape_sql(interventions), "', '", escape_sql(frequency),
+        "', '", escape_sql(duration), "', '", escape_sql(progress), "')"
+    )
+    
+    try {
+        db_execute(db, sql)
+        ui_close(plan_popup)
+        plan_popup = null
+        refresh_plans()
+        sb_set_success(rejoin("Treatment plan saved for ", patient_name))
+    } catch err {
+        ui_alert_err(rejoin("Failed to save plan: ", err))
+    }
+}
+
+# ==============================================================================
+# INITIALIZATION
+# ==============================================================================
+
+init_database()
+create_main_window()

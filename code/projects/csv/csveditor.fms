@@ -1,0 +1,846 @@
+# ==============================================================================
+# CSV File Manipulator v2.0 - AnikaLang 1.2 Edition
+# Uses enhanced ui_sheet functions with bug fixes, performance, and features
+# ==============================================================================
+
+# --- Global State ---
+csvData = []
+csvHeaders = []
+filteredData = []
+currentFilePath = null
+isDirty = false
+filterText = ""
+currentFilterCol = -1
+
+# --- UI References ---
+win = null
+mainSheet = null
+statusFile = null
+statusRows = null
+statusCols = null
+statusCell = null
+statusFilter = null
+searchEntry = null
+
+# ==============================================================================
+# Helper Functions
+# ==============================================================================
+
+def rebuildHeaders() {
+    csvHeaders = []
+    if len(csvData) > 0 {
+        csvHeaders = dict_keys(csvData[0])
+    }
+}
+
+def markDirty() {
+    if isDirty == false {
+        isDirty = true
+        updateStatus()
+    }
+}
+
+def markClean() {
+    isDirty = false
+    updateStatus()
+}
+
+def findOriginalRowIndex(filteredIdx) {
+    if filteredIdx < 0 or filteredIdx >= len(filteredData) { return -1 }
+    targetRow = filteredData[filteredIdx]
+    i = 0
+    while i < len(csvData) {
+        if csvData[i] == targetRow { return i }
+        i = i + 1
+    }
+    return -1
+}
+
+# ==============================================================================
+# Data Management
+# ==============================================================================
+
+def refreshSheet() {
+    if mainSheet == null { return }
+    
+    # Apply filter if active
+    if len(trim(filterText)) > 0 and currentFilterCol >= 0 {
+        filteredData = []
+        colName = csvHeaders[currentFilterCol]
+        i = 0
+        while i < len(csvData) {
+            row = csvData[i]
+            cellVal = str(row[colName])
+            if contains(lower(cellVal), lower(filterText)) {
+                list_append(filteredData, row)
+            }
+            i = i + 1
+        }
+    } else {
+        filteredData = csvData
+    }
+    
+    # Set sheet data (ui_sheet_set handles list of dicts automatically)
+    if len(filteredData) > 0 {
+        ui_sheet_set(mainSheet, filteredData)
+    } else {
+        ui_sheet_set(mainSheet, [])
+    }
+    
+    # Set headers
+    if len(csvHeaders) > 0 {
+        ui_sheet_headers(mainSheet, csvHeaders)
+    }
+    
+    # Auto-size columns for better visibility
+    ui_sheet_autosize(mainSheet)
+    
+    updateStatus()
+}
+
+def updateStatus() {
+    if statusFile != null {
+        if currentFilePath == null {
+            ui_set(statusFile, "  Untitled.csv")
+        } else {
+            ui_set(statusFile, "  " + path_file(currentFilePath))
+        }
+    }
+    
+    if statusRows != null {
+        dirtyMark = ""
+        if isDirty { dirtyMark = " *" }
+        ui_set(statusRows, "  Rows: " + str(len(filteredData)) + " / " + str(len(csvData)) + dirtyMark)
+    }
+    
+    if statusCols != null {
+        ui_set(statusCols, "  Columns: " + str(len(csvHeaders)))
+    }
+    
+    if statusFilter != null {
+        if len(trim(filterText)) > 0 {
+            ui_set(statusFilter, "  Filter: " + filterText)
+        } else {
+            ui_set(statusFilter, "")
+        }
+    }
+}
+
+# ==============================================================================
+# File Operations
+# ==============================================================================
+
+def doNew() {
+    if isDirty {
+        confirmed = ui_confirm("Current changes will be lost. Continue?", "Confirm")
+        if confirmed == false { return }
+    }
+    
+    csvData = []
+    csvHeaders = ["Column1", "Column2", "Column3", "Column4", "Column5"]
+    filteredData = []
+    currentFilePath = null
+    isDirty = false
+    filterText = ""
+    currentFilterCol = -1
+    ui_set(searchEntry, "")
+    
+    # Create empty sheet with default headers
+    ui_sheet_resize(mainSheet, 10, 5)
+    ui_sheet_clear(mainSheet)
+    ui_sheet_headers(mainSheet, csvHeaders)
+    ui_sheet_autosize(mainSheet)
+    
+    updateStatus()
+}
+
+def doOpen() {
+    path = ui_file_open(null)
+    if path == "" { return }
+    
+    try {
+        csvData = csv_read(path)
+        currentFilePath = path
+        isDirty = false
+        filterText = ""
+        currentFilterCol = -1
+        ui_set(searchEntry, "")
+        
+        rebuildHeaders()
+        refreshSheet()
+    } catch err {
+        ui_alert_err("Failed to open CSV:\n" + str(err))
+    }
+}
+
+def doSave() {
+    if currentFilePath == null {
+        doSaveAs()
+        return
+    }
+    
+    try {
+        csv_write(currentFilePath, csvData)
+        markClean()
+    } catch err {
+        ui_alert_err("Failed to save CSV:\n" + str(err))
+    }
+}
+
+def doSaveAs() {
+    path = ui_file_save(null)
+    if path == "" { return }
+    
+    # Ensure .csv extension
+    if lower(path_ext(path)) != ".csv" {
+        path = path + ".csv"
+    }
+    
+    try {
+        csv_write(path, csvData)
+        currentFilePath = path
+        markClean()
+    } catch err {
+        ui_alert_err("Failed to save CSV:\n" + str(err))
+    }
+}
+
+def doExit() {
+    if isDirty {
+        confirmed = ui_confirm("Save changes before exiting?", "Unsaved Changes")
+        if confirmed {
+            doSave()
+        }
+    }
+    ui_close(win)
+}
+
+# ==============================================================================
+# Edit Operations
+# ==============================================================================
+
+def doAddRow() {
+    if len(csvHeaders) == 0 {
+        ui_alert_err("No data loaded. Open a CSV or create new first.")
+        return
+    }
+    
+    # Create empty row with all headers
+    newRow = {}
+    i = 0
+    while i < len(csvHeaders) {
+        dict_set(newRow, csvHeaders[i], "")
+        i = i + 1
+    }
+    
+    list_append(csvData, newRow)
+    markDirty()
+    refreshSheet()
+}
+
+def doDeleteRow() {
+    selected = ui_sheet_selected(mainSheet)
+    if len(selected) == 0 {
+        ui_alert_err("No row selected. Click a cell first.")
+        return
+    }
+    
+    rowIdx = int(selected[0][0])
+    if len(filteredData) == 0 or rowIdx >= len(filteredData) { return }
+    
+    # Find the actual row in csvData
+    actualIdx = findOriginalRowIndex(rowIdx)
+    
+    if actualIdx >= 0 {
+        list_remove(csvData, actualIdx)
+        markDirty()
+        refreshSheet()
+    }
+}
+
+def doClearAll() {
+    confirmed = ui_confirm("Clear all data? This cannot be undone.", "Confirm")
+    if confirmed == false { return }
+    
+    csvData = []
+    csvHeaders = ["Column1", "Column2", "Column3", "Column4", "Column5"]
+    filteredData = []
+    markDirty()
+    ui_sheet_clear(mainSheet)
+    ui_sheet_headers(mainSheet, csvHeaders)
+    ui_sheet_autosize(mainSheet)
+    updateStatus()
+}
+
+# ==============================================================================
+# Column Operations
+# ==============================================================================
+
+def doAddColumn() {
+    colName = "Column" + str(len(csvHeaders) + 1)
+    
+    if len(csvData) == 0 {
+        # No data yet, just add header
+        list_append(csvHeaders, colName)
+        ui_sheet_headers(mainSheet, csvHeaders)
+        ui_sheet_resize(mainSheet, 10, len(csvHeaders))
+    } else {
+        # Add column to all existing rows
+        i = 0
+        while i < len(csvData) {
+            dict_set(csvData[i], colName, "")
+            i = i + 1
+        }
+        list_append(csvHeaders, colName)
+    }
+    
+    markDirty()
+    refreshSheet()
+}
+
+def doRemoveColumn() {
+    if len(csvHeaders) <= 1 {
+        ui_alert_err("Cannot remove the last column.")
+        return
+    }
+    
+    selected = ui_sheet_selected(mainSheet)
+    if len(selected) == 0 {
+        ui_alert_err("Select a cell in the column to remove.")
+        return
+    }
+    
+    colIdx = int(selected[0][1])
+    if colIdx < 0 or colIdx >= len(csvHeaders) { return }
+    
+    colName = csvHeaders[colIdx]
+    
+    # Remove from all rows
+    newData = []
+    i = 0
+    while i < len(csvData) {
+        row = csvData[i]
+        newRow = {}
+        j = 0
+        while j < len(csvHeaders) {
+            h = csvHeaders[j]
+            if h != colName {
+                dict_set(newRow, h, row[h])
+            }
+            j = j + 1
+        }
+        list_append(newData, newRow)
+        i = i + 1
+    }
+    csvData = newData
+    
+    # Remove from headers
+    newHeaders = []
+    i = 0
+    while i < len(csvHeaders) {
+        if csvHeaders[i] != colName {
+            list_append(newHeaders, csvHeaders[i])
+        }
+        i = i + 1
+    }
+    csvHeaders = newHeaders
+    
+    markDirty()
+    refreshSheet()
+}
+
+# ==============================================================================
+# Sort Operations (Insertion Sort - O(n²) but efficient for small-medium data)
+# ==============================================================================
+
+def sortDataByColumn(colName, ascending) {
+    if len(csvData) == 0 { return }
+    
+    n = len(csvData)
+    i = 1
+    while i < n {
+        key = csvData[i]
+        keyVal = key[colName]
+        j = i - 1
+        
+        while j >= 0 {
+            compareVal = csvData[j][colName]
+            shouldSwap = false
+            
+            # Try numeric comparison first
+            try {
+                keyNum = float(keyVal)
+                compareNum = float(compareVal)
+                if ascending {
+                    if compareNum > keyNum { shouldSwap = true }
+                } else {
+                    if compareNum < keyNum { shouldSwap = true }
+                }
+            } catch e {
+                # Fall back to string comparison
+                if ascending {
+                    if str(compareVal) > str(keyVal) { shouldSwap = true }
+                } else {
+                    if str(compareVal) < str(keyVal) { shouldSwap = true }
+                }
+            }
+            
+            if shouldSwap {
+                list_set(csvData, j + 1, csvData[j])
+                j = j - 1
+            } else {
+                break
+            }
+        }
+        
+        list_set(csvData, j + 1, key)
+        i = i + 1
+    }
+}
+
+def doSortAsc() {
+    if len(csvData) == 0 { return }
+    
+    selected = ui_sheet_selected(mainSheet)
+    if len(selected) == 0 {
+        ui_alert_err("Select a cell in the column to sort by.")
+        return
+    }
+    
+    colIdx = int(selected[0][1])
+    if colIdx < 0 or colIdx >= len(csvHeaders) { return }
+    
+    colName = csvHeaders[colIdx]
+    sortDataByColumn(colName, true)
+    markDirty()
+    refreshSheet()
+}
+
+def doSortDesc() {
+    if len(csvData) == 0 { return }
+    
+    selected = ui_sheet_selected(mainSheet)
+    if len(selected) == 0 {
+        ui_alert_err("Select a cell in the column to sort by.")
+        return
+    }
+    
+    colIdx = int(selected[0][1])
+    if colIdx < 0 or colIdx >= len(csvHeaders) { return }
+    
+    colName = csvHeaders[colIdx]
+    sortDataByColumn(colName, false)
+    markDirty()
+    refreshSheet()
+}
+
+# ==============================================================================
+# Filter Operations
+# ==============================================================================
+
+def doApplyFilter() {
+    filterText = trim(ui_get(searchEntry))
+    
+    # Get selected column from sheet
+    selected = ui_sheet_selected(mainSheet)
+    if len(selected) > 0 {
+        currentFilterCol = int(selected[0][1])
+    } else {
+        currentFilterCol = 0
+    }
+    
+    if currentFilterCol < 0 or currentFilterCol >= len(csvHeaders) {
+        ui_alert_err("Invalid column selected.")
+        return
+    }
+    
+    refreshSheet()
+}
+
+def doClearFilter() {
+    filterText = ""
+    currentFilterCol = -1
+    ui_set(searchEntry, "")
+    refreshSheet()
+}
+
+# ==============================================================================
+# Import/Export Operations
+# ==============================================================================
+
+def doExportCsv() {
+    if len(csvData) == 0 {
+        ui_alert_err("No data to export.")
+        return
+    }
+    
+    path = ui_file_save(null)
+    if path == "" { return }
+    
+    if lower(path_ext(path)) != ".csv" {
+        path = path + ".csv"
+    }
+    
+    try {
+        csv_write(path, csvData)
+        ui_alert("CSV exported to:\n" + path)
+    } catch err {
+        ui_alert_err("Export failed:\n" + str(err))
+    }
+}
+
+def doImportCsv() {
+    path = ui_file_open(null)
+    if path == "" { return }
+    
+    try {
+        importedData = csv_read(path)
+        if len(importedData) == 0 {
+            ui_alert_err("CSV file is empty.")
+            return
+        }
+        
+        csvData = importedData
+        rebuildHeaders()
+        markDirty()
+        refreshSheet()
+        ui_alert("CSV imported successfully.\nRows: " + str(len(csvData)))
+    } catch err {
+        ui_alert_err("Import failed:\n" + str(err))
+    }
+}
+
+def doExportSheetCsv() {
+    # Export current sheet view (with filters applied) to CSV string
+    csvString = ui_sheet_export_csv(mainSheet)
+    ui_alert("CSV Preview (first 500 chars):\n\n" + left(csvString, 500))
+}
+
+# ==============================================================================
+# Statistics
+# ==============================================================================
+
+def doShowStats() {
+    if len(csvData) == 0 {
+        ui_alert_err("No data loaded.")
+        return
+    }
+    
+    selected = ui_sheet_selected(mainSheet)
+    if len(selected) == 0 {
+        ui_alert_err("Select a cell in the column to analyze.")
+        return
+    }
+    
+    colIdx = int(selected[0][1])
+    if colIdx < 0 or colIdx >= len(csvHeaders) { return }
+    
+    colName = csvHeaders[colIdx]
+    
+    # Extract numeric values
+    nums = []
+    nonNumeric = 0
+    i = 0
+    while i < len(csvData) {
+        try {
+            val = float(csvData[i][colName])
+            list_append(nums, val)
+        } catch e {
+            nonNumeric = nonNumeric + 1
+        }
+        i = i + 1
+    }
+    
+    if len(nums) == 0 {
+        # String statistics
+        uniqueVals = {}
+        i = 0
+        while i < len(csvData) {
+            v = str(csvData[i][colName])
+            if dict_has_key(uniqueVals, v) == false {
+                dict_set(uniqueVals, v, 0)
+            }
+            dict_set(uniqueVals, v, uniqueVals[v] + 1)
+            i = i + 1
+        }
+        
+        report = "Column: " + colName + "\n"
+        report = report + "Total Rows: " + str(len(csvData)) + "\n"
+        report = report + "Unique Values: " + str(len(dict_keys(uniqueVals))) + "\n\n"
+        report = report + "Value Distribution:\n"
+        
+        keys = dict_keys(uniqueVals)
+        i = 0
+        while i < len(keys) {
+            k = keys[i]
+            report = report + "  " + k + ": " + str(uniqueVals[k]) + "\n"
+            i = i + 1
+        }
+        
+        ui_alert(report)
+    } else {
+        # Numeric statistics
+        minVal = nums[0]
+        maxVal = nums[0]
+        sumVal = 0
+        
+        i = 0
+        while i < len(nums) {
+            n = nums[i]
+            if n < minVal { minVal = n }
+            if n > maxVal { maxVal = n }
+            sumVal = sumVal + n
+            i = i + 1
+        }
+        
+        meanVal = sumVal / len(nums)
+        
+        report = "Column: " + colName + "\n"
+        report = report + "Numeric Values: " + str(len(nums)) + "\n"
+        report = report + "Non-numeric: " + str(nonNumeric) + "\n\n"
+        report = report + "Sum: " + str(sumVal) + "\n"
+        report = report + "Mean: " + str(meanVal) + "\n"
+        report = report + "Min: " + str(minVal) + "\n"
+        report = report + "Max: " + str(maxVal) + "\n"
+        report = report + "Range: " + str(maxVal - minVal) + "\n"
+        
+        ui_alert(report)
+    }
+}
+
+def doShowAllStats() {
+    if len(csvData) == 0 {
+        ui_alert_err("No data loaded.")
+        return
+    }
+    
+    report = "CSV File Statistics\n"
+    report = report + "===================\n"
+    report = report + "Total Rows: " + str(len(csvData)) + "\n"
+    report = report + "Total Columns: " + str(len(csvHeaders)) + "\n\n"
+    report = report + "Column Summary:\n"
+    report = report + "----------------\n"
+    
+    i = 0
+    while i < len(csvHeaders) {
+        colName = csvHeaders[i]
+        numCount = 0
+        strCount = 0
+        
+        j = 0
+        while j < len(csvData) {
+            try {
+                val = float(csvData[j][colName])
+                numCount = numCount + 1
+            } catch e {
+                strCount = strCount + 1
+            }
+            j = j + 1
+        }
+        
+        if numCount > strCount {
+            report = report + colName + ": Numeric (" + str(numCount) + " values)\n"
+        } else {
+            report = report + colName + ": Text (" + str(strCount) + " values)\n"
+        }
+        i = i + 1
+    }
+    
+    ui_alert(report)
+}
+
+# ==============================================================================
+# Cell Styling (New Feature)
+# ==============================================================================
+
+def doHighlightColumn() {
+    selected = ui_sheet_selected(mainSheet)
+    if len(selected) == 0 {
+        ui_alert_err("Select a cell in the column to highlight.")
+        return
+    }
+    
+    colIdx = int(selected[0][1])
+    if colIdx < 0 or colIdx >= len(csvHeaders) { return }
+    
+    # Highlight all cells in the column with light blue background
+    i = 0
+    while i < len(filteredData) {
+        ui_sheet_cell_style(mainSheet, i, colIdx, {"bg": [220, 235, 255]})
+        i = i + 1
+    }
+    
+    ui_alert("Column " + csvHeaders[colIdx] + " highlighted.")
+}
+
+def doClearHighlight() {
+    # Clear all cell styles by resetting to default
+    i = 0
+    while i < len(filteredData) {
+        j = 0
+        while j < len(csvHeaders) {
+            ui_sheet_cell_style(mainSheet, i, j, {})
+            j = j + 1
+        }
+        i = i + 1
+    }
+}
+
+def doToggleReadonly() {
+    # Toggle between editable and read-only mode
+    # This is a simple toggle - in a real app you'd track state
+    ui_alert("Read-only mode toggled. Use UI_SHEET_READONLY(grid, true/false) in code.")
+}
+
+# ==============================================================================
+# Cell Editing Callbacks
+# ==============================================================================
+
+def onCellEdit(r, c, val) {
+    if len(csvData) == 0 { return }
+    if len(csvHeaders) == 0 { return }
+    if r < 0 or r >= len(filteredData) { return }
+    if c < 0 or c >= len(csvHeaders) { return }
+    
+    # Determine which row in csvData
+    actualRowIdx = r
+    
+    if len(trim(filterText)) > 0 and currentFilterCol >= 0 and r < len(filteredData) {
+        # Find the actual row in original data
+        actualRowIdx = findOriginalRowIndex(r)
+    }
+    
+    if actualRowIdx < 0 or actualRowIdx >= len(csvData) { return }
+    
+    colName = csvHeaders[c]
+    dict_set(csvData[actualRowIdx], colName, val)
+    markDirty()
+}
+
+def onCellSelect(r, c) {
+    if statusCell != null {
+        ui_set(statusCell, "  Cell: " + str(r + 1) + ":" + str(c + 1))
+    }
+}
+
+# ==============================================================================
+# About
+# ==============================================================================
+
+def doAbout() {
+    ui_alert("CSV File Manipulator v2.0\n\nAnikaLang 1.2 Edition\n\nFeatures:\n- Open/Save CSV files\n- Add/Delete rows and columns\n- Sort ascending/descending\n- Filter by column\n- Cell editing with live updates\n- Column statistics\n- Import/Export CSV\n- Cell highlighting\n- Auto-size columns\n- Enhanced UI with new ui_sheet functions")
+}
+
+# ==============================================================================
+# UI Layout - AnikaLang 1.2 (1220 x 850)
+# ==============================================================================
+
+win = ui_window("CSV File Manipulator v2.0", 1220, 850)
+
+# --- Header Bar (y=0, h=45) ---
+headerBg = ui_panel(win, 0, 0, 1200, 45)
+ui_color(headerBg, null, "#2C3E50")
+
+headerTitle = ui_label(headerBg, "  CSV File Manipulator", 10, 10, 280, 25)
+ui_color(headerTitle, "#FFFFFF", null)
+ui_font(headerTitle, 12, "", true)
+
+statusInfo = ui_label(headerBg, "  Ready", 300, 10, 700, 25)
+ui_color(statusInfo, "#ECF0F1", "#34495E")
+
+btnExit = ui_button(headerBg, "Exit", "doExit", 1110, 8, 80, 30)
+ui_color(btnExit, "#FFFFFF", "#E74C3C")
+
+# --- Toolbar (y=45, h=45) ---
+toolbarBg = ui_panel(win, 0, 45, 1200, 45)
+ui_color(toolbarBg, null, "#ECF0F1")
+
+btnNew = ui_button(toolbarBg, "New", "doNew", 10, 8, 70, 28)
+btnOpen = ui_button(toolbarBg, "Open", "doOpen", 90, 8, 70, 28)
+btnSave = ui_button(toolbarBg, "Save", "doSave", 170, 8, 70, 28)
+btnSaveAs = ui_button(toolbarBg, "Save As", "doSaveAs", 250, 8, 80, 28)
+
+btnAddRow = ui_button(toolbarBg, "+ Row", "doAddRow", 350, 8, 70, 28)
+ui_color(btnAddRow, "#FFFFFF", "#27AE60")
+
+btnDelRow = ui_button(toolbarBg, "- Row", "doDeleteRow", 430, 8, 70, 28)
+ui_color(btnDelRow, "#FFFFFF", "#C0392B")
+
+btnAddCol = ui_button(toolbarBg, "+ Col", "doAddColumn", 510, 8, 70, 28)
+ui_color(btnAddCol, "#FFFFFF", "#2980B9")
+
+btnDelCol = ui_button(toolbarBg, "- Col", "doRemoveColumn", 590, 8, 70, 28)
+ui_color(btnDelCol, "#FFFFFF", "#C0392B")
+
+btnSortAsc = ui_button(toolbarBg, "Sort A-Z", "doSortAsc", 680, 8, 80, 28)
+btnSortDesc = ui_button(toolbarBg, "Sort Z-A", "doSortDesc", 770, 8, 80, 28)
+
+btnStats = ui_button(toolbarBg, "Stats", "doShowStats", 870, 8, 70, 28)
+ui_color(btnStats, "#FFFFFF", "#8E44AD")
+
+btnClear = ui_button(toolbarBg, "Clear", "doClearAll", 950, 8, 70, 28)
+ui_color(btnClear, "#FFFFFF", "#7F8C8D")
+
+btnExport = ui_button(toolbarBg, "Export", "doExportCsv", 1030, 8, 70, 28)
+ui_color(btnExport, "#FFFFFF", "#16A085")
+
+btnImport = ui_button(toolbarBg, "Import", "doImportCsv", 1110, 8, 70, 28)
+ui_color(btnImport, "#FFFFFF", "#2980B9")
+
+# --- Filter Bar (y=90, h=35) ---
+filterBg = ui_panel(win, 0, 90, 1200, 35)
+ui_color(filterBg, null, "#F8F9FA")
+
+filterLbl = ui_label(filterBg, "Filter:", 10, 8, 60, 20)
+ui_font(filterLbl, 10, "", true)
+
+searchEntry = ui_entry(filterBg, "", 75, 5, 300, 25)
+
+btnApplyFilter = ui_button(filterBg, "Apply", "doApplyFilter", 385, 5, 70, 25)
+ui_color(btnApplyFilter, "#FFFFFF", "#2980B9")
+
+btnClearFilter = ui_button(filterBg, "Clear", "doClearFilter", 465, 5, 70, 25)
+ui_color(btnClearFilter, "#FFFFFF", "#7F8C8D")
+
+filterHint = ui_label(filterBg, "(Select a cell in the column to filter, then click Apply)", 550, 8, 500, 20)
+ui_color(filterHint, "#7F8C8D", null)
+
+# --- Main Sheet (y=125, h=675) ---
+# ui_sheet(parent, rows, cols, x, y, w, h)
+mainSheet = ui_sheet(win, 50, 10, 10, 125, 1200, 675)
+
+# Bind events using enhanced event system
+ui_sheet_bind(mainSheet, "cell_select", "onCellSelect")
+ui_sheet_bind(mainSheet, "edit", "onCellEdit")
+
+# --- Status Bar (y=800, h=50) ---
+statusBg = ui_panel(win, 0, 800, 1200, 50)
+ui_color(statusBg, null, "#34495E")
+
+statusFile = ui_label(statusBg, "  Untitled.csv", 0, 0, 250, 50)
+ui_color(statusFile, "#ECF0F1", null)
+
+statusRows = ui_label(statusBg, "  Rows: 0", 250, 0, 150, 50)
+ui_color(statusRows, "#ECF0F1", null)
+
+statusCols = ui_label(statusBg, "  Columns: 0", 400, 0, 150, 50)
+ui_color(statusCols, "#ECF0F1", null)
+
+statusCell = ui_label(statusBg, "  Cell: -", 550, 0, 150, 50)
+ui_color(statusCell, "#ECF0F1", null)
+
+statusFilter = ui_label(statusBg, "", 700, 0, 500, 50)
+ui_color(statusFilter, "#ECF0F1", null)
+
+# ==============================================================================
+# Initialization
+# ==============================================================================
+
+# Start with empty sheet
+csvHeaders = ["Column1", "Column2", "Column3", "Column4", "Column5"]
+ui_sheet_headers(mainSheet, csvHeaders)
+ui_sheet_autosize(mainSheet)
+
+updateStatus()
+
+ui_mainloop(win)

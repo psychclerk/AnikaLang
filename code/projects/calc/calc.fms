@@ -1,0 +1,133 @@
+# ==============================================================================
+# ANIKALANG CALCULATOR v1.0 (Phase 1 Syntax)
+# Run: python anika.py calculator.fms
+# ==============================================================================
+
+# --- Global State ---
+calcExpr = ""
+displayEntry = null
+
+# ==============================================================================
+# Core Logic
+# ==============================================================================
+
+def appendChar(c) {
+    if calcExpr == "0" or calcExpr == "Error" {
+        calcExpr = c
+    } else {
+        calcExpr = calcExpr + c
+    }
+    ui_set(displayEntry, calcExpr)
+}
+
+def clearCalc() {
+    calcExpr = ""
+    ui_set(displayEntry, "0")
+}
+
+def backspace() {
+    if len(calcExpr) > 0 {
+        calcExpr = left(calcExpr, len(calcExpr) - 1)
+    }
+    if calcExpr == "" {
+        calcExpr = "0"
+    }
+    ui_set(displayEntry, calcExpr)
+}
+
+def calculateResult() {
+    if calcExpr == "" or calcExpr == "0" { return }
+    
+    try {
+        # eval_fms safely evaluates AnikaLang math expressions
+        result = eval_fms(calcExpr)
+        calcExpr = str(result)
+        ui_set(displayEntry, calcExpr)
+    } catch err {
+        calcExpr = "Error"
+        ui_set(displayEntry, "Error")
+    }
+}
+
+# ==============================================================================
+# Button Callbacks
+# ==============================================================================
+
+def press0() { appendChar("0") }
+def press1() { appendChar("1") }
+def press2() { appendChar("2") }
+def press3() { appendChar("3") }
+def press4() { appendChar("4") }
+def press5() { appendChar("5") }
+def press6() { appendChar("6") }
+def press7() { appendChar("7") }
+def press8() { appendChar("8") }
+def press9() { appendChar("9") }
+def pressDot() { appendChar(".") }
+def pressPlus() { appendChar("+") }
+def pressMinus() { appendChar("-") }
+def pressMul() { appendChar("*") }
+def pressDiv() { appendChar("/") }
+def pressOpen() { appendChar("(") }
+def pressClose() { appendChar(")") }
+
+# ==============================================================================
+# UI Layout
+# ==============================================================================
+
+win = ui_window("AnikaLang Calculator", 360, 440)
+ui_color(win, "", "#2c3e50") # Dark blue-gray background
+
+# Display Screen
+displayEntry = ui_entry(win, "0", 10, 10, 300, 60)
+ui_font(displayEntry, 24, "Segoe UI", true)
+ui_color(displayEntry, "#ffffff", "#34495e")
+
+# Layout Constants
+btnW = 70
+btnH = 50
+gap = 10
+startX = 10
+startY = 80
+
+# --- Row 1 ---
+y1 = startY
+ui_button(win, "C", "clearCalc", startX, y1, btnW, btnH)
+ui_button(win, "(", "pressOpen", startX + btnW + gap, y1, btnW, btnH)
+ui_button(win, ")", "pressClose", startX + (btnW + gap) * 2, y1, btnW, btnH)
+ui_button(win, "/", "pressDiv", startX + (btnW + gap) * 3, y1, btnW, btnH)
+
+# --- Row 2 ---
+y2 = y1 + btnH + gap
+ui_button(win, "7", "press7", startX, y2, btnW, btnH)
+ui_button(win, "8", "press8", startX + btnW + gap, y2, btnW, btnH)
+ui_button(win, "9", "press9", startX + (btnW + gap) * 2, y2, btnW, btnH)
+ui_button(win, "*", "pressMul", startX + (btnW + gap) * 3, y2, btnW, btnH)
+
+# --- Row 3 ---
+y3 = y2 + btnH + gap
+ui_button(win, "4", "press4", startX, y3, btnW, btnH)
+ui_button(win, "5", "press5", startX + btnW + gap, y3, btnW, btnH)
+ui_button(win, "6", "press6", startX + (btnW + gap) * 2, y3, btnW, btnH)
+ui_button(win, "-", "pressMinus", startX + (btnW + gap) * 3, y3, btnW, btnH)
+
+# --- Row 4 ---
+y4 = y3 + btnH + gap
+ui_button(win, "1", "press1", startX, y4, btnW, btnH)
+ui_button(win, "2", "press2", startX + btnW + gap, y4, btnW, btnH)
+ui_button(win, "3", "press3", startX + (btnW + gap) * 2, y4, btnW, btnH)
+ui_button(win, "+", "pressPlus", startX + (btnW + gap) * 3, y4, btnW, btnH)
+
+# --- Row 5 ---
+y5 = y4 + btnH + gap
+ui_button(win, "0", "press0", startX, y5, btnW, btnH)
+ui_button(win, ".", "pressDot", startX + btnW + gap, y5, btnW, btnH)
+ui_button(win, "⌫", "backspace", startX + (btnW + gap) * 2, y5, btnW, btnH)
+ui_button(win, "=", "calculateResult", startX + (btnW + gap) * 3, y5, btnW, btnH)
+
+# Color the buttons for better UX
+ui_color(ui_button(win, "C", "clearCalc", startX, y1, btnW, btnH), "#ffffff", "#e74c3c")
+ui_color(ui_button(win, "=", "calculateResult", startX + (btnW + gap) * 3, y5, btnW, btnH), "#ffffff", "#2ecc71")
+
+# Start the app
+ui_mainloop(win)

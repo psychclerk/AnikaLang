@@ -1,0 +1,703 @@
+# ==============================================================================
+# REAL-TIME GUI WEATHER APPLICATION (AnikaLang 1.2)
+# Uses Open-Meteo API (free, no API key needed)
+# Features: Live weather, 7-day forecast, auto-refresh, persistent favorites
+# Fully resizable UI with default system fonts
+# ==============================================================================
+
+# --- GLOBAL STATE ---
+win = null
+status_lbl = null
+clock_lbl = null
+city_entry = null
+btn_search = null
+btn_refresh = null
+btn_fav_add = null
+btn_fav_del = null
+fav_list = null
+
+# Current weather display
+city_name_lbl = null
+country_lbl = null
+weather_icon_lbl = null
+temp_lbl = null
+condition_lbl = null
+feels_like_lbl = null
+humidity_lbl = null
+wind_lbl = null
+pressure_lbl = null
+visibility_lbl = null
+last_update_lbl = null
+
+# Forecast
+forecast_list = null
+
+# Panels (for resize)
+header_bg = null
+statusbar_bg = null
+left_panel = null
+right_panel = null
+weather_card = null
+divider = null
+
+# State
+current_city = ""
+current_lat = 0
+current_lon = 0
+refresh_timer_id = null
+clock_timer_id = null
+weather_data = null
+favorites = []
+favorites_file = ""
+
+# ==============================================================================
+# SAFE STRING HELPERS (no undefined built-ins)
+# ==============================================================================
+
+def char_at(text, i) {
+    n = len(text)
+    if i < 0 or i >= n { return "" }
+    return left(right(text, n - i), 1)
+}
+
+def str_find(text, search) {
+    tlen = len(text)
+    slen = len(search)
+    if slen == 0 { return 0 }
+    if slen > tlen { return -1 }
+    i = 0
+    while i <= tlen - slen {
+        sub = left(right(text, tlen - i), slen)
+        if sub == search { return i }
+        i = i + 1
+    }
+    return -1
+}
+
+def str_sub(text, start, length) {
+    n = len(text)
+    if start < 0 { start = 0 }
+    if start >= n { return "" }
+    if length <= 0 { return "" }
+    if start + length > n { length = n - start }
+    return left(right(text, n - start), length)
+}
+
+def str_split(text, delim) {
+    result = []
+    dlen = len(delim)
+    if dlen == 0 {
+        list_append(result, text)
+        return result
+    }
+    remaining = text
+    while true {
+        idx = str_find(remaining, delim)
+        if idx == -1 {
+            list_append(result, remaining)
+            return result
+        }
+        piece = str_sub(remaining, 0, idx)
+        list_append(result, piece)
+        remaining = str_sub(remaining, idx + dlen, len(remaining) - idx - dlen)
+    }
+    return result
+}
+
+# ==============================================================================
+# MAIN
+# ==============================================================================
+
+def main() {
+    # ✅ FIX: Use absolute path so file is always found regardless of working dir
+    favorites_file = path_join(path_cwd(), "weather_favorites.txt")
+    build_ui()
+    load_favorites()
+    start_clock()
+    start_auto_refresh()
+    ui_mainloop(win)
+}
+
+# ==============================================================================
+# UI LAYOUT
+# ==============================================================================
+
+def build_ui() {
+    win = ui_window("Real-Time Weather - AnikaLang", 1200, 750)
+    
+    # --- HEADER ---
+    header_bg = ui_panel(win, 0, 0, 1200, 60)
+    ui_color(header_bg, "", "#0f3460")
+    
+    title_lbl = ui_label(header_bg, "  🌤️ Real-Time Weather", 20, 18, 350, 28)
+    ui_color(title_lbl, "#ffffff", "")
+    
+    clock_lbl = ui_label(header_bg, "00:00:00", 1050, 20, 130, 25)
+    ui_color(clock_lbl, "#f1c40f", "")
+    
+    # --- LEFT PANEL ---
+    left_panel = ui_panel(win, 0, 60, 450, 660)
+    ui_color(left_panel, "", "#ecf0f1")
+    
+    search_title = ui_label(left_panel, "🔍 Search City", 20, 15, 400, 22)
+    ui_color(search_title, "#2c3e50", "")
+    
+    city_entry = ui_entry(left_panel, "London", 20, 45, 280, 32)
+    
+    btn_search = ui_button(left_panel, "Search", "do_search", 310, 45, 120, 32)
+    ui_color(btn_search, "#ffffff", "#3498db")
+    
+    btn_refresh = ui_button(left_panel, "🔄 Refresh", "do_manual_refresh", 20, 85, 200, 30)
+    ui_color(btn_refresh, "#ffffff", "#27ae60")
+    
+    btn_fav_add = ui_button(left_panel, "⭐ Add Favorite", "do_add_favorite", 230, 85, 200, 30)
+    ui_color(btn_fav_add, "#ffffff", "#f39c12")
+    
+    fav_title = ui_label(left_panel, "⭐ Favorite Cities (double-click to load)", 20, 125, 410, 20)
+    ui_color(fav_title, "#2c3e50", "")
+    
+    fav_list = ui_listview(left_panel, ["City"], 20, 150, 310, 120)
+    # ui_color(fav_list, "#ffffff", "#f8fafc")
+    ui_bind(fav_list, "double_click", "on_fav_select")
+    
+    btn_fav_del = ui_button(left_panel, "🗑 Remove", "do_remove_favorite", 340, 150, 90, 120)
+    ui_color(btn_fav_del, "#ffffff", "#e74c3c")
+    
+    # --- CURRENT WEATHER CARD ---
+    weather_card = ui_panel(left_panel, 20, 285, 410, 360)
+    ui_color(weather_card, "", "#ffffff")
+    
+    city_name_lbl = ui_label(weather_card, "No City Selected", 15, 15, 380, 28)
+    ui_color(city_name_lbl, "#2c3e50", "")
+    
+    country_lbl = ui_label(weather_card, "", 15, 45, 380, 20)
+    ui_color(country_lbl, "#7f8c8d", "")
+    
+    weather_icon_lbl = ui_label(weather_card, "🌍", 15, 75, 120, 100)
+    ui_color(weather_icon_lbl, "#2c3e50", "")
+    
+    temp_lbl = ui_label(weather_card, "--°C", 140, 85, 250, 70)
+    ui_color(temp_lbl, "#e74c3c", "")
+    
+    condition_lbl = ui_label(weather_card, "Loading...", 140, 155, 250, 25)
+    ui_color(condition_lbl, "#34495e", "")
+    
+    divider = ui_panel(weather_card, 15, 190, 380, 2)
+    ui_color(divider, "", "#bdc3c7")
+    
+    feels_like_lbl = ui_label(weather_card, "🌡️ Feels Like: --°C", 15, 205, 190, 25)
+    ui_color(feels_like_lbl, "#34495e", "")
+    
+    humidity_lbl = ui_label(weather_card, "💧 Humidity: --%", 210, 205, 190, 25)
+    ui_color(humidity_lbl, "#34495e", "")
+    
+    wind_lbl = ui_label(weather_card, "💨 Wind: -- km/h", 15, 235, 190, 25)
+    ui_color(wind_lbl, "#34495e", "")
+    
+    pressure_lbl = ui_label(weather_card, "🧭 Pressure: -- hPa", 210, 235, 190, 25)
+    ui_color(pressure_lbl, "#34495e", "")
+    
+    visibility_lbl = ui_label(weather_card, "👁️ Visibility: -- km", 15, 265, 380, 25)
+    ui_color(visibility_lbl, "#34495e", "")
+    
+    last_update_lbl = ui_label(weather_card, "Last update: --", 15, 325, 380, 25)
+    ui_color(last_update_lbl, "#95a5a6", "")
+    
+    # --- RIGHT PANEL: Forecast ---
+    right_panel = ui_panel(win, 450, 60, 750, 660)
+    ui_color(right_panel, "", "#ffffff")
+    
+    forecast_title = ui_label(right_panel, "📅 7-Day Forecast", 20, 15, 400, 22)
+    ui_color(forecast_title, "#2c3e50", "")
+    
+    forecast_list = ui_listview(right_panel, ["Day", "Icon", "Condition", "Min °C", "Max °C", "Rain %", "Wind km/h"], 20, 45, 710, 590)
+    ui_color(forecast_list, "#1e1e1e", "#f8fafc")
+    ui_listview_set_column_width(forecast_list, 0, 100)
+    ui_listview_set_column_width(forecast_list, 1, 50)
+    ui_listview_set_column_width(forecast_list, 2, 200)
+    ui_listview_set_column_width(forecast_list, 3, 80)
+    ui_listview_set_column_width(forecast_list, 4, 80)
+    ui_listview_set_column_width(forecast_list, 5, 80)
+    ui_listview_set_column_width(forecast_list, 6, 100)
+    
+    # --- STATUS BAR ---
+    statusbar_bg = ui_panel(win, 0, 720, 1200, 30)
+    ui_color(statusbar_bg, "", "#0f3460")
+    
+    status_lbl = ui_label(statusbar_bg, "  Ready — Enter a city and press Search", 15, 5, 1170, 20)
+    ui_color(status_lbl, "#ecf0f1", "")
+    
+    ui_bind(win, "resize", "on_resize")
+}
+
+# ==============================================================================
+# CLOCK & AUTO-REFRESH
+# ==============================================================================
+
+def start_clock() {
+    update_clock()
+}
+
+def update_clock() {
+    now_str = now()
+    time_part = right(now_str, 8)
+    ui_set(clock_lbl, rejoin("🕒 ", time_part))
+    clock_timer_id = ui_after(1000, "update_clock")
+}
+
+def start_auto_refresh() {
+    refresh_timer_id = ui_after(600000, "do_auto_refresh")
+}
+
+def do_auto_refresh() {
+    if len(current_city) > 0 {
+        set_status("🔄 Auto-refreshing weather...")
+        fetch_weather_for_city(current_city)
+    }
+    refresh_timer_id = ui_after(600000, "do_auto_refresh")
+}
+
+def do_manual_refresh() {
+    if len(current_city) == 0 {
+        ui_alert_err("Please search for a city first!")
+        return
+    }
+    set_status("🔄 Refreshing weather data...")
+    fetch_weather_for_city(current_city)
+}
+
+# ==============================================================================
+# SEARCH
+# ==============================================================================
+
+def do_search() {
+    city = trim(ui_get(city_entry))
+    if len(city) == 0 {
+        ui_alert_err("Please enter a city name!")
+        return
+    }
+    fetch_weather_for_city(city)
+}
+
+# ==============================================================================
+# ✅ FAVORITES — PERSISTENT FILE STORAGE
+# ==============================================================================
+
+def load_favorites() {
+    favorites = []
+    
+    # ✅ FIX: Use try/catch instead of file_exists (which may not exist)
+    try {
+        content = file_read(favorites_file)
+        if starts_with(content, "ERROR") == false {
+            # ✅ FIX: Use str_split instead of split
+            lines = str_split(content, "\n")
+            for line in lines {
+                line = trim(line)
+                if len(line) > 0 {
+                    list_append(favorites, line)
+                }
+            }
+        }
+    } catch err {
+        # File doesn't exist yet — that's OK, start with empty list
+    }
+    
+    refresh_favorites_list()
+    set_status(rejoin("📂 Loaded ", str(len(favorites)), " favorite cities"))
+}
+
+def save_favorites() {
+    # ✅ FIX: Build content with newline-separated city names
+    content = ""
+    i = 0
+    while i < len(favorites) {
+        if i > 0 {
+            content = rejoin(content, "\n")
+        }
+        content = rejoin(content, favorites[i])
+        i = i + 1
+    }
+    
+    # ✅ FIX: Write with error handling
+    try {
+        file_write(favorites_file, content)
+        set_status(rejoin("💾 Saved ", str(len(favorites)), " favorites to disk"))
+    } catch err {
+        set_status(rejoin("❌ Failed to save favorites: ", str(err)))
+    }
+}
+
+def refresh_favorites_list() {
+    ui_listview_clear(fav_list)
+    i = 0
+    while i < len(favorites) {
+        ui_listview_insert(fav_list, [favorites[i]])
+        i = i + 1
+    }
+}
+
+def do_add_favorite() {
+    if len(current_city) == 0 {
+        ui_alert_err("Search for a city first, then add to favorites.")
+        return
+    }
+    
+    # Check for duplicates (case-insensitive)
+    i = 0
+    while i < len(favorites) {
+        if lower(favorites[i]) == lower(current_city) {
+            ui_alert("City already in favorites!")
+            return
+        }
+        i = i + 1
+    }
+    
+    list_append(favorites, current_city)
+    save_favorites()
+    refresh_favorites_list()
+    set_status(rejoin("⭐ Added '", current_city, "' to favorites"))
+}
+
+def do_remove_favorite() {
+    selected = ui_listview_get_selected(fav_list)
+    if selected == null {
+        ui_alert_err("Select a favorite city to remove.")
+        return
+    }
+    
+    city_to_remove = selected[0]
+    
+    # Find and remove from list
+    i = 0
+    while i < len(favorites) {
+        if favorites[i] == city_to_remove {
+            list_remove(favorites, i)
+            save_favorites()
+            refresh_favorites_list()
+            set_status(rejoin("🗑 Removed '", city_to_remove, "' from favorites"))
+            return
+        }
+        i = i + 1
+    }
+}
+
+def on_fav_select(widget) {
+    selected = ui_listview_get_selected(fav_list)
+    if selected == null { return }
+    city = selected[0]
+    ui_set(city_entry, city)
+    fetch_weather_for_city(city)
+}
+
+# ==============================================================================
+# WEATHER FETCHING (Open-Meteo API)
+# ==============================================================================
+
+def fetch_weather_for_city(city) {
+    set_status(rejoin("🌐 Looking up '", city, "'..."))
+    ui_color(status_lbl, "#f1c40f", "")
+    ui_refresh(win)
+    
+    try {
+        # Step 1: Geocode city → lat/lon
+        geocode_url = rejoin("https://geocoding-api.open-meteo.com/v1/search?name=", url_encode(city), "&count=1")
+        geo_response = http_get(geocode_url)
+        
+        if starts_with(geo_response, "ERROR") {
+            set_status("⚠️ Offline — using demo data")
+            load_demo_data(city)
+            return
+        }
+        
+        geo_data = json_parse(geo_response)
+        if geo_data == null {
+            set_status("⚠️ Geocoding failed — using demo data")
+            load_demo_data(city)
+            return
+        }
+        
+        results = geo_data["results"]
+        if results == null or len(results) == 0 {
+            ui_alert_err(rejoin("City not found: ", city))
+            set_status("❌ City not found")
+            ui_color(status_lbl, "#e74c3c", "")
+            return
+        }
+        
+        lat = results[0]["latitude"]
+        lon = results[0]["longitude"]
+        country = results[0]["country"]
+        full_name = rejoin(results[0]["name"], ", ", country)
+        
+        current_city = city
+        current_lat = lat
+        current_lon = lon
+        
+        # Step 2: Fetch current + forecast weather
+        set_status("🌐 Fetching weather data...")
+        ui_refresh(win)
+        
+        weather_url = rejoin("https://api.open-meteo.com/v1/forecast?latitude=", str(lat), "&longitude=", str(lon), "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=auto&forecast_days=7")
+        
+        weather_response = http_get(weather_url)
+        
+        if starts_with(weather_response, "ERROR") {
+            set_status("⚠️ Network error — using demo data")
+            load_demo_data(city)
+            return
+        }
+        
+        weather_data = json_parse(weather_response)
+        if weather_data == null {
+            set_status("⚠️ Parse error — using demo data")
+            load_demo_data(city)
+            return
+        }
+        
+        # Step 3: Update UI
+        update_current_weather(weather_data, full_name)
+        update_forecast(weather_data)
+        
+        set_status(rejoin("✅ Weather loaded for ", full_name))
+        ui_color(status_lbl, "#2ecc71", "")
+        
+    } catch err {
+        set_status("⚠️ Error — using demo data")
+        ui_color(status_lbl, "#e74c3c", "")
+        load_demo_data(city)
+    }
+}
+
+# ==============================================================================
+# UI UPDATE
+# ==============================================================================
+
+def update_current_weather(data, full_name) {
+    current = data["current"]
+    
+    ui_set(city_name_lbl, full_name)
+    ui_set(country_lbl, rejoin("Lat: ", str(current_lat), "  |  Lon: ", str(current_lon)))
+    
+    temp = current["temperature_2m"]
+    feels = current["apparent_temperature"]
+    humidity = current["relative_humidity_2m"]
+    wind = current["wind_speed_10m"]
+    pressure = current["surface_pressure"]
+    code = current["weather_code"]
+    
+    info = get_weather_info(code)
+    icon = info[0]
+    description = info[1]
+    
+    ui_set(weather_icon_lbl, icon)
+    ui_set(temp_lbl, rejoin(str(int(temp)), "°C"))
+    ui_set(condition_lbl, description)
+    ui_set(feels_like_lbl, rejoin("🌡️ Feels Like: ", str(int(feels)), "°C"))
+    ui_set(humidity_lbl, rejoin("💧 Humidity: ", str(humidity), "%"))
+    ui_set(wind_lbl, rejoin("💨 Wind: ", str(int(wind)), " km/h"))
+    ui_set(pressure_lbl, rejoin("🧭 Pressure: ", str(int(pressure)), " hPa"))
+    ui_set(visibility_lbl, "👁️ Visibility: N/A (Open-Meteo)")
+    
+    now_str = now()
+    ui_set(last_update_lbl, rejoin("Last update: ", now_str))
+}
+
+def update_forecast(data) {
+    ui_listview_clear(forecast_list)
+    
+    daily = data["daily"]
+    times = daily["time"]
+    codes = daily["weather_code"]
+    max_temps = daily["temperature_2m_max"]
+    min_temps = daily["temperature_2m_min"]
+    rain_probs = daily["precipitation_probability_max"]
+    winds = daily["wind_speed_10m_max"]
+    
+    i = 0
+    while i < len(times) {
+        date_str = times[i]
+        day_name = format_day_name(date_str, i)
+        code = codes[i]
+        
+        info = get_weather_info(code)
+        icon = info[0]
+        description = info[1]
+        
+        max_t = str(int(max_temps[i]))
+        min_t = str(int(min_temps[i]))
+        rain = str(rain_probs[i])
+        wind = str(int(winds[i]))
+        
+        ui_listview_insert(forecast_list, [day_name, icon, description, min_t, max_t, rejoin(rain, "%"), wind])
+        
+        i = i + 1
+    }
+}
+
+def format_day_name(date_str, index) {
+    if index == 0 { return "Today" }
+    if index == 1 { return "Tomorrow" }
+    # ✅ FIX: Use str_split instead of split
+    parts = str_split(date_str, "-")
+    if len(parts) >= 3 {
+        return rejoin(parts[2], "-", parts[1])
+    }
+    return date_str
+}
+
+# ==============================================================================
+# WMO WEATHER CODE → ICON + DESCRIPTION
+# ==============================================================================
+
+def get_weather_info(code) {
+    if code == 0 { return ["☀️", "Clear sky"] }
+    if code == 1 { return ["🌤️", "Mainly clear"] }
+    if code == 2 { return ["⛅", "Partly cloudy"] }
+    if code == 3 { return ["☁️", "Overcast"] }
+    if code == 45 { return ["🌫️", "Fog"] }
+    if code == 48 { return ["🌫️", "Rime fog"] }
+    if code == 51 { return ["🌦️", "Light drizzle"] }
+    if code == 53 { return ["🌦️", "Moderate drizzle"] }
+    if code == 55 { return ["🌦️", "Dense drizzle"] }
+    if code == 61 { return ["🌧️", "Slight rain"] }
+    if code == 63 { return ["🌧️", "Moderate rain"] }
+    if code == 65 { return ["🌧️", "Heavy rain"] }
+    if code == 71 { return ["🌨️", "Slight snow"] }
+    if code == 73 { return ["🌨️", "Moderate snow"] }
+    if code == 75 { return ["❄️", "Heavy snow"] }
+    if code == 77 { return ["🌨️", "Snow grains"] }
+    if code == 80 { return ["🌦️", "Rain showers"] }
+    if code == 81 { return ["🌧️", "Moderate showers"] }
+    if code == 82 { return ["⛈️", "Violent showers"] }
+    if code == 95 { return ["⛈️", "Thunderstorm"] }
+    if code == 96 { return ["⛈️", "Storm w/ hail"] }
+    if code == 99 { return ["⛈️", "Storm w/ heavy hail"] }
+    return ["🌡️", "Unknown"]
+}
+
+# ==============================================================================
+# DEMO DATA (Fallback when offline)
+# ==============================================================================
+
+def load_demo_data(city) {
+    ui_set(city_name_lbl, rejoin(city, " (Demo)"))
+    ui_set(country_lbl, "Offline mode — showing sample data")
+    ui_set(weather_icon_lbl, "⛅")
+    ui_set(temp_lbl, "22°C")
+    ui_set(condition_lbl, "Partly cloudy (demo)")
+    ui_set(feels_like_lbl, "🌡️ Feels Like: 21°C")
+    ui_set(humidity_lbl, "💧 Humidity: 65%")
+    ui_set(wind_lbl, "💨 Wind: 12 km/h")
+    ui_set(pressure_lbl, "🧭 Pressure: 1013 hPa")
+    ui_set(visibility_lbl, "👁️ Visibility: 10 km")
+    ui_set(last_update_lbl, rejoin("Last update: ", now(), " (demo)"))
+    
+    ui_listview_clear(forecast_list)
+    ui_listview_insert(forecast_list, ["Today", "⛅", "Partly cloudy", "16", "22", "20%", "12"])
+    ui_listview_insert(forecast_list, ["Tomorrow", "🌧️", "Light rain", "14", "19", "70%", "18"])
+    ui_listview_insert(forecast_list, ["Day 3", "☀️", "Clear sky", "15", "24", "5%", "10"])
+    ui_listview_insert(forecast_list, ["Day 4", "☁️", "Overcast", "13", "20", "30%", "15"])
+    ui_listview_insert(forecast_list, ["Day 5", "🌦️", "Drizzle", "12", "18", "60%", "20"])
+    ui_listview_insert(forecast_list, ["Day 6", "⛅", "Partly cloudy", "14", "21", "25%", "14"])
+    ui_listview_insert(forecast_list, ["Day 7", "☀️", "Clear sky", "16", "25", "10%", "8"])
+    
+    current_city = city
+}
+
+# ==============================================================================
+# HELPERS
+# ==============================================================================
+
+def set_status(msg) {
+    ui_set(status_lbl, rejoin("  ", msg))
+}
+
+def url_encode(text) {
+    result = replace(text, " ", "%20")
+    return result
+}
+
+# ==============================================================================
+# FULLY RESPONSIVE RESIZE HANDLER
+# ==============================================================================
+
+def on_resize(widget, w, h) {
+    cs = ui_get_client_size(win)
+    cw = cs[0]
+    ch = cs[1]
+    
+    if cw < 700 { cw = 700 }
+    if ch < 500 { ch = 500 }
+    
+    header_h = 60
+    statusbar_h = 30
+    content_h = ch - header_h - statusbar_h
+    
+    left_w = cw * 0.375
+    right_w = cw - left_w
+    
+    ui_pos(header_bg, 0, 0, cw, header_h)
+    ui_pos(statusbar_bg, 0, ch - statusbar_h, cw, statusbar_h)
+    ui_pos(left_panel, 0, header_h, left_w, content_h)
+    ui_pos(right_panel, left_w, header_h, right_w, content_h)
+    
+    ui_pos(clock_lbl, cw - 150, 20, 130, 25)
+    ui_pos(status_lbl, 15, 5, cw - 30, 20)
+    
+    # Left panel children
+    search_w = left_w - 40
+    entry_w = search_w - 140
+    if entry_w < 100 { entry_w = 100 }
+    ui_pos(city_entry, 20, 45, entry_w, 32)
+    ui_pos(btn_search, 20 + entry_w + 10, 45, 120, 32)
+    
+    half_btn = (search_w - 10) / 2
+    ui_pos(btn_refresh, 20, 85, half_btn, 30)
+    ui_pos(btn_fav_add, 30 + half_btn, 85, half_btn, 30)
+    
+    fav_w = search_w - 110
+    if fav_w < 100 { fav_w = 100 }
+    ui_size(fav_list, fav_w, 120)
+    ui_pos(btn_fav_del, 20 + fav_w + 10, 150, 90, 120)
+    
+    card_y = 285
+    card_h = content_h - card_y - 15
+    if card_h < 200 { card_h = 200 }
+    ui_pos(weather_card, 20, card_y, search_w, card_h)
+    
+    card_w = search_w
+    half_card = card_w / 2
+    
+    ui_size(city_name_lbl, card_w - 30, 28)
+    ui_size(country_lbl, card_w - 30, 20)
+    ui_size(divider, card_w - 30, 2)
+    ui_size(feels_like_lbl, half_card - 20, 25)
+    ui_pos(humidity_lbl, half_card, 205, half_card - 20, 25)
+    ui_size(wind_lbl, half_card - 20, 25)
+    ui_pos(pressure_lbl, half_card, 235, half_card - 20, 25)
+    ui_size(visibility_lbl, card_w - 30, 25)
+    ui_size(last_update_lbl, card_w - 30, 25)
+    
+    # Right panel children
+    forecast_w = right_w - 40
+    forecast_h = content_h - 65
+    if forecast_h < 200 { forecast_h = 200 }
+    ui_pos(forecast_list, 20, 45, forecast_w, forecast_h)
+    
+    ui_listview_set_column_width(forecast_list, 0, forecast_w * 0.14)
+    ui_listview_set_column_width(forecast_list, 1, forecast_w * 0.07)
+    ui_listview_set_column_width(forecast_list, 2, forecast_w * 0.28)
+    ui_listview_set_column_width(forecast_list, 3, forecast_w * 0.11)
+    ui_listview_set_column_width(forecast_list, 4, forecast_w * 0.11)
+    ui_listview_set_column_width(forecast_list, 5, forecast_w * 0.11)
+    ui_listview_set_column_width(forecast_list, 6, forecast_w * 0.14)
+    
+    ui_refresh(win)
+}
+
+# ==============================================================================
+# LAUNCH
+# ==============================================================================
+
+main()

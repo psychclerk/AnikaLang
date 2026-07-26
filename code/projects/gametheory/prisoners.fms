@@ -1,0 +1,492 @@
+# ==============================================================================
+# AXELROD'S PRISONER'S DILEMMA TOURNAMENT
+# AnikaLang 1.2 wxPython Edition
+# ==============================================================================
+
+# --- GLOBAL STATE ---
+win = null
+rounds_entry = null
+results_viewer = null
+status_label = null
+btn_run = null
+
+# Tournament data
+strategies = ["Tit-for-Tat", "Always Cooperate", "Always Defect", "Grudger", "Random", "Pavlov", "Detective"]
+payoff_cc = 3
+payoff_dd = 1
+payoff_cd = 0
+payoff_dc = 5
+
+# ==============================================================================
+# STRATEGY DECISION ENGINE
+# ==============================================================================
+
+def get_move(strategy_name, my_history, opp_history) {
+    n = len(my_history)
+    
+    if strategy_name == "Tit-for-Tat" {
+        if n == 0 { return "C" }
+        return opp_history[n - 1]
+    }
+    
+    if strategy_name == "Always Cooperate" {
+        return "C"
+    }
+    
+    if strategy_name == "Always Defect" {
+        return "D"
+    }
+    
+    if strategy_name == "Grudger" {
+        for m in opp_history {
+            if m == "D" { return "D" }
+        }
+        return "C"
+    }
+    
+    if strategy_name == "Random" {
+        if rand() < 0.5 { return "C" }
+        return "D"
+    }
+    
+    if strategy_name == "Pavlov" {
+        if n == 0 { return "C" }
+        if my_history[n - 1] == opp_history[n - 1] { return "C" }
+        return "D"
+    }
+    
+    if strategy_name == "Detective" {
+        if n == 0 { return "C" }
+        if n == 1 { return "D" }
+        if n == 2 { return "C" }
+        if n == 3 { return "C" }
+        
+        opp_defected = false
+        i = 0
+        while i < 4 and i < len(opp_history) {
+            if opp_history[i] == "D" {
+                opp_defected = true
+            }
+            i = i + 1
+        }
+        
+        if opp_defected == true {
+            return opp_history[n - 1]
+        } else {
+            return "D"
+        }
+    }
+    
+    return "C"
+}
+
+# ==============================================================================
+# PAYOFF CALCULATION
+# ==============================================================================
+
+def get_payoff(my_move, opp_move) {
+    if my_move == "C" and opp_move == "C" { return payoff_cc }
+    if my_move == "D" and opp_move == "D" { return payoff_dd }
+    if my_move == "C" and opp_move == "D" { return payoff_cd }
+    if my_move == "D" and opp_move == "C" { return payoff_dc }
+    return 0
+}
+
+# ==============================================================================
+# MATCH SIMULATION
+# ==============================================================================
+
+def play_match(strat1, strat2, num_rounds) {
+    h1 = []
+    h2 = []
+    score1 = 0
+    score2 = 0
+    
+    r = 0
+    while r < num_rounds {
+        m1 = get_move(strat1, h1, h2)
+        m2 = get_move(strat2, h2, h1)
+        
+        list_append(h1, m1)
+        list_append(h2, m2)
+        
+        score1 = score1 + get_payoff(m1, m2)
+        score2 = score2 + get_payoff(m2, m1)
+        
+        r = r + 1
+    }
+    
+    result = {}
+    dict_set(result, "score1", score1)
+    dict_set(result, "score2", score2)
+    dict_set(result, "h1", h1)
+    dict_set(result, "h2", h2)
+    return result
+}
+
+# ==============================================================================
+# TOURNAMENT EXECUTION
+# ==============================================================================
+
+def run_tournament(num_rounds) {
+    scores = {}
+    match_log = []
+    
+    for s in strategies {
+        dict_set(scores, s, 0)
+    }
+    
+    i = 0
+    while i < len(strategies) {
+        j = i
+        while j < len(strategies) {
+            s1 = strategies[i]
+            s2 = strategies[j]
+            
+            result = play_match(s1, s2, num_rounds)
+            
+            current_s1 = scores[s1]
+            current_s2 = scores[s2]
+            
+            dict_set(scores, s1, current_s1 + result.score1)
+            dict_set(scores, s2, current_s2 + result.score2)
+            
+            log_entry = {}
+            dict_set(log_entry, "s1", s1)
+            dict_set(log_entry, "s2", s2)
+            dict_set(log_entry, "score1", result.score1)
+            dict_set(log_entry, "score2", result.score2)
+            
+            list_append(match_log, log_entry)
+            
+            j = j + 1
+        }
+        i = i + 1
+    }
+    
+    res = {}
+    dict_set(res, "scores", scores)
+    dict_set(res, "log", match_log)
+    return res
+}
+
+# ==============================================================================
+# RESULTS DISPLAY
+# ==============================================================================
+
+def build_results_html(tournament_result, num_rounds) {
+    scores = tournament_result.scores
+    log = tournament_result.log
+    
+    rankings = []
+    for s in strategies {
+        entry = {}
+        dict_set(entry, "name", s)
+        dict_set(entry, "score", scores[s])
+        list_append(rankings, entry)
+    }
+    
+    # Bubble sort
+    i = 0
+    while i < len(rankings) - 1 {
+        j = 0
+        while j < len(rankings) - i - 1 {
+            if rankings[j].score < rankings[j + 1].score {
+                temp = rankings[j]
+                list_set(rankings, j, rankings[j + 1])
+                list_set(rankings, j + 1, temp)
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    
+    html = "<html><body style='font-family:Segoe UI;padding:20px;background:#f8f9fa;'>"
+    html = rejoin(html, "<h1 style='color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:10px;'>🏆 Tournament Results</h1>")
+    html = rejoin(html, "<p style='color:#7f8c8d;'>Rounds per match: <b>", str(num_rounds), "</b> | Strategies: <b>", str(len(strategies)), "</b></p>")
+    
+    html = rejoin(html, "<h2 style='color:#2c3e50;margin-top:20px;'>📊 Final Rankings</h2>")
+    html = rejoin(html, "<table style='border-collapse:collapse;width:100%;font-size:14px;'>")
+    html = rejoin(html, "<tr style='background:#34495e;color:white;'>")
+    html = rejoin(html, "<th style='padding:10px;text-align:left;'>Rank</th>")
+    html = rejoin(html, "<th style='padding:10px;text-align:left;'>Strategy</th>")
+    html = rejoin(html, "<th style='padding:10px;text-align:right;'>Total Score</th>")
+    html = rejoin(html, "<th style='padding:10px;text-align:right;'>Avg/Match</th>")
+    html = rejoin(html, "</tr>")
+    
+    matches_per_strategy = len(strategies)
+    rank = 1
+    for r in rankings {
+        bg = "#ffffff"
+        medal = ""
+        if rank == 1 {
+            bg = "#fff3cd"
+            medal = " "
+        }
+        if rank == 2 {
+            bg = "#e8e8e8"
+            medal = "🥈 "
+        }
+        if rank == 3 {
+            bg = "#f5e6d3"
+            medal = "🥉 "
+        }
+        
+        avg = round(r.score / matches_per_strategy, 2)
+        
+        html = rejoin(html, "<tr style='background:", bg, ";border-bottom:1px solid #ddd;'>")
+        html = rejoin(html, "<td style='padding:10px;font-weight:bold;'>", str(rank), "</td>")
+        html = rejoin(html, "<td style='padding:10px;'>", medal, r.name, "</td>")
+        html = rejoin(html, "<td style='padding:10px;text-align:right;font-weight:bold;color:#2c3e50;'>", str(r.score), "</td>")
+        html = rejoin(html, "<td style='padding:10px;text-align:right;color:#7f8c8d;'>", str(avg), "</td>")
+        html = rejoin(html, "</tr>")
+        
+        rank = rank + 1
+    }
+    html = rejoin(html, "</table>")
+    
+    html = rejoin(html, "<h2 style='color:#2c3e50;margin-top:30px;'>🎮 Match Details</h2>")
+    html = rejoin(html, "<table style='border-collapse:collapse;width:100%;font-size:12px;'>")
+    html = rejoin(html, "<tr style='background:#3498db;color:white;'>")
+    html = rejoin(html, "<th style='padding:8px;'>Strategy 1</th>")
+    html = rejoin(html, "<th style='padding:8px;'>Strategy 2</th>")
+    html = rejoin(html, "<th style='padding:8px;text-align:right;'>Score 1</th>")
+    html = rejoin(html, "<th style='padding:8px;text-align:right;'>Score 2</th>")
+    html = rejoin(html, "<th style='padding:8px;'>Winner</th>")
+    html = rejoin(html, "</tr>")
+    
+    for m in log {
+        winner = "Tie"
+        wcolor = "#7f8c8d"
+        if m.score1 > m.score2 {
+            winner = m.s1
+            wcolor = "#27ae60"
+        }
+        if m.score2 > m.score1 {
+            winner = m.s2
+            wcolor = "#27ae60"
+        }
+        
+        html = rejoin(html, "<tr style='border-bottom:1px solid #eee;'>")
+        html = rejoin(html, "<td style='padding:6px;'>", m.s1, "</td>")
+        html = rejoin(html, "<td style='padding:6px;'>", m.s2, "</td>")
+        html = rejoin(html, "<td style='padding:6px;text-align:right;'>", str(m.score1), "</td>")
+        html = rejoin(html, "<td style='padding:6px;text-align:right;'>", str(m.score2), "</td>")
+        html = rejoin(html, "<td style='padding:6px;color:", wcolor, ";font-weight:bold;'>", winner, "</td>")
+        html = rejoin(html, "</tr>")
+    }
+    html = rejoin(html, "</table>")
+    
+    html = rejoin(html, "<h2 style='color:#2c3e50;margin-top:30px;'>💡 Payoff Matrix</h2>")
+    html = rejoin(html, "<table style='border-collapse:collapse;font-size:13px;'>")
+    html = rejoin(html, "<tr style='background:#ecf0f1;'><th style='padding:8px;border:1px solid #bdc3c7;'></th><th style='padding:8px;border:1px solid #bdc3c7;'>Opponent C</th><th style='padding:8px;border:1px solid #bdc3c7;'>Opponent D</th></tr>")
+    html = rejoin(html, "<tr><td style='padding:8px;border:1px solid #bdc3c7;font-weight:bold;'>I Cooperate</td>")
+    html = rejoin(html, "<td style='padding:8px;border:1px solid #bdc3c7;background:#d4edda;'>3, 3 (Reward)</td>")
+    html = rejoin(html, "<td style='padding:8px;border:1px solid #bdc3c7;background:#f8d7da;'>0, 5 (Sucker)</td></tr>")
+    html = rejoin(html, "<tr><td style='padding:8px;border:1px solid #bdc3c7;font-weight:bold;'>I Defect</td>")
+    html = rejoin(html, "<td style='padding:8px;border:1px solid #bdc3c7;background:#d1ecf1;'>5, 0 (Temptation)</td>")
+    html = rejoin(html, "<td style='padding:8px;border:1px solid #bdc3c7;background:#fff3cd;'>1, 1 (Punishment)</td></tr>")
+    html = rejoin(html, "</table>")
+    
+    html = rejoin(html, "<h2 style='color:#2c3e50;margin-top:30px;'>📖 Strategy Descriptions</h2>")
+    html = rejoin(html, "<ul style='font-size:13px;line-height:1.8;'>")
+    html = rejoin(html, "<li><b>Tit-for-Tat:</b> Cooperate first, then copy opponent's last move. The famous winner of Axelrod's original tournament.</li>")
+    html = rejoin(html, "<li><b>Always Cooperate:</b> Never defects. Exploitable but promotes mutual cooperation.</li>")
+    html = rejoin(html, "<li><b>Always Defect:</b> Always betrays. Dominates in single encounters but fails in repeated games.</li>")
+    html = rejoin(html, "<li><b>Grudger:</b> Cooperates until opponent defects once, then defects forever. Never forgives.</li>")
+    html = rejoin(html, "<li><b>Random:</b> Flips a coin each round. Unpredictable baseline.</li>")
+    html = rejoin(html, "<li><b>Pavlov:</b> Cooperates if both players did the same last round, otherwise defects.</li>")
+    html = rejoin(html, "<li><b>Detective:</b> Plays C,D,C,C then if opponent ever defected, switches to Tit-for-Tat; otherwise plays Always Defect.</li>")
+    html = rejoin(html, "</ul>")
+    
+    html = rejoin(html, "</body></html>")
+    return html
+}
+
+# ==============================================================================
+# CHART GENERATION
+# ==============================================================================
+
+def generate_chart(tournament_result) {
+    scores = tournament_result.scores
+    
+    labels = []
+    values = []
+    
+    for s in strategies {
+        list_append(labels, s)
+        list_append(values, scores[s])
+    }
+    
+    try {
+        chart_path = path_join(path_cwd(), "axelrod_results.png")
+        graph_bar(labels, values, "Axelrod Tournament Results", "Strategy", "Total Score", "#3498db")
+        graph_save(chart_path, 150)
+        graph_close()
+        return chart_path
+    } catch err {
+        return ""
+    }
+}
+
+# ==============================================================================
+# UI ACTIONS
+# ==============================================================================
+
+def do_run_tournament() {
+    rounds_str = ui_get(rounds_entry)
+    num_rounds = 0
+    try {
+        num_rounds = int(rounds_str)
+    } catch err {
+        ui_alert_err("Please enter a valid number of rounds")
+        return
+    }
+    
+    if num_rounds < 1 {
+        ui_alert_err("Rounds must be at least 1")
+        return
+    }
+    
+    ui_set(status_label, "  ⏳ Running tournament...")
+    ui_color(status_label, "white", "#f39c12")
+    ui_refresh(status_label)
+    ui_refresh(win)
+    
+    try {
+        result = run_tournament(num_rounds)
+        html = build_results_html(result, num_rounds)
+        ui_html_set(results_viewer, html)
+        
+        chart_path = generate_chart(result)
+        if chart_path != "" {
+            winner_name = get_winner(result)
+            ui_set(status_label, rejoin("  ✓ Tournament complete! Winner: ", winner_name))
+            ui_color(status_label, "white", "#27ae60")
+        } else {
+            ui_set(status_label, "  ✓ Tournament complete (chart failed)")
+            ui_color(status_label, "white", "#27ae60")
+        }
+    } catch err {
+        ui_set(status_label, rejoin("  ⚠ Error: ", err))
+        ui_color(status_label, "white", "#e74c3c")
+        ui_alert_err(rejoin("Tournament error: ", err))
+    }
+}
+
+def get_winner(tournament_result) {
+    scores = tournament_result.scores
+    best_name = ""
+    best_score = -1
+    for s in strategies {
+        if scores[s] > best_score {
+            best_score = scores[s]
+            best_name = s
+        }
+    }
+    return best_name
+}
+
+def do_show_about() {
+    ui_alert(rejoin(
+        "Axelrod's Prisoner's Dilemma Tournament\n\n",
+        "A simulation of Robert Axelrod's famous 1980s tournament\n",
+        "that demonstrated how cooperation can emerge among\n",
+        "selfish agents through repeated interaction.\n\n",
+        "Key Insight: Tit-for-Tat won the original tournament\n",
+        "by being nice, retaliatory, forgiving, and clear.\n\n",
+        "Built with AnikaLang wxPython"
+    ))
+}
+
+def exit_app() {
+    ui_close(win)
+}
+
+# ==============================================================================
+# RESIZE HANDLER
+# ==============================================================================
+
+def on_resize(widget, w, h) {
+    cs = ui_get_client_size(win)
+    cw = cs[0]
+    ch = cs[1]
+    
+    header_h = 110
+    footer_h = 30
+    content_h = ch - header_h - footer_h
+    
+    if content_h < 200 {
+        content_h = 200
+    }
+    
+    ui_pos(results_viewer, 10, header_h, cw - 20, content_h)
+    ui_size(results_viewer, cw - 20, content_h)
+    
+    ui_pos(status_label, 0, ch - footer_h, cw, footer_h)
+}
+
+# ==============================================================================
+# UI LAYOUT
+# ==============================================================================
+
+win = ui_window("Axelrod's Prisoner's Dilemma Tournament", 1100, 800)
+
+# --- MENU ---
+menubar = ui_menu(win)
+file_menu = ui_menu_add(menubar, "File")
+ui_menu_item(file_menu, "Run Tournament\tF5", "do_run_tournament")
+ui_menu_separator(file_menu)
+ui_menu_item(file_menu, "Exit", "exit_app")
+help_menu = ui_menu_add(menubar, "Help")
+ui_menu_item(help_menu, "About", "do_show_about")
+ui_set_menu(win, menubar)
+
+# --- HEADER ---
+header_bg = ui_panel(win, 0, 0, 1100, 110)
+ui_color(header_bg, null, "#2c3e50")
+
+title_lbl = ui_label(header_bg, "🎭 Axelrod's Prisoner's Dilemma Tournament", 20, 15, 800, 35)
+ui_color(title_lbl, "#ffffff", null)
+
+subtitle_lbl = ui_label(header_bg, "Simulating the emergence of cooperation among selfish agents", 20, 55, 600, 20)
+ui_color(subtitle_lbl, "#bdc3c7", null)
+
+rounds_lbl = ui_label(header_bg, "Rounds per match:", 650, 18, 130, 25)
+ui_color(rounds_lbl, "#ffffff", null)
+
+rounds_entry = ui_entry(header_bg, "200", 790, 15, 80, 28)
+ui_color(rounds_entry, "#2c3e50", "#ffffff")
+
+btn_run = ui_button(header_bg, "▶ Run Tournament", "do_run_tournament", 890, 12, 190, 35)
+ui_color(btn_run, "#ffffff", "#27ae60")
+
+strat_info = ui_label(header_bg, "Strategies: Tit-for-Tat | Always Cooperate | Always Defect | Grudger | Random | Pavlov | Detective", 20, 82, 1060, 20)
+ui_color(strat_info, "#95a5a6", null)
+
+# --- RESULTS VIEWER ---
+results_viewer = ui_htmlview(win, 10, 110, 1080, 660)
+
+welcome_html = "<html><body style='font-family:Segoe UI;padding:40px;background:#f8f9fa;'>"
+welcome_html = rejoin(welcome_html, "<h1 style='color:#2c3e50;'>Welcome to Axelrod's Tournament</h1>")
+welcome_html = rejoin(welcome_html, "<p style='font-size:14px;color:#555;line-height:1.8;'>")
+welcome_html = rejoin(welcome_html, "In the Prisoner's Dilemma, two players simultaneously choose to <b>Cooperate</b> or <b>Defect</b>.<br>")
+welcome_html = rejoin(welcome_html, "The payoff matrix rewards mutual cooperation (3,3), punishes mutual defection (1,1),<br>")
+welcome_html = rejoin(welcome_html, "and tempts defection against cooperation (5,0 vs 0,5).<br><br>")
+welcome_html = rejoin(welcome_html, "Robert Axelrod's famous tournament (1980s) showed that <b>Tit-for-Tat</b> — a simple,<br>")
+welcome_html = rejoin(welcome_html, "nice, retaliatory, and forgiving strategy — consistently wins in repeated games.<br><br>")
+welcome_html = rejoin(welcome_html, "<b>Click 'Run Tournament' to see which strategy dominates!</b>")
+welcome_html = rejoin(welcome_html, "</p></body></html>")
+ui_html_set(results_viewer, welcome_html)
+
+# --- STATUS BAR ---
+statusbar_bg = ui_panel(win, 0, 770, 1100, 30)
+ui_color(statusbar_bg, null, "#34495e")
+
+status_label = ui_label(statusbar_bg, "  ✓ Ready to run tournament", 0, 0, 1100, 30)
+ui_color(status_label, "#ecf0f1", "#34495e")
+
+# --- BIND RESIZE ---
+ui_bind(win, "RESIZE", "on_resize")
+
+ui_mainloop(win)

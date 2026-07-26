@@ -1,0 +1,1085 @@
+# ==============================================================================
+# AnikaLang Professional Editor IDE v8.1 (Index-Based Tab Management)
+# Run: python anika.py idetabs.fms
+# ==============================================================================
+
+# --- Global State ---
+editorTabs = null
+openEditors = []
+openFilePaths = []
+openDirty = []
+activeEditor = null
+activeTabIndex = 0 
+currentFilePath = null 
+
+findReplacePopup = null
+isDirty = false
+
+# Find/Replace State
+findEntry = null
+replaceEntry = null
+findStatusLbl = null
+
+# --- Statusbar References ---
+sbFile = null
+sbSaved = null
+sbCursor = null
+sbLines = null
+sbEncoding = null
+sbLanguage = null
+sbMessage = null
+sbClock = null
+
+# --- Layout Widget References ---
+toolbarBg = null
+navLabel = null
+funcSearchEntry = null
+funcList = null
+statusbarBg = null
+clockTimerId = null
+ctxMenu = null
+
+# --- Menu References ---
+menubar = null
+fileMenu = null
+editMenu = null
+viewMenu = null
+helpMenu = null
+
+# --- Recent Files ---
+recentFiles = []
+recentFilesPath = ""
+MAX_RECENT = 10
+
+# ==============================================================================
+# String Helpers (safe, no built-in split)
+# ==============================================================================
+
+def str_find(text, search) {
+    tlen = len(text)
+    slen = len(search)
+    if slen == 0 { return 0 }
+    if slen > tlen { return -1 }
+    i = 0
+    while i <= tlen - slen {
+        sub = left(right(text, tlen - i), slen)
+        if sub == search { return i }
+        i = i + 1
+    }
+    return -1
+}
+
+def str_sub(text, start, length) {
+    n = len(text)
+    if start < 0 { start = 0 }
+    if start >= n { return "" }
+    if length <= 0 { return "" }
+    if start + length > n { length = n - start }
+    return left(right(text, n - start), length)
+}
+
+def str_split(text, delim) {
+    result = []
+    dlen = len(delim)
+    if dlen == 0 {
+        list_append(result, text)
+        return result
+    }
+    remaining = text
+    while true {
+        idx = str_find(remaining, delim)
+        if idx == -1 {
+            list_append(result, remaining)
+            return result
+        }
+        piece = str_sub(remaining, 0, idx)
+        list_append(result, piece)
+        remaining = str_sub(remaining, idx + dlen, len(remaining) - idx - dlen)
+    }
+    return result
+}
+
+# ==============================================================================
+# Resize Handler
+# ==============================================================================
+
+def onWindowResize(widget, newW, newH) {
+    clientSize = ui_get_client_size(win)
+    cw = clientSize[0]
+    ch = clientSize[1]
+    
+    toolbarH = 40
+    statusbarH = 30
+    navW = 350
+    gap = 20
+    searchH = 25
+    
+    contentY = toolbarH
+    contentH = ch - toolbarH - statusbarH
+    editorW = cw - navW - gap
+    navX = cw - navW
+    sbY = ch - statusbarH
+    
+    if contentH < 100 { contentH = 100 }
+    if editorW < 200 { editorW = 200 }
+    
+    ui_pos(toolbarBg, 0, 0, cw, toolbarH)
+    ui_pos(editorTabs, 0, contentY, editorW, contentH)
+    
+    i = 0
+    while i < len(openEditors) {
+        ui_pos(openEditors[i], 0, 0, editorW, contentH)
+        i = i + 1
+    }
+    
+    ui_pos(navLabel, navX, contentY + 5, navW, 25)
+    ui_pos(funcSearchEntry, navX, contentY + 35, navW, searchH)
+    ui_pos(funcList, navX, contentY + 35 + searchH + 5, navW, contentH - 35 - searchH - 5)
+    
+    ui_pos(statusbarBg, 0, sbY, cw, statusbarH)
+    
+    msgW = cw - 800
+    if msgW < 100 { msgW = 100 }
+    ui_pos(sbMessage, 800, 0, msgW, statusbarH)
+    
+    ui_refresh(win)
+}
+
+# ==============================================================================
+# Clock & Statusbar Helpers
+# ==============================================================================
+
+def updateClock() {
+    nowStr = now()
+    timePart = right(nowStr, 8)
+    ui_set(sbClock, "   " + timePart + "  ")
+    clockTimerId = ui_after(1000, "updateClock")
+}
+
+def startClock() { updateClock() }
+
+def sbUpdateFile() {
+    if currentFilePath == null {
+        tabName = ui_tab_get_title(editorTabs, activeTabIndex)
+        ui_set(sbFile, rejoin("  📄 ", tabName, ".fms"))
+    } else {
+        fname = path_file(currentFilePath)
+        ui_set(sbFile, rejoin("   ", fname))
+    }
+}
+
+def sbUpdateSaved() {
+    if isDirty == true {
+        ui_set(sbSaved, "  ● Modified ")
+    } else {
+        ui_set(sbSaved, "  ✓ Saved ")
+    }
+}
+
+def sbUpdateCursor() {
+    if activeEditor == null { return }
+    try {
+        pos = ui_editor_get_cursor(activeEditor)
+        ui_set(sbCursor, rejoin("  Ln ", pos, "  "))
+    } catch err {
+        ui_set(sbCursor, "  Ln 1:1  ")
+    }
+}
+
+def sbUpdateLines() {
+    if activeEditor == null { return }
+    count = ui_editor_get_line_count(activeEditor)
+    ui_set(sbLines, rejoin("  Lines: ", count))
+}
+
+def sbSetMessage(msg) { ui_set(sbMessage, rejoin("  ", msg)) }
+def sbSetError(msg) { ui_set(sbMessage, rejoin("   ", msg)) }
+def sbSetSuccess(msg) { ui_set(sbMessage, rejoin("  ✓ ", msg)) }
+def sbSetInfo(msg) { ui_set(sbMessage, rejoin("  ℹ ", msg)) }
+
+def markDirty() {
+    if activeTabIndex >= 0 {
+        list_set(openDirty, activeTabIndex, true)
+        isDirty = true
+        
+        currentTitle = ui_tab_get_title(editorTabs, activeTabIndex)
+        if ends_with(currentTitle, "*") == false {
+            ui_tab_set_title(editorTabs, rejoin(currentTitle, "*"), activeTabIndex)
+        }
+        
+        sbUpdateSaved()
+    }
+}
+
+def markSaved() {
+    if activeTabIndex >= 0 {
+        list_set(openDirty, activeTabIndex, false)
+        isDirty = false
+        
+        currentTitle = ui_tab_get_title(editorTabs, activeTabIndex)
+        cleanTitle = replace(currentTitle, "*", "")
+        ui_tab_set_title(editorTabs, cleanTitle, activeTabIndex)
+        
+        sbUpdateSaved()
+    }
+}
+
+def onEditorChange() {
+    markDirty()
+    sbUpdateCursor()
+    sbUpdateLines()
+    refreshFunctions()
+}
+
+def onCursorMove() { sbUpdateCursor() }
+
+# ==============================================================================
+# Tab Management (INDEX-BASED)
+# ==============================================================================
+
+def onTabChange() {
+    idx = ui_tab_get_index(editorTabs)
+    
+    if idx >= 0 and idx < len(openEditors) {
+        activeTabIndex = idx
+        activeEditor = openEditors[idx]
+        currentFilePath = openFilePaths[idx]
+        isDirty = openDirty[idx]
+        
+        sbUpdateFile()
+        sbUpdateSaved()
+        sbUpdateCursor()
+        sbUpdateLines()
+        
+        ui_listview_clear(funcList)
+        refreshFunctions()
+    }
+}
+
+# ==============================================================================
+# File Operations
+# ==============================================================================
+
+def newFile() {
+    counter = 1
+    tabName = rejoin("Untitled", counter)
+    isTaken = true
+    
+    while isTaken == true {
+        isTaken = false
+        i = 0
+        while i < len(openEditors) {
+            if ui_tab_get_title(editorTabs, i) == tabName {
+                isTaken = true
+            }
+            i = i + 1
+        }
+        if isTaken == true {
+            counter = counter + 1
+            tabName = rejoin("Untitled", counter)
+        }
+    }
+    
+    tabHandle = ui_tab_add(editorTabs, tabName)
+    
+    editor = ui_code_editor(tabHandle, 0, 0, editorW, contentH)
+    list_append(openEditors, editor)
+    list_append(openFilePaths, null)
+    list_append(openDirty, false)
+    
+    activeTabIndex = len(openEditors) - 1
+    activeEditor = editor
+    currentFilePath = null
+    
+    ui_tab_select(editorTabs, activeTabIndex)
+    
+    ui_text_set(activeEditor, "# New AnikaLang Script\n\ndef main() {\n    win = ui_window('My App')\n    ui_mainloop(win)\n}\nmain() \n")
+    
+    ui_bind_popup(activeEditor, ctxMenu)
+    ui_bind(activeEditor, "change", "onEditorChange")
+    ui_bind(activeEditor, "cursor_move", "onCursorMove")
+    
+    sbUpdateFile()
+    sbUpdateCursor()
+    sbUpdateLines()
+    sbSetInfo(rejoin("New file created: ", tabName))
+    refreshFunctions()
+}
+
+def openFile() {
+    path = ui_file_open(null)
+    if path != "" {
+        tabName = path_file(path)
+        
+        isAlreadyOpen = false
+        existingIdx = -1
+        i = 0
+        while i < len(openEditors) {
+            if ui_tab_get_title(editorTabs, i) == tabName {
+                isAlreadyOpen = true
+                existingIdx = i
+            }
+            i = i + 1
+        }
+        
+        if isAlreadyOpen == true {
+            sbSetError(rejoin("File is already open: ", tabName))
+            ui_tab_select(editorTabs, existingIdx) 
+            return
+        }
+        
+        content = file_read(path)
+        if starts_with(content, "ERROR") {
+            sbSetError("Failed to read file")
+            return
+        }
+        
+        tabHandle = ui_tab_add(editorTabs, tabName)
+                
+        editor = ui_code_editor(tabHandle, 0, 0, editorW, contentH)
+        list_append(openEditors, editor)
+        list_append(openFilePaths, path)
+        list_append(openDirty, false)
+        
+        activeTabIndex = len(openEditors) - 1
+        activeEditor = editor
+        currentFilePath = path
+        
+        ui_tab_select(editorTabs, activeTabIndex)
+        ui_text_set(activeEditor, content)
+        ui_highlight(activeEditor)
+        
+        ui_bind_popup(activeEditor, ctxMenu)
+        ui_bind(activeEditor, "change", "onEditorChange")
+        ui_bind(activeEditor, "cursor_move", "onCursorMove")
+        
+        # ✅ Add to recent files
+        addToRecentFiles(path)
+        
+        markSaved()
+        sbUpdateFile()
+        sbUpdateCursor()
+        sbUpdateLines()
+        refreshFunctions()
+        sbSetSuccess(rejoin("Opened: ", tabName))
+    }
+}
+
+def saveFile() {
+    if activeEditor == null { return }
+    
+    if currentFilePath == null {
+        path = ui_file_save(null)
+        if path != "" {
+            currentFilePath = path
+            list_set(openFilePaths, activeTabIndex, path)
+            content = ui_text_get(activeEditor)
+            file_write(currentFilePath, content)
+            
+            ui_tab_set_title(editorTabs, path_file(path), activeTabIndex)
+            
+            # ✅ Add to recent files on first save
+            addToRecentFiles(path)
+            
+            markSaved()
+            sbUpdateFile()
+            sbSetSuccess(rejoin("Saved: ", path_file(path)))
+        }
+    } else {
+        content = ui_text_get(activeEditor)
+        file_write(currentFilePath, content)
+        
+        ui_tab_set_title(editorTabs, path_file(currentFilePath), activeTabIndex)
+        
+        markSaved()
+        sbSetSuccess(rejoin("Saved: ", path_file(currentFilePath)))
+    }
+}
+
+def closeFile() {
+    if activeEditor == null { return }
+    
+    tabName = ui_tab_get_title(editorTabs, activeTabIndex)
+    
+    if isDirty == true {
+        choice = ui_alert_yes_no(rejoin("Save changes to ", tabName, " before closing?"))
+        if choice == "cancel" { return }
+        if choice == "yes" {
+            saveFile()
+            if isDirty == true { return }
+        }
+    }
+    
+    list_remove(openEditors, activeTabIndex)
+    list_remove(openFilePaths, activeTabIndex)
+    list_remove(openDirty, activeTabIndex)
+    
+    ui_tab_remove(editorTabs, activeTabIndex)
+    
+    if len(openEditors) == 0 {
+        newFile()
+        return
+    }
+    
+    if activeTabIndex >= len(openEditors) {
+        activeTabIndex = len(openEditors) - 1
+    }
+    
+    activeEditor = openEditors[activeTabIndex]
+    currentFilePath = openFilePaths[activeTabIndex]
+    isDirty = openDirty[activeTabIndex]
+    
+    ui_tab_select(editorTabs, activeTabIndex)
+    
+    sbUpdateFile()
+    sbUpdateSaved()
+    sbUpdateCursor()
+    sbUpdateLines()
+    refreshFunctions()
+    sbSetInfo(rejoin("Closed: ", tabName))
+}
+
+def runCode() {
+    if activeEditor == null { return }
+    
+    if isDirty == true {
+        if currentFilePath != null {
+            content = ui_text_get(activeEditor)
+            file_write(currentFilePath, content)
+            markSaved()
+        }
+    }
+    
+    codeText = ui_text_get(activeEditor)
+    projectDir = ""
+    
+    if currentFilePath != null {
+        projectDir = path_dir(currentFilePath)
+    } else {
+        projectDir = path_cwd()
+    }
+    
+    tempPath = path_join(projectDir, "temp_run.fms")
+    file_write(tempPath, codeText)
+    
+    interp = interpreter_path()
+    isExe = false
+    ext = path_ext(interp)
+    
+    if lower(ext) == ".exe" { isExe = true }
+    
+    sbSetInfo("Running...")
+    
+    if isExe == true {
+        exec(rejoin(interp, " ", tempPath))
+    } else {
+        exePath = replace(interp, ".py", ".exe")
+        if file_exists(exePath) {
+            exec(rejoin(exePath, " ", tempPath))
+        } else {
+            exec(rejoin("python ", interp, " ", tempPath))
+        }
+    }
+    
+    sbSetSuccess(rejoin("Run completed: ", path_file(tempPath)))
+}
+
+def exitApp() { ui_close(win) }
+
+def applyHighlight() {
+    if activeEditor == null { return }
+    ui_highlight(activeEditor)
+    refreshFunctions()
+    sbSetInfo("Syntax highlighted")
+}
+
+def refreshFunctions() {
+    if activeEditor == null { return }
+    
+    searchText = ""
+    if funcSearchEntry != null {
+        searchText = lower(ui_get(funcSearchEntry))
+    }
+    
+    ui_listview_clear(funcList)
+    funcs = ui_editor_get_functions(activeEditor)
+    
+    for f in funcs {
+        funcName = lower(f[1])
+        if searchText == "" or contains(funcName, searchText) {
+            ui_listview_insert(funcList, [f[0], f[1]])
+        }
+    }
+    sbUpdateLines()
+    
+    ui_refresh(funcList)
+}
+
+def onFuncSearchChange() { refreshFunctions() }
+
+def onFunctionClick(widget) {
+    if activeEditor == null { return }
+    selected = ui_listview_get_selected(funcList)
+    if selected != null {
+        lineNum = selected[0]
+        ui_editor_goto_line(activeEditor, lineNum)
+        sbUpdateCursor()
+        sbSetInfo(rejoin("Jumped to line ", lineNum))
+    }
+}
+
+# ==============================================================================
+# ✅ RECENT FILES MANAGEMENT (FIXED)
+# ==============================================================================
+
+def loadRecentFiles() {
+    recentFiles = []
+    recentFilesPath = path_join(path_cwd(), "recent_files.txt")
+    
+    try {
+        content = file_read(recentFilesPath)
+        if starts_with(content, "ERROR") == false {
+            lines = str_split(content, "\n")
+            for line in lines {
+                line = trim(line)
+                if len(line) > 0 {
+                    if file_exists(line) {
+                        list_append(recentFiles, line)
+                    }
+                }
+            }
+        }
+    } catch err {
+        # First run — no recent files yet
+    }
+}
+
+def saveRecentFiles() {
+    content = ""
+    i = 0
+    while i < len(recentFiles) {
+        if i > 0 { content = rejoin(content, "\n") }
+        content = rejoin(content, recentFiles[i])
+        i = i + 1
+    }
+    
+    try {
+        file_write(recentFilesPath, content)
+    } catch err {
+        # Silently fail — not critical
+    }
+}
+
+def addToRecentFiles(path) {
+    if path == null or len(path) == 0 { return }
+    
+    # Remove if already in list (to move to front)
+    i = 0
+    while i < len(recentFiles) {
+        if recentFiles[i] == path {
+            list_remove(recentFiles, i)
+            # Don't increment i — list shifted
+        } else {
+            i = i + 1
+        }
+    }
+    
+    # ✅ FIX: Prepend by building new list (no list_insert needed)
+    newList = [path]
+    for f in recentFiles {
+        list_append(newList, f)
+    }
+    recentFiles = newList
+    
+    # Cap at MAX_RECENT
+    while len(recentFiles) > MAX_RECENT {
+        list_remove(recentFiles, len(recentFiles) - 1)
+    }
+    
+    saveRecentFiles()
+    rebuildMenuBar()
+}
+
+def clearRecentFiles() {
+    recentFiles = []
+    saveRecentFiles()
+    rebuildMenuBar()
+    sbSetInfo("Recent files cleared")
+}
+
+def openRecentFile(index) {
+    if index < 0 or index >= len(recentFiles) { return }
+    path = recentFiles[index]
+    
+    if file_exists(path) == false {
+        ui_alert_err(rejoin("File no longer exists:\n\n", path))
+        list_remove(recentFiles, index)
+        saveRecentFiles()
+        rebuildMenuBar()
+        return
+    }
+    
+    tabName = path_file(path)
+    
+    isAlreadyOpen = false
+    existingIdx = -1
+    i = 0
+    while i < len(openEditors) {
+        if ui_tab_get_title(editorTabs, i) == tabName {
+            isAlreadyOpen = true
+            existingIdx = i
+        }
+        i = i + 1
+    }
+    
+    if isAlreadyOpen == true {
+        ui_tab_select(editorTabs, existingIdx)
+        sbSetInfo(rejoin("Switched to: ", tabName))
+        return
+    }
+    
+    content = file_read(path)
+    if starts_with(content, "ERROR") {
+        sbSetError("Failed to read file")
+        return
+    }
+    
+    tabHandle = ui_tab_add(editorTabs, tabName)
+    editor = ui_code_editor(tabHandle, 0, 0, editorW, contentH)
+    list_append(openEditors, editor)
+    list_append(openFilePaths, path)
+    list_append(openDirty, false)
+    
+    activeTabIndex = len(openEditors) - 1
+    activeEditor = editor
+    currentFilePath = path
+    
+    ui_tab_select(editorTabs, activeTabIndex)
+    ui_text_set(activeEditor, content)
+    ui_highlight(activeEditor)
+    
+    ui_bind_popup(activeEditor, ctxMenu)
+    ui_bind(activeEditor, "change", "onEditorChange")
+    ui_bind(activeEditor, "cursor_move", "onCursorMove")
+    
+    addToRecentFiles(path)
+    
+    markSaved()
+    sbUpdateFile()
+    sbUpdateCursor()
+    sbUpdateLines()
+    refreshFunctions()
+    sbSetSuccess(rejoin("Opened: ", tabName))
+}
+
+# Wrapper functions for menu items (one per slot)
+def openRecent0() { openRecentFile(0) }
+def openRecent1() { openRecentFile(1) }
+def openRecent2() { openRecentFile(2) }
+def openRecent3() { openRecentFile(3) }
+def openRecent4() { openRecentFile(4) }
+def openRecent5() { openRecentFile(5) }
+def openRecent6() { openRecentFile(6) }
+def openRecent7() { openRecentFile(7) }
+def openRecent8() { openRecentFile(8) }
+def openRecent9() { openRecentFile(9) }
+
+# ==============================================================================
+# ✅ MENU BAR BUILDER (FIXED — called AFTER loadRecentFiles)
+# ==============================================================================
+
+def buildMenuBar() {
+    menubar = ui_menu(win)
+    
+    # --- FILE MENU ---
+    fileMenu = ui_menu_add(menubar, "File")
+    ui_menu_item(fileMenu, "New", "newFile")
+    ui_menu_item(fileMenu, "Open...", "openFile")
+    ui_menu_item(fileMenu, "Save", "saveFile")
+    ui_menu_separator(fileMenu)
+    ui_menu_item(fileMenu, "Run", "runCode")
+    ui_menu_separator(fileMenu)
+    
+    # ✅ Recent Files submenu (only if there are any)
+    if len(recentFiles) > 0 {
+        recentMenu = ui_menu_add(fileMenu, "Recent Files")
+        i = 0
+        while i < len(recentFiles) {
+            fname = path_file(recentFiles[i])
+            displayPath = recentFiles[i]
+            if len(displayPath) > 50 {
+                displayPath = rejoin("...", right(displayPath, 47))
+            }
+            label = rejoin(fname, "  —  ", displayPath)
+            
+            if i == 0 { ui_menu_item(recentMenu, label, "openRecent0") }
+            if i == 1 { ui_menu_item(recentMenu, label, "openRecent1") }
+            if i == 2 { ui_menu_item(recentMenu, label, "openRecent2") }
+            if i == 3 { ui_menu_item(recentMenu, label, "openRecent3") }
+            if i == 4 { ui_menu_item(recentMenu, label, "openRecent4") }
+            if i == 5 { ui_menu_item(recentMenu, label, "openRecent5") }
+            if i == 6 { ui_menu_item(recentMenu, label, "openRecent6") }
+            if i == 7 { ui_menu_item(recentMenu, label, "openRecent7") }
+            if i == 8 { ui_menu_item(recentMenu, label, "openRecent8") }
+            if i == 9 { ui_menu_item(recentMenu, label, "openRecent9") }
+            
+            i = i + 1
+        }
+        ui_menu_separator(recentMenu)
+        ui_menu_item(recentMenu, "Clear Recent Files", "clearRecentFiles")
+        ui_menu_separator(fileMenu)
+    }
+    
+    ui_menu_item(fileMenu, "Exit", "exitApp")
+    
+    # --- EDIT MENU ---
+    editMenu = ui_menu_add(menubar, "Edit")
+    ui_menu_item(editMenu, "Cut", "doCut")
+    ui_menu_item(editMenu, "Copy", "doCopy")
+    ui_menu_item(editMenu, "Paste", "doPaste")
+    ui_menu_separator(editMenu)
+    ui_menu_item(editMenu, "Select All", "doSelectAll")
+    ui_menu_separator(editMenu)
+    ui_menu_item(editMenu, "Find & Replace", "openFindReplace")
+    
+    # --- VIEW MENU ---
+    viewMenu = ui_menu_add(menubar, "View")
+    ui_menu_item(viewMenu, "Highlight Syntax", "applyHighlight")
+    ui_menu_item(viewMenu, "Refresh Function List", "refreshFunctions")
+    
+    # --- HELP MENU ---
+    helpMenu = ui_menu_add(menubar, "Help")
+    ui_menu_item(helpMenu, "Documentation (HTML)", "openDocumentation")
+    ui_menu_separator(helpMenu)
+    ui_menu_item(helpMenu, "About AnikaLang", "showAbout")
+    
+    ui_set_menu(win, menubar)
+}
+
+def rebuildMenuBar() {
+    buildMenuBar()
+}
+
+# ==============================================================================
+# Edit Operations
+# ==============================================================================
+
+def doCut() {
+    if activeEditor == null { return }
+    selected = ui_text_get_selection(activeEditor)
+    if len(selected) == 0 { 
+        sbSetError("Nothing selected to cut")
+        return 
+    }
+    clipboard_set(selected)
+    ui_text_delete_selection(activeEditor)
+    markDirty()
+    sbUpdateCursor()
+    sbSetMessage(rejoin("Cut ", len(selected), " characters"))
+}
+
+def doCopy() {
+    if activeEditor == null { return }
+    selected = ui_text_get_selection(activeEditor)
+    if len(selected) == 0 { 
+        sbSetError("Nothing selected to copy")
+        return 
+    }
+    clipboard_set(selected)
+    sbSetMessage(rejoin("Copied ", len(selected), " characters"))
+}
+
+def doPaste() {
+    if activeEditor == null { return }
+    clip = clipboard_get()
+    if len(clip) == 0 { 
+        sbSetError("Clipboard is empty")
+        return 
+    }
+    ui_text_insert_at_cursor(activeEditor, clip)
+    ui_highlight(activeEditor)
+    markDirty()
+    sbUpdateCursor()
+    sbUpdateLines()
+    sbSetMessage(rejoin("Pasted ", len(clip), " characters"))
+}
+
+def doSelectAll() {
+    if activeEditor == null { return }
+    ui_text_select_all(activeEditor)
+    sbSetMessage("Selected all text")
+}
+
+# ==============================================================================
+# Find & Replace
+# ==============================================================================
+
+def openFindReplace() {
+    if findReplacePopup != null { ui_close(findReplacePopup) }
+    findReplacePopup = ui_popup("Find & Replace", 540, 400)
+    
+    frHeader = ui_panel(findReplacePopup, 0, 0, 520, 40)
+    ui_color(frHeader, "", "#2c3e50")
+    frTitle = ui_label(frHeader, "   Find & Replace", 0, 8, 300, 25)
+    ui_color(frTitle, "#ffffff", "")
+    
+    findLbl = ui_label(findReplacePopup, "Find what:", 20, 55, 90, 25)
+    ui_color(findLbl, "#2c3e50", "")
+    findEntry = ui_entry(findReplacePopup, "", 115, 53, 385, 28)
+    
+    replaceLbl = ui_label(findReplacePopup, "Replace with:", 20, 95, 90, 25)
+    ui_color(replaceLbl, "#2c3e50", "")
+    replaceEntry = ui_entry(findReplacePopup, "", 115, 93, 385, 28)
+    
+    findCaseCb = ui_checkbox(findReplacePopup, "Match case", 20, 135, 130, 25)
+    findWordCb = ui_checkbox(findReplacePopup, "Whole word", 160, 135, 130, 25)
+    findWrapCb = ui_checkbox(findReplacePopup, "Wrap around", 300, 135, 130, 25)
+    ui_checkbox_set(findWrapCb, true)
+    
+    frSep = ui_panel(findReplacePopup, 20, 170, 480, 2)
+    ui_color(frSep, "", "#dcdde1")
+    
+    btnFind = ui_button(findReplacePopup, "Find Next", "doFindNext", 20, 185, 145, 32)
+    ui_color(btnFind, "#ffffff", "#3498db")
+    btnReplace = ui_button(findReplacePopup, "Replace", "doReplace", 175, 185, 145, 32)
+    ui_color(btnReplace, "#ffffff", "#16a085")
+    btnReplaceAll = ui_button(findReplacePopup, "Replace All", "doReplaceAll", 330, 185, 170, 32)
+    ui_color(btnReplaceAll, "#ffffff", "#8e44ad")
+    
+    findStatusLbl = ui_label(findReplacePopup, "  Ready", 20, 230, 480, 25)
+    ui_color(findStatusLbl, "#7f8c8d", "")
+    
+    btnCloseFr = ui_button(findReplacePopup, "Close", "closeFindReplace", 400, 270, 100, 30)
+    ui_color(btnCloseFr, "#ffffff", "#95a5a6")
+    
+    ui_set(findEntry, "")
+    ui_focus(findEntry)
+}
+
+def closeFindReplace() {
+    if findReplacePopup != null {
+        ui_close(findReplacePopup)
+        findReplacePopup = null
+        findEntry = null
+        replaceEntry = null
+        findStatusLbl = null
+    }
+}
+
+def doFindNext() {
+    if activeEditor == null { return }
+    if findEntry == null { return }
+    searchText = ui_get(findEntry)
+    if len(trim(searchText)) == 0 { 
+        ui_set(findStatusLbl, "Please enter text to find")
+        return 
+    }
+    result = ui_text_find(activeEditor, searchText)
+    if result == "" { 
+        ui_set(findStatusLbl, rejoin("Not found: '", searchText, "'")) 
+    } else {  
+        ui_set(findStatusLbl, rejoin("Found at position: ", result)) 
+        sbUpdateCursor() 
+    }
+}
+
+def doReplace() {
+    if activeEditor == null { return }
+    if findEntry == null { return }
+    if replaceEntry == null { return }
+    
+    searchText = ui_get(findEntry)
+    replaceText = ui_get(replaceEntry)
+    if len(trim(searchText)) == 0 {
+        ui_set(findStatusLbl, "Please enter text to find")
+        return 
+    }
+    
+    selected = ui_text_get_selection(activeEditor)
+    if selected == searchText {
+        ui_text_replace_selected(activeEditor, replaceText)
+        ui_highlight(activeEditor)
+        markDirty()
+        refreshFunctions()
+        ui_set(findStatusLbl, "Replaced 1 occurrence")
+        doFindNext()
+    } else { doFindNext() }
+}
+
+def doReplaceAll() {
+    if activeEditor == null { return }
+    if findEntry == null { return }
+    if replaceEntry == null { return }
+    
+    searchText = ui_get(findEntry)
+    replaceText = ui_get(replaceEntry)
+    if len(trim(searchText)) == 0 { 
+        ui_set(findStatusLbl, "Please enter text to find")
+        return 
+    }
+    
+    fullText = ui_text_get(activeEditor)
+    replacedText = replace(fullText, searchText, replaceText)
+    
+    originalLen = len(fullText)
+    newLen = len(replacedText)
+    searchLen = len(searchText)
+    replaceLen = len(replaceText)
+    
+    count = 0
+    if searchLen != replaceLen { 
+        count = (originalLen - newLen) / (searchLen - replaceLen) 
+    } else { 
+        count = -1 
+    }
+    
+    ui_text_set(activeEditor, replacedText)
+    ui_highlight(activeEditor)
+    markDirty()
+    refreshFunctions()
+    
+    if count > 0 { ui_set(findStatusLbl, rejoin("Replaced ", count, " occurrences")) } 
+    else {
+        if fullText == replacedText { ui_set(findStatusLbl, "No occurrences found") } 
+        else { ui_set(findStatusLbl, "Replace all completed") }
+    }
+}
+
+# ==============================================================================
+# Help / Documentation 
+# ==============================================================================
+
+def openDocumentation() {
+    docsPath = path_norm(path_join(path_cwd(), "..", "..", "docs", "index.html"))
+    if file_exists(docsPath) == false {
+        docsPath = path_norm(path_join(path_dir(interpreter_path()), "docs", "index.html"))
+    }
+
+    if file_exists(docsPath) {
+        exec(rejoin("start \"\" \"", docsPath, "\""))
+        sbSetSuccess("Opened documentation in default browser")
+    } else {
+        sbSetError("Documentation not found")
+        ui_alert_err(rejoin("Could not find documentation file.\nExpected at: ", docsPath))
+    }
+}
+
+def showAbout() {
+    ui_alert("AnikaLang Professional Editor IDE v8.1\n\nIndex-based multi-tab support.\nRecent files persistence.\nKeyboard shortcuts enabled.\n\nBuilt with AnikaLang")
+}
+
+# ==============================================================================
+# UI Layout & Initialization
+# ==============================================================================
+
+win = ui_window("AnikaLang Professional Editor IDE v8.1", 1400, 1000)
+
+# ✅ FIX: Load recent files FIRST, then build menu
+loadRecentFiles()
+buildMenuBar()
+
+ctxMenu = ui_popup_menu()
+ui_popup_item(ctxMenu, "Cut", "doCut")
+ui_popup_item(ctxMenu, "Copy", "doCopy")
+ui_popup_item(ctxMenu, "Paste", "doPaste")
+ui_popup_separator(ctxMenu)
+ui_popup_item(ctxMenu, "Select All", "doSelectAll")
+ui_popup_separator(ctxMenu)
+ui_popup_item(ctxMenu, "Find & Replace...", "openFindReplace")
+ui_popup_separator(ctxMenu)
+ui_popup_item(ctxMenu, "Highlight Syntax", "applyHighlight")
+
+clientSize = ui_get_client_size(win)
+cw = clientSize[0]
+ch = clientSize[1]
+
+toolbarH = 40
+statusbarH = 30
+navW = 350
+gap = 20
+searchH = 25
+
+contentY = toolbarH
+contentH = ch - toolbarH - statusbarH
+editorW = cw - navW - gap
+navX = cw - navW
+sbY = ch - statusbarH
+
+if contentH < 100 { contentH = 100 }
+if editorW < 200 { editorW = 200 }
+
+toolbarBg = ui_panel(win, 0, 0, cw, toolbarH)
+ui_color(toolbarBg, "", "#2c3e50")
+
+btnNew = ui_button(toolbarBg, "New", "newFile", 10, 5, 80, 30)
+ui_color(btnNew, "#ffffff", "#27ae60")
+btnOpen = ui_button(toolbarBg, "Open", "openFile", 100, 5, 80, 30)
+ui_color(btnOpen, "#ffffff", "#3498db")
+btnSave = ui_button(toolbarBg, "Save", "saveFile", 190, 5, 80, 30)
+ui_color(btnSave, "#ffffff", "#e67e22")
+
+btnClose = ui_button(toolbarBg, "Close", "closeFile", 280, 5, 80, 30)
+ui_color(btnClose, "#ffffff", "#c0392b")
+
+btnRun = ui_button(toolbarBg, "▶ Run", "runCode", 370, 5, 90, 30)
+ui_color(btnRun, "#ffffff", "#2ecc71")
+
+editorTabs = ui_tabs(win, 0, contentY, editorW, contentH)
+ui_bind(editorTabs, "tab_change", "onTabChange")
+
+navLabel = ui_label(win, "Function Navigator", navX, contentY + 5, navW, 25)
+ui_color(navLabel, "#faf9f6", "#2c3e50")
+
+funcSearchEntry = ui_entry(win, "", navX, contentY + 35, navW, searchH)
+ui_color(funcSearchEntry, "#2D2D2D", "#faf9f6")
+ui_bind(funcSearchEntry, "change", "onFuncSearchChange")
+
+funcList = ui_listview(win, ["Line", "Function Name"], navX, contentY + 35 + searchH + 5, navW, contentH - 35 - searchH - 5)
+ui_listview_set_column_width(funcList, 0, 70)
+ui_listview_set_column_width(funcList, 1, 250)
+ui_color(funcList, "#2D2D2D", "#faf9f6")
+ui_font(funcList, 10, "Consolas")
+ui_bind(funcList, "double_click", "onFunctionClick")
+
+statusbarBg = ui_panel(win, 0, sbY, cw, statusbarH)
+ui_color(statusbarBg, "", "#2c3e50")
+
+sbFile = ui_label(statusbarBg, "   Untitled.fms  ", 0, 0, 200, statusbarH)
+ui_color(sbFile, "#ffffff", "#2c3e50")
+sbSaved = ui_label(statusbarBg, "  ✓ Saved  ", 200, 0, 100, statusbarH)
+ui_color(sbSaved, "#ffffff", "#2c3e50")
+sbCursor = ui_label(statusbarBg, "  Ln 1:1  ", 300, 0, 100, statusbarH)
+ui_color(sbCursor, "#ffffff", "#2c3e50")
+sbLines = ui_label(statusbarBg, "  Lines: 0  ", 400, 0, 100, statusbarH)
+ui_color(sbLines, "#ffffff", "#2c3e50")
+sbEncoding = ui_label(statusbarBg, "  UTF-8  ", 500, 0, 80, statusbarH)
+ui_color(sbEncoding, "#ffffff", "#2c3e50")
+sbLanguage = ui_label(statusbarBg, "  AnikaLang  ", 580, 0, 100, statusbarH)
+ui_color(sbLanguage, "#ffffff", "#2c3e50")
+sbClock = ui_label(statusbarBg, "   --:--:--  ", 680, 0, 120, statusbarH)
+ui_color(sbClock, "#ffffff", "#2c3e50")
+
+msgW = cw - 800
+if msgW < 100 { msgW = 100 }
+sbMessage = ui_label(statusbarBg, "  Ready  ", 800, 0, msgW, statusbarH)
+ui_color(sbMessage, "#ffffff", "#2c3e50")
+
+ui_bind(win, "resize", "onWindowResize")
+
+# ✅ NEW: Keyboard Shortcuts (now functional!)
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+N", "newFile")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+O", "openFile")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+S", "saveFile")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+W", "closeFile")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+F", "openFindReplace")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+X", "doCut")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+C", "doCopy")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+V", "doPaste")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+A", "doSelectAll")
+ui_bind(win, "KEY_SHORTCUT", "Ctrl+R", "runCode")
+
+# Initialize with one empty file
+newFile()
+startClock()
+
+ui_mainloop(win)

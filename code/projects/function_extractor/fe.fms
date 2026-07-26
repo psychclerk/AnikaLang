@@ -1,0 +1,134 @@
+# ==============================================================================
+# AnikaLang App Extractor Tool
+# Scans a folder for .py plugin files and extracts env.define("APP_NAME", ...)
+# ==============================================================================
+
+# --- Global State ---
+win = null
+folderEntry = null
+resultText = null
+statusLbl = null
+extractedApps = []
+
+# ==============================================================================
+# App Logic
+# ==============================================================================
+
+def browseFolder() {
+    # Open a native folder selection dialog
+    selectedFolder = ui_folder_open("Select Plugin Folder", path_cwd())
+    if selectedFolder != "" AND selectedFolder != null {
+        ui_set(folderEntry, selectedFolder)
+    }
+}
+
+def scanFolder() {
+    folder = ui_get(folderEntry)
+    if folder == "" OR folder == null {
+        ui_alert_err("Please enter or select a valid folder path.")
+        return
+    }
+
+    if path_isdir(folder) == false {
+        ui_alert_err("Folder does not exist: " + folder)
+        return
+    }
+
+    # Clear previous results
+    ui_set(resultText, "")
+    extractedApps = []
+    ui_set(statusLbl, "Scanning folder...")
+    
+    files = path_list(folder)
+    i = 0
+    foundCount = 0
+    resultString = ""
+    
+    while i < len(files) {
+        fname = files[i]
+        
+        # Only process .py files
+        if ends_with(lower(fname), ".py") {
+            fullPath = path_join(folder, fname)
+            content = file_read(fullPath)
+            
+            # Regex pattern to match: env.define("APP_NAME",
+            # Captures the app name inside the quotes
+            pattern = "env\\.define\\(\\s*\"([^\"]+)\"\\s*,"
+            matches = regex_findall(pattern, content)
+            
+            j = 0
+            while j < len(matches) {
+                appName = matches[j]
+                
+                # Check if already added to avoid duplicates across multiple files
+                if list_contains(extractedApps, appName) == false {
+                    list_append(extractedApps, appName)
+                    resultString = resultString + appName + "\n"
+                    foundCount = foundCount + 1
+                }
+                j = j + 1
+            }
+        }
+        i = i + 1
+    }
+    
+    # Update the textbox with all found apps
+    ui_set(resultText, resultString)
+    ui_set(statusLbl, "Scan complete! Found " + foundCount + " unique apps.")
+}
+
+def copyToClipboard() {
+    if len(extractedApps) == 0 {
+        ui_alert_err("No apps to copy. Please scan a folder first.")
+        return
+    }
+    
+    # Join the list of app names with newlines
+    textToCopy = join("\n", extractedApps)
+    clipboard_set(textToCopy)
+    
+    ui_set(statusLbl, "Copied " + len(extractedApps) + " app names to clipboard!")
+}
+
+# ==============================================================================
+# UI Layout & Initialization
+# ==============================================================================
+
+win = ui_window("AnikaLang App Extractor", 800, 600)
+
+# Top Control Panel
+topPanel = ui_panel(win, 0, 0, 800, 60)
+ui_color(topPanel, "", "#2c3e50")
+
+lblPath = ui_label(topPanel, "Plugin Folder:", 20, 15, 100, 30)
+ui_color(lblPath, "#ffffff", "")
+
+# Default to a 'plugins' folder in the current working directory
+defaultPath = path_join(path_cwd(), "plugins")
+folderEntry = ui_entry(topPanel, defaultPath, 130, 15, 360, 30)
+
+# Browse button to open a native folder dialog
+btnBrowse = ui_button(topPanel, "📁 Browse...", "browseFolder", 500, 15, 100, 30)
+ui_color(btnBrowse, "#ffffff", "#34495e")
+
+btnScan = ui_button(topPanel, "🔍 Scan .py Files", "scanFolder", 610, 15, 170, 30)
+ui_color(btnScan, "#ffffff", "#27ae60")
+
+# Results Textbox (Multiline)
+# ui_text(parent, text, wrap, x, y, w, h)
+resultText = ui_text(win, "", true, 10, 70, 780, 480)
+ui_color(resultText, "#2D2D2D", "#faf9f6")
+ui_font(resultText, 11, "Consolas", false)
+
+# Bottom Action Bar
+bottomPanel = ui_panel(win, 0, 560, 800, 40)
+ui_color(bottomPanel, "", "#ecf0f1")
+
+btnCopy = ui_button(bottomPanel, "📋 Copy All Names to Clipboard", "copyToClipboard", 20, 5, 240, 30)
+ui_color(btnCopy, "#ffffff", "#3498db")
+
+statusLbl = ui_label(bottomPanel, "Ready", 280, 10, 500, 30)
+ui_color(statusLbl, "#7f8c8d", "")
+
+ui_mainloop(win)

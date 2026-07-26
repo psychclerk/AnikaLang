@@ -1,0 +1,273 @@
+# ==============================================================================
+# AnikaLang Wx Contacts Manager v1.1 (Phase 1 Syntax)
+# Run: python anika.py contacts.fms
+# ==============================================================================
+
+# --- Global State ---
+db = null
+selectedId = null
+
+# --- UI References ---
+win = null
+lst = null
+entSearch = null
+entName = null
+entPhone = null
+entEmail = null
+entAddress = null
+txtNotes = null
+statusLbl = null
+
+# ==============================================================================
+# Helper Functions
+# ==============================================================================
+
+def escapeSql(s) {
+    # Prevents SQL syntax errors from apostrophes in names/addresses
+    return replace(s, "'", "''")
+}
+
+def updateStatus(msg) {
+    ui_set(statusLbl, "  " + msg)
+}
+
+# ==============================================================================
+# Database Functions
+# ==============================================================================
+
+def initDatabase() {
+    try {
+        db = db_connect("contacts.db")
+        db_execute(db, "CREATE TABLE IF NOT EXISTS contacts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            name TEXT, phone TEXT, email TEXT, address TEXT, notes TEXT
+        )")
+        updateStatus("Database initialized")
+    } catch err {
+        ui_alert_err("Database Error: " + err)
+    }
+}
+
+def loadContacts(filterText) {
+    # Simulate default value for robustness
+    if filterText == null { filterText = "" }
+    
+    ui_listview_clear(lst)
+    sql = "SELECT id, name, phone, email FROM contacts"
+    
+    if len(trim(filterText)) > 0 {
+        safe = escapeSql(filterText)
+        sql = sql + " WHERE name LIKE '%" + safe + "%' 
+            OR phone LIKE '%" + safe + "%' 
+            OR email LIKE '%" + safe + "%'"
+    }
+    
+    try {
+        rows = db_query(db, sql)
+        for row in rows {
+            ui_listview_insert(lst, [row["id"], row["name"], row["phone"], row["email"]])
+        }
+        updateStatus("Loaded " + len(rows) + " contacts")
+    } catch err {
+        ui_alert_err("Load Error: " + err)
+    }
+}
+
+# ==============================================================================
+# UI Event Handlers
+# ==============================================================================
+
+def onRowSelect(widget) {
+    sel = ui_listview_get_selected(lst)
+    if sel == null {
+        selectedId = null
+        clearForm()
+        return
+    }
+    
+    # Listview returns strings, convert ID to integer
+    selectedId = int(sel[0])
+    
+    try {
+        query = "SELECT * FROM contacts WHERE id = " + selectedId
+        rows = db_query(db, query)
+        if len(rows) > 0 {
+            c = rows[0]
+            ui_set(entName, c["name"])
+            ui_set(entPhone, c["phone"])
+            ui_set(entEmail, c["email"])
+            ui_set(entAddress, c["address"])
+            ui_text_set(txtNotes, c["notes"])
+            updateStatus("Editing: " + c["name"])
+        }
+    } catch err {
+        ui_alert_err("Selection Error: " + err)
+    }
+}
+
+def clearForm() {
+    ui_set(entName, "")
+    ui_set(entPhone, "")
+    ui_set(entEmail, "")
+    ui_set(entAddress, "")
+    ui_text_set(txtNotes, "")
+    selectedId = null
+    updateStatus("Form cleared - ready for new contact")
+}
+
+def saveContact() {
+    name = trim(ui_get(entName))
+    phone = trim(ui_get(entPhone))
+    email = trim(ui_get(entEmail))
+    address = trim(ui_get(entAddress))
+    notes = trim(ui_text_get(txtNotes))
+    
+    if len(name) == 0 {
+        ui_alert_err("Contact Name is required!")
+        return
+    }
+    
+    safeName = escapeSql(name)
+    safePhone = escapeSql(phone)
+    safeEmail = escapeSql(email)
+    safeAddress = escapeSql(address)
+    safeNotes = escapeSql(notes)
+    
+    try {
+        if selectedId == null {
+            # INSERT NEW
+            sql = "INSERT INTO contacts (name, phone, email, address, notes) 
+                        VALUES ('" + safeName + "', '" + safePhone + "', '" + safeEmail + "', '" + safeAddress + "', '" + safeNotes + "')"
+        } else {
+            # UPDATE EXISTING
+            sql = "UPDATE contacts SET 
+                        name='" + safeName + "', 
+                        phone='" + safePhone + "', 
+                        email='" + safeEmail + "', 
+                        address='" + safeAddress + "', 
+                        notes='" + safeNotes + "' 
+                        WHERE id=" + selectedId
+        }
+        
+        db_execute(db, sql)
+        loadContacts(ui_get(entSearch))
+        clearForm()
+        ui_alert("Contact saved successfully!")
+    } catch err {
+        ui_alert_err("Save Error: " + err)
+    }
+}
+
+def deleteContact() {
+    if selectedId == null {
+        ui_alert_err("Please select a contact from the list first!")
+        return
+    }
+    
+    try {
+        db_execute(db, "DELETE FROM contacts WHERE id=" + selectedId)
+        loadContacts(ui_get(entSearch))
+        clearForm()
+        ui_alert("Contact deleted.")
+    } catch err {
+        ui_alert_err("Delete Error: " + err)
+    }
+}
+
+def doSearch() {
+    text = ui_get(entSearch)
+    loadContacts(text)
+}
+
+def doRefresh() {
+    ui_set(entSearch, "")
+    loadContacts("")
+}
+
+def exitApp() {
+    ui_close(win)
+}
+
+# ==============================================================================
+# UI Construction
+# ==============================================================================
+
+def buildUi() {
+    win = ui_window("AnikaLang Contacts Manager", 950, 740)
+    
+    # --- Toolbar (y=0, h=45) ---
+    toolbar = ui_panel(win, 0, 0, 950, 45)
+    ui_color(toolbar, null, "#ECF0F1")
+    
+    ui_label(toolbar, "Search:", 15, 10, 70, 25)
+    entSearch = ui_entry(toolbar, "", 90, 8, 280, 28)
+    
+    btnSearch = ui_button(toolbar, "Search", "doSearch", 385, 8, 85, 28)
+    ui_color(btnSearch, "#FFFFFF", "#3498DB")
+    btnRefresh = ui_button(toolbar, "Refresh", "doRefresh", 480, 8, 85, 28)
+    ui_color(btnRefresh, "#FFFFFF", "#27AE60")
+    btnExit = ui_button(toolbar, "Exit", "exitApp", 575, 8, 85, 28)
+    ui_color(btnExit, "#FFFFFF", "#7F8C8D")
+    
+    # --- Main Listview (Left: x=10, y=55, w=380, h=580) ---
+    lst = ui_listview(win, ["ID", "NAME", "PHONE", "EMAIL"], 10, 55, 380, 580)
+    ui_listview_set_column_width(lst, 0, 1)    # Hide ID column (minimal width)
+    ui_listview_set_column_width(lst, 1, 140)
+    ui_listview_set_column_width(lst, 2, 110)
+    ui_listview_set_column_width(lst, 3, 110)
+    ui_bind(lst, "SELECT", "onRowSelect")
+    
+    # --- Form Panel (Right: x=410, y=55, w=520, h=580) ---
+    formPanel = ui_panel(win, 410, 55, 520, 580)
+    ui_color(formPanel, null, "#F8F9FA")
+    
+    titleLbl = ui_label(formPanel, "Contact Details", 15, 10, 250, 30)
+    ui_font(titleLbl, 12, "", true)
+    ui_color(titleLbl, "#2C3E50", null)
+    
+    # Name field
+    ui_label(formPanel, "Name:", 15, 55, 90, 25)
+    entName = ui_entry(formPanel, "", 115, 55, 385, 28)
+    
+    # Phone field
+    ui_label(formPanel, "Phone:", 15, 95, 90, 25)
+    entPhone = ui_entry(formPanel, "", 115, 95, 385, 28)
+    
+    # Email field
+    ui_label(formPanel, "Email:", 15, 135, 90, 25)
+    entEmail = ui_entry(formPanel, "", 115, 135, 385, 28)
+    
+    # Address field
+    ui_label(formPanel, "Address:", 15, 175, 90, 25)
+    entAddress = ui_entry(formPanel, "", 115, 175, 385, 28)
+    
+    # Notes field
+    ui_label(formPanel, "Notes:", 15, 215, 90, 25)
+    txtNotes = ui_text(formPanel, "", 115, 215, 385, 160)
+    
+    # Action Buttons
+    btnNew = ui_button(formPanel, "New", "clearForm", 15, 400, 110, 38)
+    ui_color(btnNew, "#FFFFFF", "#8E44AD")
+    btnSave = ui_button(formPanel, "Save", "saveContact", 135, 400, 110, 38)
+    ui_color(btnSave, "#FFFFFF", "#27AE60")
+    btnDel = ui_button(formPanel, "Delete", "deleteContact", 255, 400, 110, 38)
+    ui_color(btnDel, "#FFFFFF", "#C0392B")
+    
+    # Info label
+    infoLbl = ui_label(formPanel, "Tip: Click a contact in the list to edit it", 15, 455, 490, 25)
+    ui_color(infoLbl, "#7F8C8D", null)
+    
+    # --- Status Bar (y=645, h=30) ---
+    statusBg = ui_panel(win, 0, 645, 950, 30)
+    ui_color(statusBg, null, "#34495E")
+    statusLbl = ui_label(statusBg, "  Ready", 0, 0, 950, 30)
+    ui_color(statusLbl, "#FFFFFF", null)
+}
+
+# ==============================================================================
+# Initialization
+# ==============================================================================
+initDatabase()
+buildUi()
+loadContacts("")
+ui_mainloop(win)

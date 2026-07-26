@@ -1,0 +1,623 @@
+# ==============================================================================
+# ANIKALANG MATH UTILITIES LIBRARY v3.3 (ANIKALANG 1.2 COMPLIANT)
+# Location: includes/mathutils.fms
+# Include:  INCLUDE "../../includes/mathutils.fms"
+# ==============================================================================
+
+# ==============================================================================
+# CONSTANTS
+# ==============================================================================
+
+def phi() { return 1.618033988749895 }
+def tau() { return 6.283185307179586 }
+
+# ==============================================================================
+# BASIC MATH HELPERS
+# ==============================================================================
+
+def mod(a, b) {
+    if b == 0 { return 0 }
+    return a - (int(a / b) * b)
+}
+
+def sign(x) {
+    if x > 0 { return 1 }
+    if x < 0 { return -1 }
+    return 0
+}
+
+def clamp(value, minVal, maxVal) {
+    if value < minVal { return minVal }
+    if value > maxVal { return maxVal }
+    return value
+}
+
+def lerp(a, b, t) { return a + (b - a) * t }
+
+def inverseLerp(a, b, value) {
+    if a == b { return 0 }
+    return (value - a) / (b - a)
+}
+
+def remap(value, oldMin, oldMax, newMin, newMax) {
+    t = inverseLerp(oldMin, oldMax, value)
+    return lerp(newMin, newMax, t)
+}
+
+# ==============================================================================
+# SAFE OPERATIONS
+# ==============================================================================
+
+def safeDivide(a, b) {
+    if b == 0 { return "Error" }
+    return a / b
+}
+
+def absVal(n) { return abs(n) }
+
+def isNan(n) {
+    s = str(n)
+    if s == "NaN" or s == "nan" or s == "Error" { return true }
+    return false
+}
+
+# ==============================================================================
+# NUMBER PROPERTIES
+# ==============================================================================
+
+def isEven(n) { return mod(int(n), 2) == 0 }
+def isOdd(n) { return mod(int(n), 2) != 0 }
+def isBetween(value, minVal, maxVal) { return value >= minVal and value <= maxVal }
+def isPositive(n) { return n > 0 }
+def isNegative(n) { return n < 0 }
+def isZero(n) { return n == 0 }
+
+# ==============================================================================
+# DIGIT OPERATIONS
+# ==============================================================================
+
+def digitSum(n) {
+    num = abs(int(n))
+    total = 0
+    while num > 0 {
+        total = total + mod(num, 10)
+        num = int(num / 10)
+    }
+    return total
+}
+
+def digitCount(n) {
+    num = abs(int(n))
+    if num == 0 { return 1 }
+    count = 0
+    while num > 0 {
+        count = count + 1
+        num = int(num / 10)
+    }
+    return count
+}
+
+def reverseNum(n) {
+    num = abs(int(n))
+    reversed = 0
+    while num > 0 {
+        reversed = reversed * 10 + mod(num, 10)
+        num = int(num / 10)
+    }
+    return reversed
+}
+
+# ==============================================================================
+# POWER & ROOT HELPERS
+# ==============================================================================
+
+def square(n) { return n * n }
+def cube(n) { return n * n * n }
+def pythagorean(a, b) { return sqrt(a * a + b * b) }
+
+# ==============================================================================
+# ADVANCED TRIGONOMETRY
+# ==============================================================================
+
+def atan2(y, x) {
+    if x > 0 { return atan(y / x) }
+    if x < 0 and y >= 0 { return atan(y / x) + pi() }
+    if x < 0 and y < 0 { return atan(y / x) - pi() }
+    if x == 0 and y > 0 { return pi() / 2 }
+    if x == 0 and y < 0 { return -pi() / 2 }
+    return 0
+}
+
+def sinh(x) { return (exp(x) - exp(-x)) / 2 }
+def cosh(x) { return (exp(x) + exp(-x)) / 2 }
+def tanh(x) {
+    ch = cosh(x)
+    if ch == 0 { return 0 }
+    return sinh(x) / ch
+}
+
+def sec(x) {
+    c = cos(x)
+    if c == 0 { return 0 }
+    return 1 / c
+}
+
+def csc(x) {
+    s = sin(x)
+    if s == 0 { return 0 }
+    return 1 / s
+}
+
+def cot(x) {
+    t = tan(x)
+    if t == 0 { return 0 }
+    return 1 / t
+}
+
+# ==============================================================================
+# TRIGONOMETRIC DEGREE HELPERS
+# ==============================================================================
+
+def sinDeg(degrees) { return sin(deg_to_rad(degrees)) }
+def cosDeg(degrees) { return cos(deg_to_rad(degrees)) }
+def tanDeg(degrees) { return tan(deg_to_rad(degrees)) }
+
+# ==============================================================================
+# LOGARITHMS & ROOTS
+# ==============================================================================
+
+def log2(x) {
+    if x <= 0 { return 0 }
+    return ln(x) / ln(2)
+}
+
+def logn(x, base) {
+    if x <= 0 or base <= 0 or base == 1 { return 0 }
+    return ln(x) / ln(base)
+}
+
+def cbrt(x) {
+    if x == 0 { return 0 }
+    if x < 0 { return -pow(-x, 1.0 / 3.0) }
+    return pow(x, 1.0 / 3.0)
+}
+
+def nthroot(x, n) {
+    if n == 0 or x == 0 { return 0 }
+    return pow(x, 1.0 / n)
+}
+
+def hypot(x, y) { return sqrt(x * x + y * y) }
+
+# ==============================================================================
+# ROUNDING HELPERS
+# ==============================================================================
+
+def roundTo(n, places) { return round(n, int(places)) }
+def ceilVal(n) { return ceil(n) }
+def floorVal(n) { return floor(n) }
+
+# ==============================================================================
+# NUMBER THEORY
+# ==============================================================================
+
+def gcd(a, b) {
+    x = abs(int(a))
+    y = abs(int(b))
+    while y > 0 {
+        temp = y
+        y = mod(x, y)
+        x = temp
+    }
+    return x
+}
+
+def lcm(a, b) {
+    if a == 0 or b == 0 { return 0 }
+    g = gcd(a, b)
+    return abs(a * b) / g
+}
+
+def isPrime(n) {
+    num = int(n)
+    if num < 2 { return false }
+    if num == 2 { return true }
+    if mod(num, 2) == 0 { return false }
+    i = 3
+    limit = int(sqrt(num)) + 1
+    while i <= limit {
+        if mod(num, i) == 0 { return false }
+        i = i + 2
+    }
+    return true
+}
+
+def nextPrime(n) {
+    num = int(n) + 1
+    if num < 2 { return 2 }
+    while isPrime(num) == false {
+        num = num + 1
+    }
+    return num
+}
+
+def fibonacci(n) {
+    num = int(n)
+    if num <= 0 { return 0 }
+    if num == 1 { return 1 }
+    a = 0
+    b = 1
+    i = 2
+    while i <= num {
+        temp = a + b
+        a = b
+        b = temp
+        i = i + 1
+    }
+    return b
+}
+
+def isPowerOfTwo(n) {
+    num = int(n)
+    if num <= 0 { return false }
+    if num == 1 { return true }
+    check = num
+    while check > 1 {
+        if mod(check, 2) != 0 { return false }
+        check = int(check / 2)
+    }
+    return true
+}
+
+def nextPowerOfTwo(n) {
+    num = int(n)
+    if num <= 1 { return 1 }
+    p = 1
+    while p < num {
+        p = p * 2
+    }
+    return p
+}
+
+# ==============================================================================
+# GEOMETRY
+# ==============================================================================
+
+def distance2d(x1, y1, x2, y2) {
+    dx = x2 - x1
+    dy = y2 - y1
+    return sqrt(dx * dx + dy * dy)
+}
+
+def distance3d(x1, y1, z1, x2, y2, z2) {
+    dx = x2 - x1
+    dy = y2 - y1
+    dz = z2 - z1
+    return sqrt(dx * dx + dy * dy + dz * dz)
+}
+
+def degBetween(x1, y1, x2, y2) {
+    dx = x2 - x1
+    dy = y2 - y1
+    return rad_to_deg(atan2(dy, dx))
+}
+
+def pointInRect(px, py, rx, ry, rw, rh) {
+    return px >= rx and px <= rx + rw and py >= ry and py <= ry + rh
+}
+
+def circleArea(radius) { return pi() * radius * radius }
+def circleCircumference(radius) { return tau() * radius }
+def sphereVolume(radius) { return (4.0 / 3.0) * pi() * radius * radius * radius }
+def triangleArea(base, height) { return 0.5 * base * height }
+def rectangleArea(width, height) { return width * height }
+def rectanglePerimeter(width, height) { return 2 * (width + height) }
+
+# ==============================================================================
+# TEMPERATURE CONVERSIONS
+# ==============================================================================
+
+def celsiusToFahrenheit(c) { return c * 9.0 / 5.0 + 32 }
+def fahrenheitToCelsius(f) { return (f - 32) * 5.0 / 9.0 }
+def celsiusToKelvin(c) { return c + 273.15 }
+def kelvinToCelsius(k) { return k - 273.15 }
+
+# ==============================================================================
+# STATISTICAL HELPERS
+# ==============================================================================
+
+def sumList(data) {
+    total = 0
+    i = 0
+    while i < len(data) {
+        total = total + data[i]
+        i = i + 1
+    }
+    return total
+}
+
+def mean(data) {
+    n = len(data)
+    if n == 0 { return 0 }
+    return sumList(data) / n
+}
+
+def median(data) {
+    n = len(data)
+    if n == 0 { return 0 }
+    sorted = []
+    k = 0
+    while k < n {
+        list_append(sorted, data[k])
+        k = k + 1
+    }
+    i = 0
+    while i < n {
+        j = 0
+        while j < n - 1 - i {
+            if sorted[j] > sorted[j + 1] {
+                temp = sorted[j]
+                list_set(sorted, j, sorted[j + 1])
+                list_set(sorted, j + 1, temp)
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    if mod(n, 2) == 1 {
+        return sorted[int(n / 2)]
+    } else {
+        mid = int(n / 2)
+        return (sorted[mid - 1] + sorted[mid]) / 2.0
+    }
+}
+
+def minList(data) {
+    n = len(data)
+    if n == 0 { return 0 }
+    minVal = data[0]
+    i = 1
+    while i < n {
+        if data[i] < minVal {
+            minVal = data[i]
+        }
+        i = i + 1
+    }
+    return minVal
+}
+
+def maxList(data) {
+    n = len(data)
+    if n == 0 { return 0 }
+    maxVal = data[0]
+    i = 1
+    while i < n {
+        if data[i] > maxVal {
+            maxVal = data[i]
+        }
+        i = i + 1
+    }
+    return maxVal
+}
+
+def rangeList(data) { return maxList(data) - minList(data) }
+
+# ==============================================================================
+# PERCENTAGE CALCULATIONS
+# ==============================================================================
+
+def percentOf(percent, total) { return (percent / 100.0) * total }
+def percentChange(oldVal, newVal) {
+    if oldVal == 0 { return 0 }
+    return ((newVal - oldVal) / oldVal) * 100.0
+}
+def percentRatio(part, whole) {
+    if whole == 0 { return 0 }
+    return (part / whole) * 100.0
+}
+
+# ==============================================================================
+# NUMBER BASE CONVERSIONS
+# ==============================================================================
+
+def decToBin(n) {
+    num = int(n)
+    if num == 0 { return "0" }
+    isNeg = false
+    if num < 0 {
+        isNeg = true
+        num = -num
+    }
+    result = ""
+    while num > 0 {
+        bit = mod(num, 2)
+        result = rejoin(str(bit), result)
+        num = int(num / 2)
+    }
+    if isNeg {
+        result = rejoin("-", result)
+    }
+    return result
+}
+
+def decToHex(n) {
+    num = int(n)
+    if num == 0 { return "0" }
+    isNeg = false
+    if num < 0 {
+        isNeg = true
+        num = -num
+    }
+    hexChars = "0123456789ABCDEF"
+    result = ""
+    while num > 0 {
+        digit = mod(num, 16)
+        hexChar = mid(hexChars, digit, 1)
+        result = rejoin(hexChar, result)
+        num = int(num / 16)
+    }
+    if isNeg {
+        result = rejoin("-", result)
+    }
+    return result
+}
+
+def binToDec(binStr) {
+    s = str(binStr)
+    isNeg = false
+    if left(s, 1) == "-" {
+        isNeg = true
+        s = mid(s, 1, len(s) - 1)
+    }
+    result = 0
+    i = 0
+    while i < len(s) {
+        ch = mid(s, i, 1)
+        digit = int(ch)
+        result = result * 2 + digit
+        i = i + 1
+    }
+    if isNeg {
+        result = -result
+    }
+    return result
+}
+
+def hexToDec(hexStr) {
+    s = upper(str(hexStr))
+    isNeg = false
+    if left(s, 1) == "-" {
+        isNeg = true
+        s = mid(s, 1, len(s) - 1)
+    }
+    hexChars = "0123456789ABCDEF"
+    result = 0
+    i = 0
+    while i < len(s) {
+        ch = mid(s, i, 1)
+        digit = index_of(hexChars, ch)
+        result = result * 16 + digit
+        i = i + 1
+    }
+    if isNeg {
+        result = -result
+    }
+    return result
+}
+
+def octToDec(octStr) {
+    s = str(octStr)
+    isNeg = false
+    if left(s, 1) == "-" {
+        isNeg = true
+        s = mid(s, 1, len(s) - 1)
+    }
+    result = 0
+    i = 0
+    while i < len(s) {
+        ch = mid(s, i, 1)
+        digit = int(ch)
+        result = result * 8 + digit
+        i = i + 1
+    }
+    if isNeg {
+        result = -result
+    }
+    return result
+}
+
+def decToOct(n) {
+    num = int(n)
+    if num == 0 { return "0" }
+    isNeg = false
+    if num < 0 {
+        isNeg = true
+        num = -num
+    }
+    result = ""
+    while num > 0 {
+        digit = mod(num, 8)
+        result = rejoin(str(digit), result)
+        num = int(num / 8)
+    }
+    if isNeg {
+        result = rejoin("-", result)
+    }
+    return result
+}
+
+# ==============================================================================
+# RANDOM HELPERS
+# ==============================================================================
+
+def randRange(minVal, maxVal) { return minVal + rand() * (maxVal - minVal) }
+def randChoice(dataList) {
+    n = len(dataList)
+    if n == 0 { return null }
+    idx = randint(0, n - 1)
+    return dataList[idx]
+}
+def randBool() { return rand() < 0.5 }
+def randSign() {
+    if rand() < 0.5 { return -1 }
+    return 1
+}
+
+# ==============================================================================
+# FORMATTING HELPERS
+# ==============================================================================
+
+def formatPercent(n, decimals) {
+    pct = round(n * 100, decimals)
+    if decimals == 0 {
+        return rejoin(str(int(pct)), "%")
+    }
+    return rejoin(str(pct), "%")
+}
+
+def formatBytes(bytes) {
+    b = float(bytes)
+    if b < 1024 { return rejoin(str(int(b)), " B") }
+    if b < 1048576 {
+        val = round(b / 1024, 2)
+        if val == int(val) { val = int(val) }
+        return rejoin(str(val), " KB")
+    }
+    if b < 1073741824 {
+        val = round(b / 1048576, 2)
+        if val == int(val) { val = int(val) }
+        return rejoin(str(val), " MB")
+    }
+    val = round(b / 1073741824, 2)
+    if val == int(val) { val = int(val) }
+    return rejoin(str(val), " GB")
+}
+
+def formatNumber(n, decimals) { return str(round(n, int(decimals))) }
+
+def formatCurrency(n, symbol) {
+    sym = "$"
+    if symbol != null and len(str(symbol)) > 0 { sym = str(symbol) }
+    
+    # round() requires 2 arguments
+    rounded = round(n, 2)
+    str_val = str(rounded)
+    
+    # Ensure exactly 2 decimal places
+    if contains(str_val, ".") == false {
+        str_val = rejoin(str_val, ".00")
+    } else {
+        parts = split(str_val, ".")
+        dec_part = parts[1]
+        if len(dec_part) == 1 {
+            dec_part = rejoin(dec_part, "0")
+        }
+        str_val = rejoin(parts[0], ".", dec_part)
+    }
+    
+    return rejoin(sym, str_val)
+}
+
+# ==============================================================================
+# END OF MATH UTILITIES v3.3
+# ==============================================================================

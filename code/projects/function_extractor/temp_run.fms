@@ -1,0 +1,272 @@
+# ==============================================================================
+# AnikaLang Code Extractor Tool (Python Source Analyzer)
+# Extracts Python functions, parameters, and AnikaLang primitives from .py files
+# ==============================================================================
+
+# --- Global State ---
+win = null
+baseFolderEntry = null
+resultText = null
+statusLbl = null
+totalFunctions = 0
+totalPrimitives = 0
+
+# Exact primitives registered in StdLibPlugin
+knownPrimitives = [
+    "EVAL_FMS", "EVAL_FMS_SILENT", "IS_ERROR", "ERROR_MESSAGE", "LIST_VARIABLES", "TYPE_OF",
+    "REGEX_MATCH", "REGEX_SEARCH", "REGEX_REPLACE", "REGEX_FINDALL",
+    "ABS", "ROUND", "RAND", "POW", "EXP", "LN", "LOG10", "FLOOR", "CEIL", "PI", "E",
+    "SIN", "COS", "TAN", "ASIN", "ACOS", "ATAN", "DEG_TO_RAD", "RAD_TO_DEG", "MIN", "MAX",
+    "SUM", "AVG", "FACT", "COMB", "PERM", "RANDINT", "SQRT",
+    "UPPER", "LOWER", "TRIM", "LEN", "REPLACE", "LEFT", "RIGHT", "MID", "SPLIT",
+    "STARTS_WITH", "ENDS_WITH", "CONTAINS", "INDEX_OF", "JOIN", "REJOIN",
+    "NOW", "DATE", "TO_INDIAN_DATE", "TO_ISO_DATETIME", "TO_INDIAN_DATETIME", "CALC_DURATION",
+    "INT", "FLOAT", "STR", "IIF",
+    "DICT_KEYS", "DICT_VALUES", "DICT_ENTRIES", "DICT_MERGE", "DICT_HAS_KEY", "DICT_SET", "DICT_REMOVE", "DICT_GET",
+    "LIST_SET", "LIST_APPEND", "LIST_REMOVE", "LIST_CONTAINS",
+    "DB_CONNECT", "DB_EXECUTE", "DB_QUERY",
+    "FILE_READ", "FILE_READ_BASE64", "FILE_WRITE", "FILE_APPEND", "FILE_EXISTS", "EXEC", "FILE_TO_URL",
+    "PATH_JOIN", "PATH_DIR", "PATH_FILE", "PATH_EXT", "PATH_NAME", "PATH_CWD", "PATH_ABS", "PATH_NORM", "PATH_MKDIR", "PATH_ISDIR", "PATH_ISFILE", "PATH_LIST",
+    "FILE_DELETE", "FILE_RENAME", "FILE_SIZE",
+    "CSV_READ", "CSV_WRITE", "CSV_READ_RAW", "CSV_APPEND",
+    "INTERPRETER_PATH", "HTTP_GET",
+    "HTML_ESCAPE", "BASE64_ENCODE", "BASE64_DECODE", "JSON_PARSE", "JSON_STRINGIFY",
+    "CLIPBOARD_SET", "CLIPBOARD_GET", "EXEC_CAPTURE", "CMD_EXISTS"
+]
+
+# ==============================================================================
+# Extraction Logic
+# ==============================================================================
+
+def extractFromFile(filePath) {
+    content = file_read(filePath)
+    if starts_with(content, "ERROR") {
+        return null
+    }
+    
+    functions = []
+    primitives = []
+    
+    # Regex for PYTHON function definitions: def functionName(params):
+    funcPattern = "def\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(([^)]*)\\)\\s*:"
+    funcMatches = regex_findall(funcPattern, content)
+    
+    i = 0
+    while i < len(funcMatches) {
+        # ✅ FIXED: Convert tuple to list using JSON_STRINGIFY/JSON_PARSE roundtrip
+        # or just access as string and split
+        match = funcMatches[i]
+        
+        # match is a tuple like ('function_name', 'param1, param2')
+        # We need to convert it to work with it
+        # Use JSON to convert tuple to list
+        matchStr = json_stringify(match)
+        matchList = json_parse(matchStr)
+        
+        funcName = matchList[0]
+        paramsStr = matchList[1]
+        
+        params = []
+        if len(trim(paramsStr)) > 0 {
+            paramList = split(paramsStr, ",")
+            j = 0
+            while j < len(paramList) {
+                param = trim(paramList[j])
+                if len(param) > 0 {
+                    list_append(params, param)
+                }
+                j = j + 1
+            }
+        }
+        
+        list_append(functions, [funcName, params])
+        i = i + 1
+    }
+    
+    # Search for primitive names as whole words
+    k = 0
+    while k < len(knownPrimitives) {
+        primitive = knownPrimitives[k]
+        searchPattern = rejoin("\\b", primitive, "\\b")
+        if regex_search(searchPattern, content) != "" {
+            list_append(primitives, primitive)
+        }
+        k = k + 1
+    }
+    
+    return [filePath, functions, primitives]
+}
+
+def scanCodebase() {
+    baseFolder = ui_get(baseFolderEntry)
+    if baseFolder == "" OR baseFolder == null {
+        ui_alert_err("Please enter or select a valid base folder path.")
+        return
+    }
+
+    if path_isdir(baseFolder) == false {
+        ui_alert_err(rejoin("Folder does not exist: ", baseFolder))
+        return
+    }
+
+    ui_set(resultText, "")
+    totalFunctions = 0
+    totalPrimitives = 0
+    ui_set(statusLbl, "Scanning codebase...")
+    
+    resultString = ""
+    filesToProcess = []
+    
+    # 1. Check for main.py in base directory
+    mainPy = path_join(baseFolder, "main.py")
+    if file_exists(mainPy) {
+        list_append(filesToProcess, mainPy)
+    }
+    
+    # 2. Check for core folder
+    coreFolder = path_join(baseFolder, "core")
+    if path_isdir(coreFolder) {
+        coreFiles = path_list(coreFolder)
+        i = 0
+        while i < len(coreFiles) {
+            if ends_with(lower(coreFiles[i]), ".py") {
+                list_append(filesToProcess, path_join(coreFolder, coreFiles[i]))
+            }
+            i = i + 1
+        }
+    }
+    
+    # 3. Check for plugins folder
+    pluginsFolder = path_join(baseFolder, "plugins")
+    if path_isdir(pluginsFolder) {
+        pluginFiles = path_list(pluginsFolder)
+        j = 0
+        while j < len(pluginFiles) {
+            if ends_with(lower(pluginFiles[j]), ".py") {
+                list_append(filesToProcess, path_join(pluginsFolder, pluginFiles[j]))
+            }
+            j = j + 1
+        }
+    }
+    
+    # Process all files
+    k = 0
+    while k < len(filesToProcess) {
+        filePath = filesToProcess[k]
+        fileData = extractFromFile(filePath)
+        
+        if fileData != null {
+            fileFuncs = fileData[1]
+            filePrims = fileData[2]
+            
+            totalFunctions = totalFunctions + len(fileFuncs)
+            totalPrimitives = totalPrimitives + len(filePrims)
+            
+            separator = "═══════════════════════════════════════════════════════\n"
+            resultString = rejoin(resultString, separator)
+            resultString = rejoin(resultString, "FILE: ", filePath, "\n")
+            resultString = rejoin(resultString, separator, "\n\n")
+            
+            if len(fileFuncs) > 0 {
+                resultString = rejoin(resultString, "PYTHON FUNCTIONS (", str(len(fileFuncs)), "):\n")
+                m = 0
+                while m < len(fileFuncs) {
+                    funcEntry = fileFuncs[m]
+                    funcName = funcEntry[0]
+                    funcParams = funcEntry[1]
+                    
+                    paramsDisplay = join(", ", funcParams)
+                    resultString = rejoin(resultString, "  • def ", funcName, "(", paramsDisplay, "):\n")
+                    m = m + 1
+                }
+                resultString = rejoin(resultString, "\n")
+            }
+            
+            if len(filePrims) > 0 {
+                resultString = rejoin(resultString, "ANIKALANG PRIMITIVES REFERENCED (", str(len(filePrims)), "):\n")
+                n = 0
+                while n < len(filePrims) {
+                    resultString = rejoin(resultString, "  • ", filePrims[n], "\n")
+                    n = n + 1
+                }
+                resultString = rejoin(resultString, "\n")
+            }
+        }
+        
+        k = k + 1
+    }
+    
+    separator = "═══════════════════════════════════════════════════════\n"
+    summaryString = separator
+    summaryString = rejoin(summaryString, "SUMMARY\n")
+    summaryString = rejoin(summaryString, separator)
+    summaryString = rejoin(summaryString, "Total Files Scanned: ", str(len(filesToProcess)), "\n")
+    summaryString = rejoin(summaryString, "Total Python Functions Found: ", str(totalFunctions), "\n")
+    summaryString = rejoin(summaryString, "Total AnikaLang Primitives Referenced: ", str(totalPrimitives), "\n\n")
+    
+    resultString = rejoin(summaryString, resultString)
+    
+    ui_set(resultText, resultString)
+    
+    statusMsg = rejoin("Scan complete! Found ", str(totalFunctions), " functions and ", str(totalPrimitives), " primitive references.")
+    ui_set(statusLbl, statusMsg)
+}
+
+def copyToClipboard() {
+    if totalFunctions == 0 AND totalPrimitives == 0 {
+        ui_alert_err("No data to copy. Please scan a codebase first.")
+        return
+    }
+    
+    clipboard_set(ui_get(resultText))
+    ui_set(statusLbl, "Results copied to clipboard!")
+}
+
+def exportToFile() {
+    if totalFunctions == 0 AND totalPrimitives == 0 {
+        ui_alert_err("No data to export. Please scan a codebase first.")
+        return
+    }
+    
+    savePath = ui_file_save(null)
+    if savePath != "" AND savePath != null {
+        if ends_with(lower(savePath), ".txt") == false {
+            savePath = rejoin(savePath, ".txt")
+        }
+        file_write(savePath, ui_get(resultText))
+        ui_set(statusLbl, rejoin("Results exported to: ", path_file(savePath)))
+    }
+}
+
+# ==============================================================================
+# UI Layout & Initialization
+# ==============================================================================
+
+win = ui_window("AnikaLang Python Source Extractor", 1000, 700)
+
+topPanel = ui_panel(win, 0, 0, 1000, 60)
+ui_color(topPanel, "", "#2c3e50")
+
+lblPath = ui_label(topPanel, "Base Folder:", 20, 15, 100, 30)
+ui_color(lblPath, "#ffffff", "")
+
+defaultPath = path_cwd()
+baseFolderEntry = ui_entry(topPanel, defaultPath, 130, 15, 400, 30)
+
+btnScan = ui_button(topPanel, "🔍 Scan .py Files", "scanCodebase", 540, 15, 150, 30)
+ui_color(btnScan, "#ffffff", "#27ae60")
+
+btnExport = ui_button(topPanel, "💾 Export Results", "exportToFile", 700, 15, 140, 30)
+ui_color(btnExport, "#ffffff", "#8e44ad")
+
+btnCopy = ui_button(topPanel, "📋 Copy", "copyToClipboard", 850, 15, 130, 30)
+ui_color(btnCopy, "#ffffff", "#3498db")
+
+resultText = ui_text(win, "Click 'Scan .py Files' to extract Python functions and AnikaLang primitive references.\n\nScans:\n• main.py (base directory)\n• *.py files in core/ folder\n• *.py files in plugins/ folder", true, 10, 70, 980, 580)
+ui_color(resultText, "#2D2D2D", "#faf9f6")
+ui_font(resultText, 11, "Consolas", false)
+
+statusLbl = ui_label(win, "Ready", 10, 660, 980, 30)
+ui_color(statusLbl, "#7f8c8d", "")
+
+ui_mainloop(win)

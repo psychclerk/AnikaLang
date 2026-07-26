@@ -1,0 +1,942 @@
+# ==============================================================================
+# ANIKALANG STRING UTILITIES LIBRARY v2.2 (ANIKALANG 1.2 COMPLIANT)
+# Location: includes/stringutils.fms
+# Include:  INCLUDE "includes/stringutils.fms"
+#
+# === BUILT-IN FUNCTIONS (DO NOT REDEFINE - already in anika.py) ===
+# upper, lower, trim, len, replace, left, right, mid, split,
+# starts_with, ends_with, contains, index_of, str, iif,
+# base64_encode, base64_decode, html_escape, json_parse, json_stringify
+#
+# === IMPORTANT: ANIKALANG CONVENTIONS ===
+# - mid(string, index, length) is 0-INDEXED (like Python)
+# - index_of(string, substring) returns 0-INDEXED position
+# - DICT iteration: use dict_keys(dict), not numeric indices
+# - List mutation: use list_append(list, value) or list_set(list, idx, val)
+# - String concatenation: MUST use rejoin(), NOT the '+' operator
+# ==============================================================================
+
+# ==============================================================================
+# CASE CONVERSION
+# ==============================================================================
+
+def capitalize(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return "" }
+    return rejoin(upper(left(sStr, 1)), lower(mid(sStr, 1)))
+}
+
+def titleCase(s) {
+    sStr = str(s)
+    words = split(sStr, " ")
+    result = ""
+    i = 0
+    while i < len(words) {
+        word = words[i]
+        if len(word) > 0 {
+            word = rejoin(upper(left(word, 1)), lower(mid(word, 1)))
+        }
+        if i > 0 {
+            result = rejoin(result, " ")
+        }
+        result = rejoin(result, word)
+        i = i + 1
+    }
+    return result
+}
+
+def swapCase(s) {
+    sStr = str(s)
+    result = ""
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        if c == upper(c) {
+            result = rejoin(result, lower(c))
+        } else {
+            result = rejoin(result, upper(c))
+        }
+        i = i + 1
+    }
+    return result
+}
+
+def camelCase(s) {
+    sStr = lower(str(s))
+    sStr = replace(sStr, "-", " ")
+    sStr = replace(sStr, "_", " ")
+    words = split(sStr, " ")
+    result = ""
+    i = 0
+    while i < len(words) {
+        word = words[i]
+        if len(word) > 0 {
+            if i == 0 {
+                result = rejoin(result, lower(word))
+            } else {
+                result = rejoin(result, upper(left(word, 1)), lower(mid(word, 1)))
+            }
+        }
+        i = i + 1
+    }
+    return result
+}
+
+def snakeCase(s) {
+    sStr = str(s)
+    result = ""
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        if c == " " or c == "-" {
+            if len(result) > 0 and right(result, 1) != "_" {
+                result = rejoin(result, "_")
+            }
+        } else {
+            if c == upper(c) and lower(c) != upper(c) and len(result) > 0 {
+                lastChar = right(result, 1)
+                if lastChar == lower(lastChar) and lastChar != "_" {
+                    result = rejoin(result, "_")
+                }
+            }
+            result = rejoin(result, lower(c))
+        }
+        i = i + 1
+    }
+    return result
+}
+
+def kebabCase(s) {
+    snake = snakeCase(s)
+    return replace(snake, "_", "-")
+}
+
+# ==============================================================================
+# WHITESPACE HANDLING
+# ==============================================================================
+
+def lTrim(s) {
+    sStr = str(s)
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        if c != " " and c != "	" and c != "\n" and c != "\r" {
+            return mid(sStr, i)
+        }
+        i = i + 1
+    }
+    return ""
+}
+
+def rTrim(s) {
+    sStr = str(s)
+    i = len(sStr) - 1
+    while i >= 0 {
+        c = mid(sStr, i, 1)
+        if c != " " and c != "	" and c != "\n" and c != "\r" {
+            return left(sStr, i + 1)
+        }
+        i = i - 1
+    }
+    return ""
+}
+
+def strip(s, chars) {
+    sStr = str(s)
+    charStr = str(chars)
+    while len(sStr) > 0 and contains(charStr, left(sStr, 1)) {
+        sStr = mid(sStr, 1)
+    }
+    while len(sStr) > 0 and contains(charStr, right(sStr, 1)) {
+        sStr = left(sStr, len(sStr) - 1)
+    }
+    return sStr
+}
+
+def padLeft(s, width, padChar) {
+    sStr = str(s)
+    pc = " "
+    if padChar != null and len(str(padChar)) > 0 {
+        pc = left(str(padChar), 1)
+    }
+    while len(sStr) < width {
+        sStr = rejoin(pc, sStr)
+    }
+    return sStr
+}
+
+def padRight(s, width, padChar) {
+    sStr = str(s)
+    pc = " "
+    if padChar != null and len(str(padChar)) > 0 {
+        pc = left(str(padChar), 1)
+    }
+    while len(sStr) < width {
+        sStr = rejoin(sStr, pc)
+    }
+    return sStr
+}
+
+def center(s, width, padChar) {
+    sStr = str(s)
+    pc = " "
+    if padChar != null and len(str(padChar)) > 0 {
+        pc = left(str(padChar), 1)
+    }
+    totalPad = width - len(sStr)
+    if totalPad <= 0 { return sStr }
+    leftPad = int(totalPad / 2)
+    rightPad = totalPad - leftPad
+    result = ""
+    i = 0
+    while i < leftPad {
+        result = rejoin(result, pc)
+        i = i + 1
+    }
+    result = rejoin(result, sStr)
+    i = 0
+    while i < rightPad {
+        result = rejoin(result, pc)
+        i = i + 1
+    }
+    return result
+}
+
+def repeatStr(s, n) {
+    sStr = str(s)
+    count = int(n)
+    if count <= 0 { return "" }
+    result = ""
+    i = 0
+    while i < count {
+        result = rejoin(result, sStr)
+        i = i + 1
+    }
+    return result
+}
+
+def wordCount(s) {
+    sStr = trim(str(s))
+    if len(sStr) == 0 { return 0 }
+    words = split(sStr, " ")
+    count = 0
+    i = 0
+    while i < len(words) {
+        if len(trim(words[i])) > 0 {
+            count = count + 1
+        }
+        i = i + 1
+    }
+    return count
+}
+
+# ==============================================================================
+# SEARCH & EXTRACT
+# ==============================================================================
+
+def lastIndexOf(s, sub) {
+    sStr = str(s)
+    search = str(sub)
+    if len(search) == 0 { return -1 }
+    lastPos = -1
+    pos = index_of(sStr, search)
+    offset = 0
+    while pos >= 0 {
+        lastPos = offset + pos
+        offset = offset + pos + len(search)
+        if offset >= len(sStr) {
+            pos = -1
+        } else {
+            remaining = mid(sStr, offset)
+            pos = index_of(remaining, search)
+        }
+    }
+    return lastPos
+}
+
+def countOccurrences(s, sub) {
+    sStr = str(s)
+    search = str(sub)
+    if len(search) == 0 { return 0 }
+    count = 0
+    offset = 0
+    while offset < len(sStr) {
+        remaining = mid(sStr, offset)
+        pos = index_of(remaining, search)
+        if pos < 0 {
+            offset = len(sStr)
+        } else {
+            count = count + 1
+            offset = offset + pos + len(search)
+        }
+    }
+    return count
+}
+
+def extractBetween(s, startMarker, endMarker) {
+    sStr = str(s)
+    startPos = index_of(sStr, startMarker)
+    if startPos < 0 { return "" }
+    afterStart = mid(sStr, startPos + len(startMarker))
+    endPos = index_of(afterStart, endMarker)
+    if endPos < 0 { return "" }
+    return left(afterStart, endPos)
+}
+
+def before(s, marker) {
+    sStr = str(s)
+    pos = index_of(sStr, marker)
+    if pos < 0 { return sStr }
+    return left(sStr, pos)
+}
+
+def after(s, marker) {
+    sStr = str(s)
+    pos = index_of(sStr, marker)
+    if pos < 0 { return "" }
+    return mid(sStr, pos + len(marker))
+}
+
+# ==============================================================================
+# VALIDATION
+# ==============================================================================
+
+def isEmpty(s) {
+    if len(trim(str(s))) == 0 { return true }
+    return false
+}
+
+def isNumeric(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return false }
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        if c != "0" and c != "1" and c != "2" and c != "3" and c != "4" and c != "5" and c != "6" and c != "7" and c != "8" and c != "9" {
+            return false
+        }
+        i = i + 1
+    }
+    return true
+}
+
+def isAlpha(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return false }
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        upperC = upper(c)
+        lowerC = lower(c)
+        if upperC == lowerC {
+            return false
+        }
+        i = i + 1
+    }
+    return true
+}
+
+def isAlphanum(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return false }
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        isLetter = false
+        isDigit = false
+        if upper(c) != lower(c) {
+            isLetter = true
+        }
+        if c == "0" or c == "1" or c == "2" or c == "3" or c == "4" or c == "5" or c == "6" or c == "7" or c == "8" or c == "9" {
+            isDigit = true
+        }
+        if isLetter == false and isDigit == false {
+            return false
+        }
+        i = i + 1
+    }
+    return true
+}
+
+def isEmail(s) {
+    sStr = trim(str(s))
+    if len(sStr) == 0 { return false }
+    atPos = index_of(sStr, "@")
+    if atPos <= 0 { return false }
+    dotPos = lastIndexOf(sStr, ".")
+    if dotPos < atPos { return false }
+    if dotPos == len(sStr) - 1 { return false }
+    return true
+}
+
+def isUrl(s) {
+    sStr = lower(trim(str(s)))
+    if starts_with(sStr, "http://") { return true }
+    if starts_with(sStr, "https://") { return true }
+    if starts_with(sStr, "ftp://") { return true }
+    return false
+}
+
+def isUpper(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return false }
+    if sStr != upper(sStr) { return false }
+    return true
+}
+
+def isLower(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return false }
+    if sStr != lower(sStr) { return false }
+    return true
+}
+
+def isPalindrome(s) {
+    sStr = lower(str(s))
+    sStr = replace(sStr, " ", "")
+    rev = reverse(sStr)
+    if sStr == rev { return true }
+    return false
+}
+
+# ==============================================================================
+# TRANSFORMATION
+# ==============================================================================
+
+def reverse(s) {
+    sStr = str(s)
+    result = ""
+    i = len(sStr) - 1
+    while i >= 0 {
+        result = rejoin(result, mid(sStr, i, 1))
+        i = i - 1
+    }
+    return result
+}
+
+def rot13(s) {
+    sStr = str(s)
+    alpha = "abcdefghijklmnopqrstuvwxyz"
+    result = ""
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        lowerC = lower(c)
+        pos = index_of(alpha, lowerC)
+        if pos >= 0 {
+            newPos = mod(pos + 13, 26)
+            newC = mid(alpha, newPos, 1)
+            if c == upper(c) {
+                newC = upper(newC)
+            }
+            result = rejoin(result, newC)
+        } else {
+            result = rejoin(result, c)
+        }
+        i = i + 1
+    }
+    return result
+}
+
+def urlEncode(s) {
+    sStr = str(s)
+    result = ""
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        isSafe = false
+        if isAlphanum(c) {
+            isSafe = true
+        }
+        if c == "-" or c == "_" or c == "." or c == "~" {
+            isSafe = true
+        }
+        if isSafe == true {
+            result = rejoin(result, c)
+        } else {
+            if c == " " {
+                result = rejoin(result, "%20")
+            } else {
+                code = charCode(c)
+                hex = decToHex(code)
+                if len(hex) < 2 {
+                    hex = rejoin("0", hex)
+                }
+                result = rejoin(result, "%", upper(hex))
+            }
+        }
+        i = i + 1
+    }
+    return result
+}
+
+def urlDecode(s) {
+    sStr = str(s)
+    result = replace(sStr, "%20", " ")
+    result = replace(result, "%21", "!")
+    result = replace(result, "%22", "\"")
+    result = replace(result, "%23", "#")
+    result = replace(result, "%24", "$")
+    result = replace(result, "%25", "%")
+    result = replace(result, "%26", "&")
+    result = replace(result, "%27", "'")
+    result = replace(result, "%28", "(")
+    result = replace(result, "%29", ")")
+    result = replace(result, "%2A", "*")
+    result = replace(result, "%2B", "+")
+    result = replace(result, "%2C", ",")
+    result = replace(result, "%2D", "-")
+    result = replace(result, "%2E", ".")
+    result = replace(result, "%2F", "/")
+    result = replace(result, "%3A", ":")
+    result = replace(result, "%3B", ";")
+    result = replace(result, "%3C", "<")
+    result = replace(result, "%3D", "=")
+    result = replace(result, "%3E", ">")
+    result = replace(result, "%3F", "?")
+    result = replace(result, "%40", "@")
+    result = replace(result, "%5B", "[")
+    result = replace(result, "%5C", "\\")
+    result = replace(result, "%5D", "]")
+    result = replace(result, "%5E", "^")
+    result = replace(result, "%5F", "_")
+    result = replace(result, "%60", "`")
+    result = replace(result, "%7B", "{")
+    result = replace(result, "%7C", "|")
+    result = replace(result, "%7D", "}")
+    result = replace(result, "%7E", "~")
+    return result
+}
+
+def slugify(s) {
+    sStr = lower(trim(str(s)))
+    sStr = replace(sStr, " ", "-")
+    sStr = replace(sStr, "_", "-")
+    result = ""
+    i = 0
+    while i < len(sStr) {
+        c = mid(sStr, i, 1)
+        if isAlphanum(c) or c == "-" {
+            if c == "-" and len(result) > 0 and right(result, 1) == "-" {
+                # Skip this dash
+            } else {
+                result = rejoin(result, c)
+            }
+        }
+        i = i + 1
+    }
+    result = trim(result)
+    while len(result) > 0 and left(result, 1) == "-" {
+        result = mid(result, 1)
+    }
+    while len(result) > 0 and right(result, 1) == "-" {
+        result = left(result, len(result) - 1)
+    }
+    return result
+}
+
+def truncate(s, maxLen) {
+    return truncateWithSuffix(s, maxLen, "...")
+}
+
+def truncateWithSuffix(s, maxLen, suffix) {
+    sStr = str(s)
+    suf = "..."
+    if suffix != null and len(str(suffix)) > 0 {
+        suf = str(suffix)
+    }
+    if len(sStr) <= maxLen { return sStr }
+    cutLen = maxLen - len(suf)
+    if cutLen < 0 { cutLen = 0 }
+    return rejoin(left(sStr, cutLen), suf)
+}
+
+def wrap(s, width) {
+    sStr = str(s)
+    w = int(width)
+    if w <= 0 { return sStr }
+    words = split(sStr, " ")
+    result = ""
+    lineLen = 0
+    i = 0
+    while i < len(words) {
+        word = words[i]
+        if len(word) == 0 {
+            i = i + 1
+        } else {
+            if lineLen == 0 {
+                result = rejoin(result, word)
+                lineLen = len(word)
+            } else {
+                if lineLen + 1 + len(word) > w {
+                    result = rejoin(result, "\n", word)
+                    lineLen = len(word)
+                } else {
+                    result = rejoin(result, " ", word)
+                    lineLen = lineLen + 1 + len(word)
+                }
+            }
+            i = i + 1
+        }
+    }
+    return result
+}
+
+def indent(s, nSpaces) {
+    sStr = str(s)
+    lines = split(sStr, "\n")
+    spaces = ""
+    i = 0
+    while i < nSpaces {
+        spaces = rejoin(spaces, " ")
+        i = i + 1
+    }
+    result = ""
+    i = 0
+    while i < len(lines) {
+        if i > 0 {
+            result = rejoin(result, "\n")
+        }
+        result = rejoin(result, spaces, lines[i])
+        i = i + 1
+    }
+    return result
+}
+
+# ==============================================================================
+# JOINING
+# ==============================================================================
+
+def join(list, delim) {
+    d = ""
+    if delim != null { d = str(delim) }
+    result = ""
+    i = 0
+    while i < len(list) {
+        if i > 0 {
+            result = rejoin(result, d)
+        }
+        result = rejoin(result, str(list[i]))
+        i = i + 1
+    }
+    return result
+}
+
+# ==============================================================================
+# CHARACTER OPERATIONS
+# ==============================================================================
+
+def charAt(s, idx) {
+    sStr = str(s)
+    i = int(idx)
+    if i < 0 or i >= len(sStr) { return "" }
+    return mid(sStr, i, 1)
+}
+
+def charCode(c) {
+    char = str(c)
+    if len(char) == 0 { return 0 }
+    ch = left(char, 1)
+    chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+    pos = index_of(chars, ch)
+    if pos >= 0 {
+        return pos + 32
+    }
+    return 0
+}
+
+def fromCharCode(n) {
+    code = int(n)
+    if code < 32 or code > 126 { return "" }
+    chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+    idx = code - 32
+    return mid(chars, idx, 1)
+}
+
+def last_Char(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return "" }
+    return right(sStr, 1)
+}
+
+def first_Char(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return "" }
+    return left(sStr, 1)
+}
+
+
+
+# ==============================================================================
+# NUMBER FORMATTING
+# ==============================================================================
+
+def numberFormat(n, decimals, thousandsSep, decimalSep) {
+    num = float(n)
+    dec = int(decimals)
+    tSep = ","
+    if thousandsSep != null and len(str(thousandsSep)) > 0 {
+        tSep = left(str(thousandsSep), 1)
+    }
+    dSep = "."
+    if decimalSep != null and len(str(decimalSep)) > 0 {
+        dSep = left(str(decimalSep), 1)
+    }
+    rounded = round(num, dec)
+    strNum = str(rounded)
+    
+    dotPos = index_of(strNum, ".")
+    intPart = ""
+    decPart = ""
+    if dotPos >= 0 {
+        intPart = left(strNum, dotPos)
+        decPart = mid(strNum, dotPos + 1)
+    } else {
+        intPart = strNum
+    }
+    
+    while len(decPart) < dec {
+        decPart = rejoin(decPart, "0")
+    }
+    if dec > 0 {
+        decPart = left(decPart, dec)
+    }
+    
+    isNeg = false
+    if left(intPart, 1) == "-" {
+        isNeg = true
+        intPart = mid(intPart, 1)
+    }
+    result = ""
+    i = len(intPart) - 1
+    count = 0
+    while i >= 0 {
+        if count > 0 and mod(count, 3) == 0 {
+            result = rejoin(tSep, result)
+        }
+        result = rejoin(mid(intPart, i, 1), result)
+        count = count + 1
+        i = i - 1
+    }
+    if isNeg == true {
+        result = rejoin("-", result)
+    }
+    if dec > 0 {
+        result = rejoin(result, dSep, decPart)
+    }
+    return result
+}
+
+def currencyFormat(n, symbol) {
+    sym = "$"
+    if symbol != null and len(str(symbol)) > 0 {
+        sym = str(symbol)
+    }
+    return rejoin(sym, numberFormat(n, 2, ",", "."))
+}
+
+def ordinal(n) {
+    num = int(n)
+    lastTwo = mod(num, 100)
+    lastOne = mod(num, 10)
+    suffix = "th"
+    if lastTwo < 11 or lastTwo > 13 {
+        if lastOne == 1 {
+            suffix = "st"
+        }
+        if lastOne == 2 {
+            suffix = "nd"
+        }
+        if lastOne == 3 {
+            suffix = "rd"
+        }
+    }
+    return rejoin(str(num), suffix)
+}
+
+# ==============================================================================
+# TEXT ANALYSIS
+# ==============================================================================
+
+def lineCount(s) {
+    sStr = str(s)
+    if len(sStr) == 0 { return 0 }
+    count = 1
+    i = 0
+    while i < len(sStr) {
+        if mid(sStr, i, 1) == "\n" {
+            count = count + 1
+        }
+        i = i + 1
+    }
+    return count
+}
+
+def uniqueWords(s) {
+    sStr = lower(trim(str(s)))
+    words = split(sStr, " ")
+    unique = []
+    i = 0
+    while i < len(words) {
+        word = trim(words[i])
+        if len(word) > 0 {
+            found = false
+            j = 0
+            while j < len(unique) {
+                if unique[j] == word {
+                    found = true
+                }
+                j = j + 1
+            }
+            if found == false {
+                list_append(unique, word)
+            }
+        }
+        i = i + 1
+    }
+    return unique
+}
+
+def mostCommonWord(s) {
+    sStr = lower(trim(str(s)))
+    words = split(sStr, " ")
+    bestWord = ""
+    bestCount = 0
+    i = 0
+    while i < len(words) {
+        word = trim(words[i])
+        if len(word) > 0 {
+            count = 0
+            j = 0
+            while j < len(words) {
+                if trim(words[j]) == word {
+                    count = count + 1
+                }
+                j = j + 1
+            }
+            if count > bestCount {
+                bestCount = count
+                bestWord = word
+            }
+        }
+        i = i + 1
+    }
+    return bestWord
+}
+
+def longestWord(s) {
+    sStr = trim(str(s))
+    words = split(sStr, " ")
+    longest = ""
+    i = 0
+    while i < len(words) {
+        word = trim(words[i])
+        if len(word) > len(longest) {
+            longest = word
+        }
+        i = i + 1
+    }
+    return longest
+}
+
+# ==============================================================================
+# COMPARISON
+# ==============================================================================
+
+def equalsIgnoreCase(a, b) {
+    if lower(str(a)) == lower(str(b)) { return true }
+    return false
+}
+
+def levenshtein(a, b) {
+    s1 = str(a)
+    s2 = str(b)
+    len1 = len(s1)
+    len2 = len(s2)
+    
+    if len1 == 0 { return len2 }
+    if len2 == 0 { return len1 }
+    
+    prevRow = []
+    currRow = []
+    
+    j = 0
+    while j <= len2 {
+        list_append(prevRow, j)
+        j = j + 1
+    }
+    
+    i = 1
+    while i <= len1 {
+        currRow = []
+        list_append(currRow, i)
+        j = 1
+        while j <= len2 {
+            c1 = mid(s1, i - 1, 1)
+            c2 = mid(s2, j - 1, 1)
+            cost = 0
+            if c1 != c2 {
+                cost = 1
+            }
+            delVal = prevRow[j] + 1
+            insVal = currRow[j - 1] + 1
+            subVal = prevRow[j - 1] + cost
+            
+            minVal = delVal
+            if insVal < minVal { minVal = insVal }
+            if subVal < minVal { minVal = subVal }
+            
+            list_append(currRow, minVal)
+            j = j + 1
+        }
+        prevRow = currRow
+        i = i + 1
+    }
+    return prevRow[len2]
+}
+
+# ==============================================================================
+# TEMPLATE & MASKING
+# ==============================================================================
+
+def template(s, dict) {
+    sStr = str(s)
+    result = sStr
+    keys = dict_keys(dict)
+    i = 0
+    while i < len(keys) {
+        key = keys[i]
+        placeholder = rejoin("{", key, "}")
+        value = ""
+        try {
+            value = str(dict[key])
+        } catch err {
+            value = ""
+        }
+        result = replace(result, placeholder, value)
+        i = i + 1
+    }
+    return result
+}
+
+def mask(s, visibleChars, maskChar) {
+    sStr = str(s)
+    visible = int(visibleChars)
+    mc = "*"
+    if maskChar != null and len(str(maskChar)) > 0 {
+        mc = left(str(maskChar), 1)
+    }
+    if len(sStr) <= visible { return sStr }
+    maskLen = len(sStr) - visible
+    masked = ""
+    i = 0
+    while i < maskLen {
+        masked = rejoin(masked, mc)
+        i = i + 1
+    }
+    return rejoin(masked, right(sStr, visible))
+}
+
+# ==============================================================================
+# END OF STRING UTILITIES v2.2
+# ==============================================================================

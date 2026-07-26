@@ -1,0 +1,53 @@
+# =============================================================================
+# AnikaLang - Python Dependencies
+# =============================================================================
+# Install all:           pip install -r requirements.txt
+# Install core only:     pip install wxPython numpy
+# Install without heavy: pip install -r requirements.txt --ignore-installed faiss-cpu
+# =============================================================================
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CORE (Required for UI and basic operation)
+# ─────────────────────────────────────────────────────────────────────────────
+wxPython>=4.2.0              # Entire UI system (windows, widgets, rich text, etc.)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DATA SCIENCE (Stats, ML, Graphs)
+# ─────────────────────────────────────────────────────────────────────────────
+numpy>=1.24.0                # Required by ML, Graphs, AI/RAG
+scipy>=1.10.0                # Required by STATS_* functions (scipy.stats)
+scikit-learn>=1.2.0          # Required by ML_* functions
+matplotlib>=3.7.0            # Required by GRAPH_* functions
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI & RAG (PDF processing, vector search)
+# ─────────────────────────────────────────────────────────────────────────────
+PyPDF2>=3.0.0                # Required by RAG_INGEST_PDF
+faiss-cpu>=1.7.0             # Required by RAG vector search (CPU version)
+# faiss-gpu                 # Uncomment if you have an NVIDIA GPU
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OFFICE DOCUMENTS (Word, PowerPoint, Excel)
+# ─────────────────────────────────────────────────────────────────────────────
+python-docx>=0.8.11          # Required by DOCX_* functions
+python-pptx>=0.6.21          # Required by PPTX_* functions
+openpyxl>=3.1.0              # Required by EXCEL_* and XLSX_* functions
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TRANSLATION & TEXT-TO-SPEECH
+# ─────────────────────────────────────────────────────────────────────────────
+deep-translator>=1.11.0      # Required by TRANSLATE_* (Google Translate)
+pyttsx3>=2.90                # Required by TTS_SPEAK, TTS_SAVE_OFFLINE (offline)
+gTTS>=2.3.0                  # Required by TTS_SAVE (online, high quality)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MARKDOWN & MEDIA CONVERSION
+# ─────────────────────────────────────────────────────────────────────────────
+markdown>=3.4.0              # Required by MD_TO_HTML, UI_MD_EDITOR
+markdownify>=0.11.0          # Required by HTML_TO_MD (best quality conversion)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PDF EXPORT (Optional - only needed for EXPORT_PDF)
+# ─────────────────────────────────────────────────────────────────────────────
+# weasyprint>=59.0           # Uncomment for HTML→PDF export (heavy, needs GTK)
+# pdfkit>=1.0.0              # Uncomment as alternative (needs wkhtmltopdf installed)

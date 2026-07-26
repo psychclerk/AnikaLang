@@ -1,0 +1,1255 @@
+# ==============================================================================
+# PSYCHIATRY RESIDENT LOGBOOK - DSM-5 EDITION (AnikaLang 1.2)
+# Single-user clinical logbook for PG Psychiatry Residents
+# Run: python anika.py logbook.fms
+# ==============================================================================
+
+# --- GLOBAL STATE ---
+db = null
+win = null
+main_tabs = null
+entries_list = null
+browse_list = null
+dsm_list = null
+report_html = null
+status_lbl = null
+stats_lbl = null
+
+# Search/Filter widgets
+search_entry = null
+category_filter = null
+date_from = null
+date_to = null
+
+# Entry form widgets
+form_entry_id = null
+form_date = null
+form_category = null
+form_patient_id = null
+form_age = null
+form_gender = null
+form_diagnosis = null
+form_dx_code = null
+form_setting = null
+form_supervisor = null
+form_procedure = null
+form_notes = null
+form_outcome = null
+form_learning = null
+
+# State
+current_entry_id = null
+current_mode = "new"
+current_dx_id = null
+
+# Popup references
+diag_popup = null
+dx_list_widget = null
+dx_search_entry = null
+dx_cat_combo = null
+mgmt_popup = null
+mgmt_list_widget = null
+mgmt_code_entry = null
+mgmt_name_entry = null
+mgmt_cat_combo = null
+mgmt_search_entry = null
+
+# DSM tab widgets
+dsm_search = null
+dsm_cat_filter = null
+
+# ==============================================================================
+# DATABASE INITIALIZATION
+# ==============================================================================
+
+def init_database() {
+    db = db_connect("psych_resident_logbook.db")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entry_date TEXT NOT NULL,
+        category TEXT NOT NULL,
+        patient_id TEXT,
+        patient_age TEXT,
+        patient_gender TEXT,
+        diagnosis TEXT,
+        dx_code TEXT,
+        setting TEXT,
+        supervisor TEXT,
+        procedure TEXT,
+        notes TEXT,
+        outcome TEXT,
+        learning_points TEXT,
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
+    )")
+    
+    db_execute(db, "CREATE TABLE IF NOT EXISTS supervisors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        designation TEXT
+    )")
+    
+    db_execute(db, "DROP TABLE IF EXISTS diagnoses")
+    db_execute(db, "CREATE TABLE diagnoses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dx_code TEXT NOT NULL,
+        name TEXT NOT NULL,
+        category TEXT,
+        subcategory TEXT,
+        notes TEXT,
+        UNIQUE(dx_code, name)
+    )")
+    
+    count = db_query(db, "SELECT COUNT(*) as c FROM diagnoses")
+    if count[0]["c"] == 0 {
+        seed_dsm5_diagnoses()
+    }
+    
+    sup_count = db_query(db, "SELECT COUNT(*) as c FROM supervisors")
+    if sup_count[0]["c"] == 0 {
+        db_execute(db, "INSERT OR IGNORE INTO supervisors (name, designation) VALUES ('Dr. ___________ (Unit Head)', 'Unit Head'), ('Dr. ___________ (Guide)', 'Guide'), ('Dr. ___________ (Co-Guide)', 'Co-Guide')")
+    }
+}
+
+def seed_dsm5_diagnoses() {
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('315.9', 'Intellectual Disability (Mild)', 'Neurodevelopmental'), ('319', 'Intellectual Disability (Moderate)', 'Neurodevelopmental'), ('318.0', 'Intellectual Disability (Severe)', 'Neurodevelopmental'), ('315.00', 'Specific Learning Disorder - Reading', 'Neurodevelopmental'), ('315.39', 'Language Disorder', 'Neurodevelopmental'), ('299.00', 'Autism Spectrum Disorder', 'Neurodevelopmental'), ('314.01', 'ADHD - Combined Presentation', 'Neurodevelopmental'), ('314.00', 'ADHD - Predominantly Inattentive', 'Neurodevelopmental'), ('307.22', 'Tourette''s Disorder', 'Neurodevelopmental')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('295.90', 'Schizophrenia', 'Psychotic'), ('295.40', 'Schizoaffective Disorder', 'Psychotic'), ('297.1', 'Delusional Disorder', 'Psychotic'), ('298.8', 'Brief Psychotic Disorder', 'Psychotic'), ('295.70', 'Schizotypal Disorder', 'Psychotic'), ('293.81', 'Psychotic Disorder Due to Medical Condition', 'Psychotic'), ('292.9', 'Substance-Induced Psychotic Disorder', 'Psychotic'), ('295.20', 'Catatonia', 'Psychotic')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('296.0x', 'Bipolar I - Single Manic Episode', 'Bipolar'), ('296.5x', 'Bipolar I - Most Recent Depressed', 'Bipolar'), ('296.40', 'Bipolar I - Most Recent Manic', 'Bipolar'), ('296.89', 'Bipolar II Disorder', 'Bipolar'), ('301.13', 'Cyclothymic Disorder', 'Bipolar'), ('296.80', 'Other Specified Bipolar Disorder', 'Bipolar')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('296.21', 'MDD - Single Episode Mild', 'Depressive'), ('296.22', 'MDD - Single Episode Moderate', 'Depressive'), ('296.23', 'MDD - Single Episode Severe', 'Depressive'), ('296.31', 'MDD - Recurrent Mild', 'Depressive'), ('296.33', 'MDD - Recurrent Severe', 'Depressive'), ('300.4', 'Persistent Depressive Disorder (Dysthymia)', 'Depressive'), ('298.0', 'Mixed Anxiety-Depressive Disorder', 'Depressive')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('300.23', 'Social Anxiety Disorder', 'Anxiety'), ('300.21', 'Panic Disorder', 'Anxiety'), ('300.22', 'Agoraphobia', 'Anxiety'), ('300.02', 'Generalized Anxiety Disorder', 'Anxiety'), ('300.29', 'Specific Phobia', 'Anxiety'), ('313.0', 'Separation Anxiety Disorder', 'Anxiety')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('300.3', 'Obsessive-Compulsive Disorder', 'OCD'), ('147.52', 'Body Dysmorphic Disorder', 'OCD'), ('300.7', 'Hoarding Disorder', 'OCD'), ('312.39', 'Trichotillomania', 'OCD')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('309.81', 'Posttraumatic Stress Disorder (PTSD)', 'Trauma'), ('308.3', 'Acute Stress Disorder', 'Trauma'), ('309.0', 'Adjustment Disorder - Depressed Mood', 'Trauma'), ('309.24', 'Adjustment Disorder - Anxiety', 'Trauma'), ('309.28', 'Adjustment Disorder - Mixed', 'Trauma')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('300.14', 'Dissociative Identity Disorder', 'Dissociative'), ('300.12', 'Dissociative Amnesia', 'Dissociative'), ('300.13', 'Depersonalization/Derealization', 'Dissociative')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('300.82', 'Somatic Symptom Disorder', 'Somatic'), ('300.7', 'Illness Anxiety Disorder', 'Somatic'), ('300.15', 'Conversion Disorder', 'Somatic'), ('307.1', 'Factitious Disorder', 'Somatic')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('307.1', 'Anorexia Nervosa', 'Eating'), ('307.51', 'Bulimia Nervosa', 'Eating'), ('307.51', 'Binge-Eating Disorder', 'Eating')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('780.52', 'Insomnia Disorder', 'Sleep'), ('780.59', 'Hypersomnolence Disorder', 'Sleep'), ('347.00', 'Narcolepsy', 'Sleep'), ('307.42', 'Obstructive Sleep Apnea', 'Sleep')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('302.76', 'Erectile Disorder', 'Sexual'), ('302.74', 'Premature Ejaculation', 'Sexual'), ('302.6', 'Gender Dysphoria', 'Gender')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('313.81', 'Oppositional Defiant Disorder', 'Disruptive'), ('312.81', 'Conduct Disorder', 'Disruptive'), ('312.34', 'Intermittent Explosive Disorder', 'Disruptive'), ('301.7', 'Antisocial Personality Disorder', 'Disruptive')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('303.90', 'Alcohol Use Disorder', 'Substance'), ('304.00', 'Opioid Use Disorder', 'Substance'), ('305.20', 'Cannabis Use Disorder', 'Substance'), ('305.60', 'Stimulant Use Disorder', 'Substance'), ('312.31', 'Gambling Disorder', 'Addictive')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('331.0', 'Major NCD - Alzheimer''s', 'Neurocognitive'), ('290.4', 'Major NCD - Vascular', 'Neurocognitive'), ('294.1', 'Mild Neurocognitive Disorder', 'Neurocognitive'), ('293.0', 'Delirium', 'Neurocognitive')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('301.0', 'Paranoid Personality Disorder', 'Personality'), ('301.22', 'Schizotypal Personality Disorder', 'Personality'), ('301.83', 'Borderline Personality Disorder', 'Personality'), ('301.81', 'Histrionic Personality Disorder', 'Personality'), ('301.82', 'Narcissistic Personality Disorder', 'Personality'), ('301.6', 'Dependent Personality Disorder', 'Personality'), ('301.4', 'Obsessive-Compulsive Personality Disorder', 'Personality')")
+    
+    db_execute(db, "INSERT OR IGNORE INTO diagnoses (dx_code, name, category) VALUES ('302.4', 'Exhibitionistic Disorder', 'Paraphilic'), ('302.2', 'Pedophilic Disorder', 'Paraphilic'), ('302.82', 'Voyeuristic Disorder', 'Paraphilic')")
+}
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+def escape_sql(text) {
+    return replace(str(text), "'", "''")
+}
+
+def escape_html(text) {
+    t = str(text)
+    t = replace(t, "&", "&amp;")
+    t = replace(t, "<", "&lt;")
+    t = replace(t, ">", "&gt;")
+    return t
+}
+
+def escape_csv(text) {
+    t = str(text)
+    t = replace(t, '"', '""')
+    if contains(t, ",") or contains(t, '"') or contains(t, "\n") {
+        t = rejoin('"', t, '"')
+    }
+    return t
+}
+
+def format_date_display(iso_date) {
+    if iso_date == null { return "" }
+    if len(str(iso_date)) < 10 { return str(iso_date) }
+    parts = split(str(iso_date), "-")
+    if len(parts) >= 3 {
+        day_part = left(parts[2], 2)
+        return rejoin(day_part, "-", parts[1], "-", parts[0])
+    }
+    return str(iso_date)
+}
+
+def get_category_icon(cat) {
+    icon = "[*]"
+    if cat == "OPD" { icon = "[OPD]" }
+    if cat == "IPD Admission" { icon = "[ADM]" }
+    if cat == "IPD Follow-up" { icon = "[FU]" }
+    if cat == "Emergency" { icon = "[EMG]" }
+    if cat == "ECT" { icon = "[ECT]" }
+    if cat == "Psychotherapy" { icon = "[PSY]" }
+    if cat == "Liaison" { icon = "[LIA]" }
+    if cat == "Teaching" { icon = "[EDU]" }
+    if cat == "CME/Conference" { icon = "[CME]" }
+    if cat == "Journal Club" { icon = "[JCL]" }
+    if cat == "Case Presentation" { icon = "[CAS]" }
+    if cat == "Procedure" { icon = "[PRC]" }
+    if cat == "On-Call" { icon = "[CAL]" }
+    return icon
+}
+
+# ==============================================================================
+# ENTRIES LIST OPERATIONS
+# ==============================================================================
+
+def refresh_entries_list() {
+    ui_listview_clear(entries_list)
+    ui_listview_clear(browse_list)
+    
+    search_term = ""
+    if search_entry != null { search_term = trim(ui_get(search_entry)) }
+    
+    cat_filter = "ALL"
+    if category_filter != null { cat_filter = ui_get(category_filter) }
+    
+    sql = "SELECT id, entry_date, category, patient_id, patient_age, patient_gender, diagnosis, dx_code, supervisor FROM entries WHERE 1=1"
+    
+    if cat_filter != "ALL" {
+        sql = rejoin(sql, " AND category = '", escape_sql(cat_filter), "'")
+    }
+    
+    if len(search_term) > 0 {
+        escaped = rejoin("%", escape_sql(search_term), "%")
+        sql = rejoin(sql, " AND (patient_id LIKE '", escaped, "' OR diagnosis LIKE '", escaped, "' OR notes LIKE '", escaped, "' OR supervisor LIKE '", escaped, "')")
+    }
+    
+    df = ""
+    if date_from != null { df = ui_get(date_from) }
+    if len(df) > 0 { sql = rejoin(sql, " AND entry_date >= '", escape_sql(df), "'") }
+    
+    dt = ""
+    if date_to != null { dt = ui_get(date_to) }
+    if len(dt) > 0 { sql = rejoin(sql, " AND entry_date <= '", escape_sql(dt), "'") }
+    
+    sql = rejoin(sql, " ORDER BY entry_date DESC, id DESC")
+    
+    entries = db_query(db, sql)
+    i = 0
+    while i < len(entries) {
+        e = entries[i]
+        icon = get_category_icon(e["category"])
+        display_date = format_date_display(e["entry_date"])
+        pid = e["patient_id"]
+        if pid == null { pid = "-" }
+        diag = e["diagnosis"]
+        if diag == null { diag = "-" }
+        sup = e["supervisor"]
+        if sup == null { sup = "-" }
+        
+        # Main entries list (hidden ID column)
+        ui_listview_insert(entries_list, [str(e["id"]), icon, display_date, e["category"], pid, diag])
+        
+        # Browse list (more detail)
+        age_sex = ""
+        if e["patient_age"] != null and len(str(e["patient_age"])) > 0 {
+            age_sex = rejoin(str(e["patient_age"]), "y")
+        }
+        if e["patient_gender"] != null and len(str(e["patient_gender"])) > 0 {
+            if len(age_sex) > 0 { age_sex = rejoin(age_sex, "/") }
+            age_sex = rejoin(age_sex, str(e["patient_gender"]))
+        }
+        if age_sex == "" { age_sex = "-" }
+        dx = e["dx_code"]
+        if dx == null { dx = "" }
+        ui_listview_insert(browse_list, [str(e["id"]), icon, display_date, e["category"], pid, age_sex, diag, dx, sup])
+        
+        i = i + 1
+    }
+    
+    update_stats()
+}
+
+def update_stats() {
+    total = db_query(db, "SELECT COUNT(*) as c FROM entries")
+    opd = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'OPD'")
+    ipd = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category LIKE 'IPD%'")
+    emg = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'Emergency'")
+    ect = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'ECT'")
+    psy = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'Psychotherapy'")
+    teach = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category IN ('Teaching', 'CME/Conference', 'Journal Club', 'Case Presentation')")
+    
+    stats_text = rejoin("Total: ", total[0]["c"])
+    stats_text = rejoin(stats_text, " | OPD: ", opd[0]["c"])
+    stats_text = rejoin(stats_text, " | IPD: ", ipd[0]["c"])
+    stats_text = rejoin(stats_text, " | Emergency: ", emg[0]["c"])
+    stats_text = rejoin(stats_text, " | ECT: ", ect[0]["c"])
+    stats_text = rejoin(stats_text, " | Psychotherapy: ", psy[0]["c"])
+    stats_text = rejoin(stats_text, " | Teaching: ", teach[0]["c"])
+    
+    ui_set(stats_lbl, rejoin("  ", stats_text, "  "))
+}
+
+# ==============================================================================
+# FORM OPERATIONS
+# ==============================================================================
+
+def clear_form() {
+    ui_set(form_date, date())
+    ui_set(form_category, "OPD")
+    ui_set(form_patient_id, "")
+    ui_set(form_age, "")
+    ui_set(form_gender, "Male")
+    ui_set(form_diagnosis, "")
+    ui_set(form_dx_code, "")
+    ui_set(form_setting, "")
+    ui_set(form_supervisor, "")
+    ui_set(form_procedure, "")
+    ui_text_set(form_notes, "")
+    ui_text_set(form_outcome, "")
+    ui_text_set(form_learning, "")
+    current_entry_id = null
+    current_mode = "new"
+}
+
+def load_entry_to_form(entry_id) {
+    entries = db_query(db, rejoin("SELECT * FROM entries WHERE id = ", entry_id))
+    if len(entries) == 0 {
+        ui_alert_err("Entry not found")
+        return
+    }
+    e = entries[0]
+    current_entry_id = entry_id
+    current_mode = "edit"
+    
+    ui_set(form_date, e["entry_date"])
+    ui_set(form_category, e["category"])
+    pid = e["patient_id"]
+    if pid == null { pid = "" }
+    ui_set(form_patient_id, pid)
+    age = e["patient_age"]
+    if age == null { age = "" }
+    ui_set(form_age, age)
+    gender = e["patient_gender"]
+    if gender == null { gender = "Male" }
+    ui_set(form_gender, gender)
+    diag = e["diagnosis"]
+    if diag == null { diag = "" }
+    ui_set(form_diagnosis, diag)
+    dx = e["dx_code"]
+    if dx == null { dx = "" }
+    ui_set(form_dx_code, dx)
+    setting = e["setting"]
+    if setting == null { setting = "" }
+    ui_set(form_setting, setting)
+    sup = e["supervisor"]
+    if sup == null { sup = "" }
+    ui_set(form_supervisor, sup)
+    proc = e["procedure"]
+    if proc == null { proc = "" }
+    ui_set(form_procedure, proc)
+    notes = e["notes"]
+    if notes == null { notes = "" }
+    ui_text_set(form_notes, notes)
+    outcome = e["outcome"]
+    if outcome == null { outcome = "" }
+    ui_text_set(form_outcome, outcome)
+    learning = e["learning_points"]
+    if learning == null { learning = "" }
+    ui_text_set(form_learning, learning)
+    
+    ui_set(status_lbl, rejoin("  Editing entry #", entry_id))
+}
+
+def save_entry() {
+    entry_date = ui_get(form_date)
+    category = ui_get(form_category)
+    patient_id = trim(ui_get(form_patient_id))
+    patient_age = trim(ui_get(form_age))
+    patient_gender = ui_get(form_gender)
+    diagnosis = trim(ui_get(form_diagnosis))
+    dx_code = trim(ui_get(form_dx_code))
+    setting = trim(ui_get(form_setting))
+    supervisor = trim(ui_get(form_supervisor))
+    procedure = trim(ui_get(form_procedure))
+    notes = ui_text_get(form_notes)
+    outcome = ui_text_get(form_outcome)
+    learning = ui_text_get(form_learning)
+    
+    if len(entry_date) == 0 {
+        ui_alert_err("Date is required")
+        return
+    }
+    if len(category) == 0 {
+        ui_alert_err("Category is required")
+        return
+    }
+    
+    if current_mode == "edit" and current_entry_id != null {
+        sql = rejoin("UPDATE entries SET entry_date = '", escape_sql(entry_date),
+            "', category = '", escape_sql(category),
+            "', patient_id = '", escape_sql(patient_id),
+            "', patient_age = '", escape_sql(patient_age),
+            "', patient_gender = '", escape_sql(patient_gender),
+            "', diagnosis = '", escape_sql(diagnosis),
+            "', dx_code = '", escape_sql(dx_code),
+            "', setting = '", escape_sql(setting),
+            "', supervisor = '", escape_sql(supervisor),
+            "', procedure = '", escape_sql(procedure),
+            "', notes = '", escape_sql(notes),
+            "', outcome = '", escape_sql(outcome),
+            "', learning_points = '", escape_sql(learning),
+            "', updated_at = datetime('now','localtime') WHERE id = ", current_entry_id)
+        db_execute(db, sql)
+        ui_alert("Entry updated successfully!")
+    } else {
+        sql = rejoin("INSERT INTO entries (entry_date, category, patient_id, patient_age, patient_gender, diagnosis, dx_code, setting, supervisor, procedure, notes, outcome, learning_points) VALUES ('",
+            escape_sql(entry_date), "', '",
+            escape_sql(category), "', '",
+            escape_sql(patient_id), "', '",
+            escape_sql(patient_age), "', '",
+            escape_sql(patient_gender), "', '",
+            escape_sql(diagnosis), "', '",
+            escape_sql(dx_code), "', '",
+            escape_sql(setting), "', '",
+            escape_sql(supervisor), "', '",
+            escape_sql(procedure), "', '",
+            escape_sql(notes), "', '",
+            escape_sql(outcome), "', '",
+            escape_sql(learning), "')")
+        db_execute(db, sql)
+        ui_alert("Entry saved successfully!")
+    }
+    
+    clear_form()
+    refresh_entries_list()
+    ui_set(status_lbl, "  Entry saved")
+}
+
+def delete_entry() {
+    if current_entry_id == null {
+        ui_alert_err("No entry selected to delete")
+        return
+    }
+    ui_alert(rejoin("Delete entry #", current_entry_id, "?\n\nThis cannot be undone."))
+    db_execute(db, rejoin("DELETE FROM entries WHERE id = ", current_entry_id))
+    clear_form()
+    refresh_entries_list()
+    ui_set(status_lbl, "  Entry deleted")
+}
+
+def on_entry_select(widget) {
+    selected = ui_listview_get_selected(entries_list)
+    if selected == null { return }
+    entry_id = int(selected[0])
+    load_entry_to_form(entry_id)
+}
+
+def on_browse_select(widget) {
+    selected = ui_listview_get_selected(browse_list)
+    if selected == null { return }
+    entry_id = int(selected[0])
+    load_entry_to_form(entry_id)
+    ui_tab_select(main_tabs, "Log Entry")
+}
+
+def new_entry() {
+    clear_form()
+    ui_set(status_lbl, "  New entry")
+}
+
+def duplicate_entry() {
+    if current_entry_id == null {
+        ui_alert_err("No entry selected to duplicate")
+        return
+    }
+    entries = db_query(db, rejoin("SELECT * FROM entries WHERE id = ", current_entry_id))
+    if len(entries) == 0 { return }
+    e = entries[0]
+    
+    clear_form()
+    current_mode = "new"
+    ui_set(form_category, e["category"])
+    pid = e["patient_id"]
+    if pid != null { ui_set(form_patient_id, pid) }
+    age = e["patient_age"]
+    if age != null { ui_set(form_age, age) }
+    gender = e["patient_gender"]
+    if gender != null { ui_set(form_gender, gender) }
+    diag = e["diagnosis"]
+    if diag != null { ui_set(form_diagnosis, diag) }
+    dx = e["dx_code"]
+    if dx != null { ui_set(form_dx_code, dx) }
+    sup = e["supervisor"]
+    if sup != null { ui_set(form_supervisor, sup) }
+    proc = e["procedure"]
+    if proc != null { ui_set(form_procedure, proc) }
+    notes = e["notes"]
+    if notes != null { ui_text_set(form_notes, notes) }
+    outcome = e["outcome"]
+    if outcome != null { ui_text_set(form_outcome, outcome) }
+    learning = e["learning_points"]
+    if learning != null { ui_text_set(form_learning, learning) }
+    
+    ui_set(status_lbl, "  Duplicated - edit and save as new")
+}
+
+# ==============================================================================
+# DSM-5 DIAGNOSIS PICKER POPUP
+# ==============================================================================
+
+def show_diagnosis_picker() {
+    if diag_popup != null { ui_close(diag_popup) }
+    
+    diag_popup = ui_popup("Select DSM-5 Diagnosis", 750, 620)
+    
+    header = ui_label(diag_popup, "  DSM-5 Diagnosis Picker", 0, 0, 750, 35)
+    ui_color(header, "#FFFFFF", "#8E44AD")
+    ui_font(header, 13, "", true)
+    
+    search_lbl = ui_label(diag_popup, "Search:", 20, 50, 60, 25)
+    dx_search_entry = ui_entry(diag_popup, "", 85, 50, 400, 28)
+    btn_dx_search = ui_button(diag_popup, "Search", "search_diagnoses", 495, 50, 80, 28)
+    ui_color(btn_dx_search, "#FFFFFF", "#2980B9")
+    btn_dx_reset = ui_button(diag_popup, "Reset", "reset_diagnosis_search", 585, 50, 80, 28)
+    ui_color(btn_dx_reset, "#FFFFFF", "#95A5A6")
+    
+    cat_lbl = ui_label(diag_popup, "Category:", 20, 90, 70, 25)
+    dx_cat_combo = ui_combobox(diag_popup, ["All", "Neurodevelopmental", "Psychotic", "Bipolar", "Depressive", "Anxiety", "OCD", "Trauma", "Dissociative", "Somatic", "Eating", "Sleep", "Sexual", "Gender", "Disruptive", "Substance", "Neurocognitive", "Personality", "Paraphilic"], 95, 90, 250, 28)
+    ui_set(dx_cat_combo, "All")
+    
+    dx_list_widget = ui_listview(diag_popup, ["Code", "Diagnosis", "Category"], 20, 130, 710, 400)
+    ui_listview_set_column_width(dx_list_widget, 0, 80)
+    ui_listview_set_column_width(dx_list_widget, 1, 430)
+    ui_listview_set_column_width(dx_list_widget, 2, 180)
+    
+    load_all_diagnoses(dx_list_widget)
+    
+    btn_pick = ui_button(diag_popup, "Select", "pick_diagnosis", 20, 545, 230, 40)
+    ui_color(btn_pick, "#FFFFFF", "#27AE60")
+    btn_mgmt = ui_button(diag_popup, "Manage", "manage_diagnoses", 260, 545, 230, 40)
+    ui_color(btn_mgmt, "#FFFFFF", "#F39C12")
+    btn_close_dx = ui_button(diag_popup, "Cancel", "close_dx_popup", 500, 545, 230, 40)
+    ui_color(btn_close_dx, "#FFFFFF", "#95A5A6")
+}
+
+def load_all_diagnoses(list_widget) {
+    ui_listview_clear(list_widget)
+    diagnoses = db_query(db, "SELECT * FROM diagnoses ORDER BY dx_code")
+    i = 0
+    while i < len(diagnoses) {
+        d = diagnoses[i]
+        ui_listview_insert(list_widget, [d["dx_code"], d["name"], d["category"]])
+        i = i + 1
+    }
+}
+
+def search_diagnoses() {
+    search_term = trim(ui_get(dx_search_entry))
+    cat_filter = ui_get(dx_cat_combo)
+    ui_listview_clear(dx_list_widget)
+    
+    sql = "SELECT * FROM diagnoses WHERE 1=1"
+    if cat_filter != "All" { sql = rejoin(sql, " AND category = '", escape_sql(cat_filter), "'") }
+    if len(search_term) > 0 {
+        escaped = rejoin("%", escape_sql(search_term), "%")
+        sql = rejoin(sql, " AND (dx_code LIKE '", escaped, "' OR name LIKE '", escaped, "')")
+    }
+    sql = rejoin(sql, " ORDER BY dx_code")
+    
+    diagnoses = db_query(db, sql)
+    i = 0
+    while i < len(diagnoses) {
+        d = diagnoses[i]
+        ui_listview_insert(dx_list_widget, [d["dx_code"], d["name"], d["category"]])
+        i = i + 1
+    }
+}
+
+def reset_diagnosis_search() {
+    ui_set(dx_search_entry, "")
+    ui_set(dx_cat_combo, "All")
+    load_all_diagnoses(dx_list_widget)
+}
+
+def pick_diagnosis() {
+    selected = ui_listview_get_selected(dx_list_widget)
+    if selected == null {
+        ui_alert_err("Select a diagnosis first")
+        return
+    }
+    ui_set(form_dx_code, selected[0])
+    ui_set(form_diagnosis, selected[1])
+    ui_close(diag_popup)
+    diag_popup = null
+}
+
+def close_dx_popup() {
+    if diag_popup != null {
+        ui_close(diag_popup)
+        diag_popup = null
+    }
+}
+
+# ==============================================================================
+# DSM-5 MANAGEMENT POPUP
+# ==============================================================================
+
+def manage_diagnoses() {
+    if diag_popup != null {
+        ui_close(diag_popup)
+        diag_popup = null
+    }
+    if mgmt_popup != null { ui_close(mgmt_popup) }
+    
+    mgmt_popup = ui_popup("Manage DSM-5 Diagnoses", 850, 680)
+    
+    header = ui_label(mgmt_popup, "  DSM-5 Diagnosis Dictionary", 0, 0, 850, 35)
+    ui_color(header, "#FFFFFF", "#8E44AD")
+    ui_font(header, 13, "", true)
+    
+    search_lbl = ui_label(mgmt_popup, "Search:", 20, 50, 60, 25)
+    mgmt_search_entry = ui_entry(mgmt_popup, "", 85, 50, 450, 28)
+    btn_mg_search = ui_button(mgmt_popup, "Search", "search_mgmt_diagnoses", 545, 50, 80, 28)
+    ui_color(btn_mg_search, "#FFFFFF", "#2980B9")
+    btn_mg_reset = ui_button(mgmt_popup, "Reset", "reset_mgmt_search", 635, 50, 80, 28)
+    ui_color(btn_mg_reset, "#FFFFFF", "#95A5A6")
+    
+    mgmt_list_widget = ui_listview(mgmt_popup, ["ID", "Code", "Diagnosis", "Category"], 20, 90, 810, 350)
+    ui_listview_set_column_width(mgmt_list_widget, 0, 50)
+    ui_listview_set_column_width(mgmt_list_widget, 1, 80)
+    ui_listview_set_column_width(mgmt_list_widget, 2, 480)
+    ui_listview_set_column_width(mgmt_list_widget, 3, 180)
+    ui_bind(mgmt_list_widget, "select", "on_mgmt_select")
+    
+    load_mgmt_diagnoses()
+    
+    # Form frame
+    form_bg = ui_panel(mgmt_popup, 20, 455, 810, 160)
+    ui_color(form_bg, null, "#ECF0F1")
+    
+    code_lbl = ui_label(form_bg, "DSM-5 Code:", 10, 10, 100, 25)
+    mgmt_code_entry = ui_entry(form_bg, "", 120, 10, 200, 28)
+    cat_lbl = ui_label(form_bg, "Category:", 340, 10, 80, 25)
+    mgmt_cat_combo = ui_combobox(form_bg, ["Neurodevelopmental", "Psychotic", "Bipolar", "Depressive", "Anxiety", "OCD", "Trauma", "Dissociative", "Somatic", "Eating", "Sleep", "Sexual", "Gender", "Disruptive", "Substance", "Neurocognitive", "Personality", "Paraphilic"], 430, 10, 200, 28)
+    
+    name_lbl = ui_label(form_bg, "Diagnosis:", 10, 50, 100, 25)
+    mgmt_name_entry = ui_entry(form_bg, "", 120, 50, 680, 28)
+    
+    btn_add_dx = ui_button(form_bg, "Add New", "add_diagnosis", 10, 100, 180, 40)
+    ui_color(btn_add_dx, "#FFFFFF", "#27AE60")
+    btn_upd_dx = ui_button(form_bg, "Update", "update_diagnosis", 200, 100, 180, 40)
+    ui_color(btn_upd_dx, "#FFFFFF", "#3498DB")
+    btn_del_dx = ui_button(form_bg, "Delete", "delete_diagnosis", 390, 100, 180, 40)
+    ui_color(btn_del_dx, "#FFFFFF", "#E74C3C")
+    btn_close_mgmt = ui_button(form_bg, "Close", "close_mgmt_popup", 580, 100, 180, 40)
+    ui_color(btn_close_mgmt, "#FFFFFF", "#95A5A6")
+}
+
+def load_mgmt_diagnoses() {
+    ui_listview_clear(mgmt_list_widget)
+    diagnoses = db_query(db, "SELECT * FROM diagnoses ORDER BY dx_code")
+    i = 0
+    while i < len(diagnoses) {
+        d = diagnoses[i]
+        ui_listview_insert(mgmt_list_widget, [str(d["id"]), d["dx_code"], d["name"], d["category"]])
+        i = i + 1
+    }
+}
+
+def search_mgmt_diagnoses() {
+    search_term = trim(ui_get(mgmt_search_entry))
+    ui_listview_clear(mgmt_list_widget)
+    sql = "SELECT * FROM diagnoses WHERE 1=1"
+    if len(search_term) > 0 {
+        escaped = rejoin("%", escape_sql(search_term), "%")
+        sql = rejoin(sql, " AND (dx_code LIKE '", escaped, "' OR name LIKE '", escaped, "' OR category LIKE '", escaped, "')")
+    }
+    sql = rejoin(sql, " ORDER BY dx_code")
+    diagnoses = db_query(db, sql)
+    i = 0
+    while i < len(diagnoses) {
+        d = diagnoses[i]
+        ui_listview_insert(mgmt_list_widget, [str(d["id"]), d["dx_code"], d["name"], d["category"]])
+        i = i + 1
+    }
+}
+
+def reset_mgmt_search() {
+    ui_set(mgmt_search_entry, "")
+    load_mgmt_diagnoses()
+}
+
+def on_mgmt_select(widget) {
+    selected = ui_listview_get_selected(mgmt_list_widget)
+    if selected == null { return }
+    current_dx_id = int(selected[0])
+    ui_set(mgmt_code_entry, selected[1])
+    ui_set(mgmt_name_entry, selected[2])
+    ui_set(mgmt_cat_combo, selected[3])
+}
+
+def add_diagnosis() {
+    code = trim(ui_get(mgmt_code_entry))
+    name = trim(ui_get(mgmt_name_entry))
+    category = ui_get(mgmt_cat_combo)
+    
+    if len(code) == 0 or len(name) == 0 {
+        ui_alert_err("Code and Diagnosis name are required")
+        return
+    }
+    
+    try {
+        sql = rejoin("INSERT INTO diagnoses (dx_code, name, category) VALUES ('", escape_sql(code), "', '", escape_sql(name), "', '", escape_sql(category), "')")
+        db_execute(db, sql)
+        ui_alert("Diagnosis added successfully!")
+        ui_set(mgmt_code_entry, "")
+        ui_set(mgmt_name_entry, "")
+        load_mgmt_diagnoses()
+        load_dsm_diagnoses()
+    } catch err {
+        if contains(str(err), "UNIQUE") {
+            ui_alert_err("A diagnosis with this code and name already exists.")
+        } else {
+            ui_alert_err(rejoin("Failed to add: ", str(err)))
+        }
+    }
+}
+
+def update_diagnosis() {
+    if current_dx_id == null {
+        ui_alert_err("Select a diagnosis to update")
+        return
+    }
+    code = trim(ui_get(mgmt_code_entry))
+    name = trim(ui_get(mgmt_name_entry))
+    category = ui_get(mgmt_cat_combo)
+    if len(code) == 0 or len(name) == 0 {
+        ui_alert_err("Code and Diagnosis name are required")
+        return
+    }
+    sql = rejoin("UPDATE diagnoses SET dx_code = '", escape_sql(code), "', name = '", escape_sql(name), "', category = '", escape_sql(category), "' WHERE id = ", current_dx_id)
+    db_execute(db, sql)
+    ui_alert("Diagnosis updated!")
+    load_mgmt_diagnoses()
+    load_dsm_diagnoses()
+}
+
+def delete_diagnosis() {
+    if current_dx_id == null {
+        ui_alert_err("Select a diagnosis to delete")
+        return
+    }
+    ui_alert("Delete this diagnosis?\n\nThis cannot be undone.")
+    db_execute(db, rejoin("DELETE FROM diagnoses WHERE id = ", current_dx_id))
+    current_dx_id = null
+    ui_set(mgmt_code_entry, "")
+    ui_set(mgmt_name_entry, "")
+    load_mgmt_diagnoses()
+    load_dsm_diagnoses()
+}
+
+def close_mgmt_popup() {
+    if mgmt_popup != null {
+        ui_close(mgmt_popup)
+        mgmt_popup = null
+    }
+}
+
+# ==============================================================================
+# REPORT GENERATION
+# ==============================================================================
+
+def generate_summary_report() {
+    html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>"
+    html = rejoin(html, "body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;padding:20px;margin:0;}")
+    html = rejoin(html, ".container{max-width:1000px;margin:0 auto;background:white;padding:30px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);}")
+    html = rejoin(html, "h1{color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:12px;}")
+    html = rejoin(html, "h2{color:#2c3e50;border-bottom:2px solid #3498db;padding-bottom:8px;margin-top:30px;}")
+    html = rejoin(html, "table{width:100%;border-collapse:collapse;margin-bottom:20px;}")
+    html = rejoin(html, "th,td{border:1px solid #ddd;padding:8px;text-align:left;}")
+    html = rejoin(html, "th{background:#3498db;color:white;}")
+    html = rejoin(html, "tr:nth-child(even){background:#f9f9f9;}")
+    html = rejoin(html, ".stat-card{display:inline-block;background:#3498db;color:white;padding:15px 25px;margin:5px;border-radius:8px;text-align:center;min-width:100px;}")
+    html = rejoin(html, ".stat-num{font-size:2em;font-weight:bold;}")
+    html = rejoin(html, ".stat-label{font-size:0.9em;}")
+    html = rejoin(html, ".entry-card{background:#f9f9f9;padding:15px;margin:10px 0;border-left:4px solid #3498db;border-radius:4px;}")
+    html = rejoin(html, ".entry-meta{color:#7f8c8d;font-size:0.85em;margin-bottom:8px;}")
+    html = rejoin(html, ".footer{margin-top:30px;padding-top:15px;border-top:1px solid #ecf0f1;color:#95a5a6;font-size:0.9em;text-align:center;}")
+    html = rejoin(html, "</style></head><body><div class='container'>")
+    html = rejoin(html, "<h1>Psychiatry Resident Logbook Summary (DSM-5)</h1>")
+    html = rejoin(html, "<p>Generated: ", now(), "</p>")
+    
+    total = db_query(db, "SELECT COUNT(*) as c FROM entries")
+    opd = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'OPD'")
+    ipd_adm = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'IPD Admission'")
+    ipd_fu = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'IPD Follow-up'")
+    emg = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'Emergency'")
+    ect = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'ECT'")
+    psy = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'Psychotherapy'")
+    teach = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category IN ('Teaching', 'CME/Conference', 'Journal Club', 'Case Presentation')")
+    proc = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'Procedure'")
+    oncall = db_query(db, "SELECT COUNT(*) as c FROM entries WHERE category = 'On-Call'")
+    
+    html = rejoin(html, "<h2>Activity Statistics</h2><div>")
+    html = rejoin(html, "<div class='stat-card'><div class='stat-num'>", total[0]["c"], "</div><div class='stat-label'>Total</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#27ae60;'><div class='stat-num'>", opd[0]["c"], "</div><div class='stat-label'>OPD</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#e67e22;'><div class='stat-num'>", ipd_adm[0]["c"], "</div><div class='stat-label'>IPD Adm</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#f39c12;'><div class='stat-num'>", ipd_fu[0]["c"], "</div><div class='stat-label'>IPD FU</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#e74c3c;'><div class='stat-num'>", emg[0]["c"], "</div><div class='stat-label'>Emergency</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#9b59b6;'><div class='stat-num'>", ect[0]["c"], "</div><div class='stat-label'>ECT</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#16a085;'><div class='stat-num'>", psy[0]["c"], "</div><div class='stat-label'>Psycho</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#34495e;'><div class='stat-num'>", teach[0]["c"], "</div><div class='stat-label'>Teaching</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#3498db;'><div class='stat-num'>", proc[0]["c"], "</div><div class='stat-label'>Procedure</div></div>")
+    html = rejoin(html, "<div class='stat-card' style='background:#2c3e50;'><div class='stat-num'>", oncall[0]["c"], "</div><div class='stat-label'>On-Call</div></div>")
+    html = rejoin(html, "</div>")
+    
+    html = rejoin(html, "<h2>DSM-5 Diagnosis Breakdown</h2>")
+    html = rejoin(html, "<table><tr><th>DSM-5 Category</th><th>Count</th><th>Percentage</th></tr>")
+    cats = db_query(db, "SELECT category, COUNT(*) as count FROM entries WHERE dx_code != '' GROUP BY category ORDER BY count DESC")
+    i = 0
+    while i < len(cats) {
+        c = cats[i]
+        pct = 0
+        if total[0]["c"] > 0 { pct = (c["count"] * 100) / total[0]["c"] }
+        html = rejoin(html, "<tr><td>", escape_html(c["category"]), "</td><td>", c["count"], "</td><td>", str(int(pct)), "%</td></tr>")
+        i = i + 1
+    }
+    html = rejoin(html, "</table>")
+    
+    html = rejoin(html, "<h2>Recent Entries (Last 20)</h2>")
+    recent = db_query(db, "SELECT * FROM entries ORDER BY entry_date DESC, id DESC LIMIT 20")
+    i = 0
+    while i < len(recent) {
+        e = recent[i]
+        icon = get_category_icon(e["category"])
+        html = rejoin(html, "<div class='entry-card'>")
+        html = rejoin(html, "<div class='entry-meta'>", icon, " ", escape_html(e["category"]), " | ", format_date_display(e["entry_date"]))
+        if e["supervisor"] != null and len(str(e["supervisor"])) > 0 {
+            html = rejoin(html, " | Supervisor: ", escape_html(str(e["supervisor"])))
+        }
+        html = rejoin(html, "</div>")
+        if e["patient_id"] != null and len(str(e["patient_id"])) > 0 {
+            html = rejoin(html, "<div><strong>Patient:</strong> ", escape_html(str(e["patient_id"])))
+            if e["patient_age"] != null and len(str(e["patient_age"])) > 0 {
+                html = rejoin(html, ", ", escape_html(str(e["patient_age"])), " yrs")
+            }
+            if e["patient_gender"] != null and len(str(e["patient_gender"])) > 0 {
+                html = rejoin(html, ", ", escape_html(str(e["patient_gender"])))
+            }
+            html = rejoin(html, "</div>")
+        }
+        if e["diagnosis"] != null and len(str(e["diagnosis"])) > 0 {
+            html = rejoin(html, "<div><strong>DSM-5 Dx:</strong> ", escape_html(str(e["diagnosis"])))
+            if e["dx_code"] != null and len(str(e["dx_code"])) > 0 {
+                html = rejoin(html, " (", escape_html(str(e["dx_code"])), ")")
+            }
+            html = rejoin(html, "</div>")
+        }
+        if e["notes"] != null and len(str(e["notes"])) > 0 {
+            html = rejoin(html, "<div style='margin-top:8px;'><strong>Notes:</strong> ", escape_html(str(e["notes"])), "</div>")
+        }
+        html = rejoin(html, "</div>")
+        i = i + 1
+    }
+    
+    html = rejoin(html, "<div class='footer'>Psychiatry Resident Logbook (DSM-5) | AnikaLang</div></div></body></html>")
+    ui_html_set(report_html, html)
+}
+
+def export_report() {
+    path = ui_file_save(null)
+    if path == "" { return }
+    if path_ext(path) != ".html" { path = rejoin(path, ".html") }
+    
+    html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>"
+    html = rejoin(html, "body{font-family:'Segoe UI',Arial,sans-serif;padding:20px;}")
+    html = rejoin(html, "h1{color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:12px;}")
+    html = rejoin(html, "h2{color:#2c3e50;margin-top:30px;}")
+    html = rejoin(html, "table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:0.9em;}")
+    html = rejoin(html, "th,td{border:1px solid #ddd;padding:6px;text-align:left;}")
+    html = rejoin(html, "th{background:#3498db;color:white;}")
+    html = rejoin(html, "tr:nth-child(even){background:#f9f9f9;}")
+    html = rejoin(html, "@media print{body{padding:0;}}")
+    html = rejoin(html, "</style></head><body>")
+    html = rejoin(html, "<h1>Psychiatry Resident Logbook - DSM-5 Full Export</h1>")
+    html = rejoin(html, "<p>Generated: ", now(), "</p>")
+    
+    all_entries = db_query(db, "SELECT * FROM entries ORDER BY entry_date DESC, id DESC")
+    html = rejoin(html, "<h2>All Entries (", len(all_entries), ")</h2>")
+    html = rejoin(html, "<table><tr><th>#</th><th>Date</th><th>Category</th><th>Patient</th><th>Age/Sex</th><th>DSM-5 Diagnosis</th><th>Code</th><th>Supervisor</th><th>Notes</th></tr>")
+    
+    i = 0
+    while i < len(all_entries) {
+        e = all_entries[i]
+        html = rejoin(html, "<tr>")
+        html = rejoin(html, "<td>", e["id"], "</td>")
+        html = rejoin(html, "<td>", format_date_display(e["entry_date"]), "</td>")
+        html = rejoin(html, "<td>", escape_html(e["category"]), "</td>")
+        pid = e["patient_id"]
+        if pid == null { pid = "" }
+        html = rejoin(html, "<td>", escape_html(str(pid)), "</td>")
+        age_sex = ""
+        if e["patient_age"] != null and len(str(e["patient_age"])) > 0 {
+            age_sex = rejoin(str(e["patient_age"]), "y")
+        }
+        if e["patient_gender"] != null and len(str(e["patient_gender"])) > 0 {
+            if len(age_sex) > 0 { age_sex = rejoin(age_sex, "/") }
+            age_sex = rejoin(age_sex, str(e["patient_gender"]))
+        }
+        html = rejoin(html, "<td>", escape_html(age_sex), "</td>")
+        diag = e["diagnosis"]
+        if diag == null { diag = "" }
+        html = rejoin(html, "<td>", escape_html(str(diag)), "</td>")
+        dx = e["dx_code"]
+        if dx == null { dx = "" }
+        html = rejoin(html, "<td>", escape_html(str(dx)), "</td>")
+        sup = e["supervisor"]
+        if sup == null { sup = "" }
+        html = rejoin(html, "<td>", escape_html(str(sup)), "</td>")
+        notes = e["notes"]
+        if notes == null { notes = "" }
+        short_notes = str(notes)
+        if len(short_notes) > 100 { short_notes = rejoin(left(short_notes, 97), "...") }
+        html = rejoin(html, "<td>", escape_html(short_notes), "</td>")
+        html = rejoin(html, "</tr>")
+        i = i + 1
+    }
+    html = rejoin(html, "</table></body></html>")
+    
+    result = file_write(path, html)
+    if result == "SUCCESS" {
+        ui_alert(rejoin("Report exported to:\n", path))
+    } else {
+        ui_alert_err(rejoin("Export failed: ", result))
+    }
+}
+
+def export_csv() {
+    path = ui_file_save(null)
+    if path == "" { return }
+    if path_ext(path) != ".csv" { path = rejoin(path, ".csv") }
+    
+    all_entries = db_query(db, "SELECT * FROM entries ORDER BY entry_date DESC, id DESC")
+    csv = "ID,Date,Category,Patient ID,Age,Gender,DSM-5 Diagnosis,DSM-5 Code,Setting,Supervisor,Procedure,Notes,Outcome,Learning Points\n"
+    
+    i = 0
+    while i < len(all_entries) {
+        e = all_entries[i]
+        csv = rejoin(csv, str(e["id"]), ",", escape_csv(e["entry_date"]), ",", escape_csv(e["category"]), ",")
+        pid = e["patient_id"]
+        if pid == null { pid = "" }
+        csv = rejoin(csv, escape_csv(str(pid)), ",")
+        age = e["patient_age"]
+        if age == null { age = "" }
+        csv = rejoin(csv, escape_csv(str(age)), ",")
+        gender = e["patient_gender"]
+        if gender == null { gender = "" }
+        csv = rejoin(csv, escape_csv(str(gender)), ",")
+        diag = e["diagnosis"]
+        if diag == null { diag = "" }
+        csv = rejoin(csv, escape_csv(str(diag)), ",")
+        dx = e["dx_code"]
+        if dx == null { dx = "" }
+        csv = rejoin(csv, escape_csv(str(dx)), ",")
+        setting = e["setting"]
+        if setting == null { setting = "" }
+        csv = rejoin(csv, escape_csv(str(setting)), ",")
+        sup = e["supervisor"]
+        if sup == null { sup = "" }
+        csv = rejoin(csv, escape_csv(str(sup)), ",")
+        proc = e["procedure"]
+        if proc == null { proc = "" }
+        csv = rejoin(csv, escape_csv(str(proc)), ",")
+        notes = e["notes"]
+        if notes == null { notes = "" }
+        csv = rejoin(csv, escape_csv(str(notes)), ",")
+        outcome = e["outcome"]
+        if outcome == null { outcome = "" }
+        csv = rejoin(csv, escape_csv(str(outcome)), ",")
+        learning = e["learning_points"]
+        if learning == null { learning = "" }
+        csv = rejoin(csv, escape_csv(str(learning)), "\n")
+        i = i + 1
+    }
+    
+    result = file_write(path, csv)
+    if result == "SUCCESS" {
+        ui_alert(rejoin("CSV exported to:\n", path))
+    } else {
+        ui_alert_err(rejoin("Export failed: ", result))
+    }
+}
+
+# ==============================================================================
+# DSM-5 REFERENCE TAB
+# ==============================================================================
+
+def load_dsm_diagnoses() {
+    if dsm_list == null { return }
+    ui_listview_clear(dsm_list)
+    diagnoses = db_query(db, "SELECT * FROM diagnoses ORDER BY dx_code")
+    i = 0
+    while i < len(diagnoses) {
+        d = diagnoses[i]
+        ui_listview_insert(dsm_list, [d["dx_code"], d["name"], d["category"]])
+        i = i + 1
+    }
+}
+
+def search_dsm_diagnoses() {
+    search_term = trim(ui_get(dsm_search))
+    cat_filter = ui_get(dsm_cat_filter)
+    ui_listview_clear(dsm_list)
+    sql = "SELECT * FROM diagnoses WHERE 1=1"
+    if cat_filter != "All" { sql = rejoin(sql, " AND category = '", escape_sql(cat_filter), "'") }
+    if len(search_term) > 0 {
+        escaped = rejoin("%", escape_sql(search_term), "%")
+        sql = rejoin(sql, " AND (dx_code LIKE '", escaped, "' OR name LIKE '", escaped, "')")
+    }
+    sql = rejoin(sql, " ORDER BY dx_code")
+    diagnoses = db_query(db, sql)
+    i = 0
+    while i < len(diagnoses) {
+        d = diagnoses[i]
+        ui_listview_insert(dsm_list, [d["dx_code"], d["name"], d["category"]])
+        i = i + 1
+    }
+}
+
+def reset_filters() {
+    ui_set(search_entry, "")
+    ui_set(category_filter, "ALL")
+    ui_set(date_from, "")
+    ui_set(date_to, "")
+    refresh_entries_list()
+}
+
+def exit_app() {
+    ui_close(win)
+}
+
+# ==============================================================================
+# UI LAYOUT - ABSOLUTE POSITIONING (1400 x 900)
+# ==============================================================================
+
+win = ui_window("Psychiatry Resident Logbook - DSM-5", 1400, 900)
+
+# --- HEADER (y=0, h=45) ---
+header_bg = ui_panel(win, 0, 0, 1400, 45)
+ui_color(header_bg, null, "#2C3E50")
+header_lbl = ui_label(header_bg, "  Psychiatry Resident Logbook - DSM-5 Edition", 10, 10, 800, 25)
+ui_color(header_lbl, "#FFFFFF", null)
+ui_font(header_lbl, 13, "", true)
+btn_exit = ui_button(header_bg, "Exit", "exit_app", 1310, 8, 80, 30)
+ui_color(btn_exit, "#FFFFFF", "#7F8C8D")
+
+# --- MAIN TABS (y=45, h=810) ---
+main_tabs = ui_tabs(win, 0, 45, 1400, 810)
+
+# ==============================================================================
+# TAB 1: LOG ENTRY
+# ==============================================================================
+log_tab = ui_tab_add(main_tabs, "Log Entry")
+
+# LEFT: Form Panel (x=0, y=0, w=770, h=810)
+form_bg = ui_panel(log_tab, 0, 0, 770, 810)
+ui_color(form_bg, null, "#F8F9FA")
+
+# Row 1: Date + Category (y=10)
+date_lbl = ui_label(form_bg, "Date:", 15, 15, 50, 25)
+form_date = ui_datepicker(form_bg, 70, 12, 130, 28)
+cat_form_lbl = ui_label(form_bg, "Category:", 220, 15, 70, 25)
+form_category = ui_combobox(form_bg, ["OPD", "IPD Admission", "IPD Follow-up", "Emergency", "ECT", "Psychotherapy", "Liaison", "Teaching", "CME/Conference", "Journal Club", "Case Presentation", "Procedure", "On-Call"], 295, 12, 200, 28)
+ui_set(form_category, "OPD")
+
+# Row 2: Patient ID + Age + Sex (y=50)
+pid_lbl = ui_label(form_bg, "Patient ID:", 15, 52, 75, 25)
+form_patient_id = ui_entry(form_bg, "", 95, 50, 180, 28)
+age_lbl = ui_label(form_bg, "Age:", 290, 52, 35, 25)
+form_age = ui_entry(form_bg, "", 330, 50, 60, 28)
+sex_lbl = ui_label(form_bg, "Sex:", 405, 52, 35, 25)
+form_gender = ui_combobox(form_bg, ["Male", "Female", "Other"], 445, 50, 100, 28)
+ui_set(form_gender, "Male")
+
+# Row 3: DSM-5 Dx + Code (y=90)
+dx_form_lbl = ui_label(form_bg, "DSM-5 Dx:", 15, 92, 75, 25)
+form_diagnosis = ui_entry(form_bg, "", 95, 90, 400, 28)
+btn_dx_pick = ui_button(form_bg, "DSM-5", "show_diagnosis_picker", 505, 90, 75, 28)
+ui_color(btn_dx_pick, "#FFFFFF", "#8E44AD")
+code_form_lbl = ui_label(form_bg, "Code:", 590, 92, 40, 25)
+form_dx_code = ui_entry(form_bg, "", 635, 90, 120, 28)
+
+# Row 4: Setting + Supervisor (y=130)
+setting_lbl = ui_label(form_bg, "Setting:", 15, 132, 75, 25)
+form_setting = ui_entry(form_bg, "", 95, 130, 320, 28)
+sup_form_lbl = ui_label(form_bg, "Supervisor:", 430, 132, 80, 25)
+form_supervisor = ui_entry(form_bg, "", 515, 130, 240, 28)
+
+# Row 5: Procedure (y=170)
+proc_lbl = ui_label(form_bg, "Procedure:", 15, 172, 75, 25)
+form_procedure = ui_entry(form_bg, "", 95, 170, 660, 28)
+
+# Clinical Notes (y=210)
+notes_form_lbl = ui_label(form_bg, "Clinical Notes / Session Details:", 15, 208, 300, 22)
+ui_font(notes_form_lbl, 10, "", true)
+form_notes = ui_text(form_bg, "", 15, 232, 740, 160)
+
+# Outcome (y=400)
+outcome_form_lbl = ui_label(form_bg, "Outcome / Plan:", 15, 398, 200, 22)
+ui_font(outcome_form_lbl, 10, "", true)
+form_outcome = ui_text(form_bg, "", 15, 422, 740, 110)
+
+# Learning Points (y=540)
+learn_lbl = ui_label(form_bg, "Learning Points:", 15, 538, 200, 22)
+ui_font(learn_lbl, 10, "", true)
+form_learning = ui_text(form_bg, "", 15, 562, 740, 110)
+
+# Action Buttons (y=685)
+btn_save = ui_button(form_bg, "Save", "save_entry", 15, 685, 170, 40)
+ui_color(btn_save, "#FFFFFF", "#27AE60")
+ui_font(btn_save, 11, "", true)
+btn_new = ui_button(form_bg, "New", "new_entry", 195, 685, 170, 40)
+ui_color(btn_new, "#FFFFFF", "#3498DB")
+ui_font(btn_new, 11, "", true)
+btn_dup = ui_button(form_bg, "Duplicate", "duplicate_entry", 375, 685, 170, 40)
+ui_color(btn_dup, "#FFFFFF", "#F39C12")
+ui_font(btn_dup, 11, "", true)
+btn_del = ui_button(form_bg, "Delete", "delete_entry", 555, 685, 170, 40)
+ui_color(btn_del, "#FFFFFF", "#E74C3C")
+ui_font(btn_del, 11, "", true)
+
+# RIGHT: Recent Entries List (x=780, y=0, w=610, h=810)
+list_bg = ui_panel(log_tab, 780, 0, 610, 810)
+ui_color(list_bg, null, "#ECF0F1")
+
+list_header = ui_label(list_bg, "  Recent Entries", 0, 0, 610, 30)
+ui_color(list_header, "#FFFFFF", "#34495E")
+ui_font(list_header, 12, "", true)
+
+entries_list = ui_listview(list_bg, ["ID", "", "Date", "Category", "Patient", "DSM-5 Diagnosis"], 10, 40, 590, 760)
+ui_listview_set_column_width(entries_list, 0, 1)     # Hidden ID
+ui_listview_set_column_width(entries_list, 1, 50)     # Icon
+ui_listview_set_column_width(entries_list, 2, 85)     # Date
+ui_listview_set_column_width(entries_list, 3, 90)     # Category
+ui_listview_set_column_width(entries_list, 4, 80)     # Patient
+ui_listview_set_column_width(entries_list, 5, 270)    # Diagnosis
+ui_bind(entries_list, "select", "on_entry_select")
+
+# ==============================================================================
+# TAB 2: BROWSE & SEARCH
+# ==============================================================================
+browse_tab = ui_tab_add(main_tabs, "Browse")
+
+# Filter Row (y=0, h=45)
+filter_bg = ui_panel(browse_tab, 0, 0, 1400, 45)
+ui_color(filter_bg, null, "#F8F9FA")
+
+search_lbl = ui_label(filter_bg, "Search:", 15, 10, 55, 25)
+search_entry = ui_entry(filter_bg, "", 75, 8, 250, 28)
+cat_filter_lbl = ui_label(filter_bg, "Category:", 340, 10, 70, 25)
+category_filter = ui_combobox(filter_bg, ["ALL", "OPD", "IPD Admission", "IPD Follow-up", "Emergency", "ECT", "Psychotherapy", "Liaison", "Teaching", "CME/Conference", "Journal Club", "Case Presentation", "Procedure", "On-Call"], 415, 8, 160, 28)
+ui_set(category_filter, "ALL")
+from_lbl = ui_label(filter_bg, "From:", 590, 10, 40, 25)
+date_from = ui_datepicker(filter_bg, 635, 8, 130, 28)
+to_lbl = ui_label(filter_bg, "To:", 780, 10, 25, 25)
+date_to = ui_datepicker(filter_bg, 810, 8, 130, 28)
+btn_search = ui_button(filter_bg, "Search", "refresh_entries_list", 955, 8, 85, 28)
+ui_color(btn_search, "#FFFFFF", "#2980B9")
+btn_reset = ui_button(filter_bg, "Reset", "reset_filters", 1050, 8, 85, 28)
+ui_color(btn_reset, "#FFFFFF", "#95A5A6")
+
+# Browse List (y=50)
+browse_list = ui_listview(browse_tab, ["ID", "", "Date", "Category", "Patient", "Age/Sex", "DSM-5 Diagnosis", "Code", "Supervisor"], 10, 55, 1380, 740)
+ui_listview_set_column_width(browse_list, 0, 1)     # Hidden ID
+ui_listview_set_column_width(browse_list, 1, 50)    # Icon
+ui_listview_set_column_width(browse_list, 2, 90)    # Date
+ui_listview_set_column_width(browse_list, 3, 100)   # Category
+ui_listview_set_column_width(browse_list, 4, 80)    # Patient
+ui_listview_set_column_width(browse_list, 5, 60)    # Age/Sex
+ui_listview_set_column_width(browse_list, 6, 280)   # Diagnosis
+ui_listview_set_column_width(browse_list, 7, 70)    # Code
+ui_listview_set_column_width(browse_list, 8, 150)   # Supervisor
+ui_bind(browse_list, "select", "on_browse_select")
+
+# ==============================================================================
+# TAB 3: REPORTS
+# ==============================================================================
+report_tab = ui_tab_add(main_tabs, "Reports")
+
+# Report Button Row (y=0, h=50)
+report_btn_bg = ui_panel(report_tab, 0, 0, 1400, 50)
+ui_color(report_btn_bg, null, "#F8F9FA")
+
+btn_summary = ui_button(report_btn_bg, "Generate Summary", "generate_summary_report", 15, 10, 200, 32)
+ui_color(btn_summary, "#FFFFFF", "#27AE60")
+btn_exp_html = ui_button(report_btn_bg, "Export HTML", "export_report", 230, 10, 150, 32)
+ui_color(btn_exp_html, "#FFFFFF", "#3498DB")
+btn_exp_csv = ui_button(report_btn_bg, "Export CSV", "export_csv", 395, 10, 150, 32)
+ui_color(btn_exp_csv, "#FFFFFF", "#F39C12")
+
+# HTML Viewer (y=55)
+report_html = ui_htmlview(report_tab, 10, 55, 1380, 740)
+
+# ==============================================================================
+# TAB 4: DSM-5 REFERENCE
+# ==============================================================================
+dsm_tab = ui_tab_add(main_tabs, "DSM-5")
+
+# DSM Header Row (y=0, h=45)
+dsm_hdr_bg = ui_panel(dsm_tab, 0, 0, 1400, 45)
+ui_color(dsm_hdr_bg, null, "#F8F9FA")
+
+dsm_title = ui_label(dsm_hdr_bg, "DSM-5 Diagnosis Dictionary", 15, 10, 300, 25)
+ui_font(dsm_title, 12, "", true)
+btn_add_dx_hdr = ui_button(dsm_hdr_bg, "Add New", "manage_diagnoses", 900, 8, 120, 30)
+ui_color(btn_add_dx_hdr, "#FFFFFF", "#27AE60")
+btn_edit_dx_hdr = ui_button(dsm_hdr_bg, "Manage All", "manage_diagnoses", 1030, 8, 120, 30)
+ui_color(btn_edit_dx_hdr, "#FFFFFF", "#3498DB")
+btn_refresh_hdr = ui_button(dsm_hdr_bg, "Refresh", "load_dsm_diagnoses", 1160, 8, 100, 30)
+ui_color(btn_refresh_hdr, "#FFFFFF", "#95A5A6")
+
+# DSM Search Row (y=50, h=40)
+dsm_srch_bg = ui_panel(dsm_tab, 0, 50, 1400, 40)
+ui_color(dsm_srch_bg, null, "#ECF0F1")
+
+dsm_search_lbl = ui_label(dsm_srch_bg, "Search:", 15, 8, 55, 25)
+dsm_search = ui_entry(dsm_srch_bg, "", 75, 5, 350, 28)
+dsm_cat_lbl = ui_label(dsm_srch_bg, "Category:", 440, 8, 70, 25)
+dsm_cat_filter = ui_combobox(dsm_srch_bg, ["All", "Neurodevelopmental", "Psychotic", "Bipolar", "Depressive", "Anxiety", "OCD", "Trauma", "Dissociative", "Somatic", "Eating", "Sleep", "Sexual", "Gender", "Disruptive", "Substance", "Neurocognitive", "Personality", "Paraphilic"], 515, 5, 200, 28)
+ui_set(dsm_cat_filter, "All")
+btn_dsm_search = ui_button(dsm_srch_bg, "Search", "search_dsm_diagnoses", 730, 5, 90, 28)
+ui_color(btn_dsm_search, "#FFFFFF", "#2980B9")
+btn_dsm_reset = ui_button(dsm_srch_bg, "Reset", "search_dsm_diagnoses", 830, 5, 90, 28)
+ui_color(btn_dsm_reset, "#FFFFFF", "#95A5A6")
+
+# DSM List (y=95)
+dsm_list = ui_listview(dsm_tab, ["Code", "Diagnosis", "Category"], 10, 95, 1380, 695)
+ui_listview_set_column_width(dsm_list, 0, 100)
+ui_listview_set_column_width(dsm_list, 1, 880)
+ui_listview_set_column_width(dsm_list, 2, 380)
+
+# ==============================================================================
+# STATUS BAR (y=855, h=45)
+# ==============================================================================
+status_bg = ui_panel(win, 0, 855, 1400, 45)
+ui_color(status_bg, null, "#34495E")
+
+stats_lbl = ui_label(status_bg, "  Loading...", 0, 0, 1000, 45)
+ui_color(stats_lbl, "#FFFFFF", null)
+
+status_lbl = ui_label(status_bg, "  Ready  ", 1000, 0, 400, 45)
+ui_color(status_lbl, "#ECF0F1", null)
+
+# ==============================================================================
+# INITIALIZATION
+# ==============================================================================
+init_database()
+clear_form()
+refresh_entries_list()
+load_dsm_diagnoses()
+
+ui_mainloop(win)

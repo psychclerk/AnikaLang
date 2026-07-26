@@ -1,0 +1,701 @@
+# ==============================================================================
+# ANIKALANG KNOWLEDGE GRAPH BUILDER
+# Reads AnikaLang files and converts them into a knowledge graph
+# ==============================================================================
+
+# --- GLOBAL STATE ---
+win = null
+tree_view = null
+details_view = null
+status_label = null
+stats_label = null
+btn_add_files = null
+btn_scan = null
+btn_export = null
+btn_clear = null
+file_list_view = null
+
+# Graph Data
+graph_nodes = []
+graph_edges = []
+node_types = []
+node_files = []
+files_to_process = []
+
+# ==============================================================================
+# SAFE STRING HELPERS (built from confirmed primitives only)
+# ==============================================================================
+
+# Get a single character at index i (0-based)
+def char_at(text, i) {
+    n = len(text)
+    if i < 0 or i >= n { return "" }
+    # right(text, n - i) gives us text[i..end]
+    # left(..., 1) gives us just text[i]
+    return left(right(text, n - i), 1)
+}
+
+# Find index of 'search' inside 'text'. Returns -1 if not found.
+def str_find(text, search) {
+    tlen = len(text)
+    slen = len(search)
+    if slen == 0 { return 0 }
+    if slen > tlen { return -1 }
+    i = 0
+    while i <= tlen - slen {
+        # Extract substring of length slen starting at i
+        sub = left(right(text, tlen - i), slen)
+        if sub == search { return i }
+        i = i + 1
+    }
+    return -1
+}
+
+# Extract substring: start index (0-based), length
+def str_sub(text, start, length) {
+    n = len(text)
+    if start < 0 { start = 0 }
+    if start >= n { return "" }
+    if length <= 0 { return "" }
+    if start + length > n { length = n - start }
+    return left(right(text, n - start), length)
+}
+
+# Split text by delimiter into a list
+def str_split(text, delim) {
+    result = []
+    dlen = len(delim)
+    if dlen == 0 {
+        list_append(result, text)
+        return result
+    }
+    remaining = text
+    while true {
+        idx = str_find(remaining, delim)
+        if idx == -1 {
+            list_append(result, remaining)
+            return result
+        }
+        piece = str_sub(remaining, 0, idx)
+        list_append(result, piece)
+        # Skip past the delimiter
+        remaining = str_sub(remaining, idx + dlen, len(remaining) - idx - dlen)
+    }
+    return result
+}
+
+# ==============================================================================
+# MAIN
+# ==============================================================================
+
+def main() {
+    build_ui()
+    ui_mainloop(win)
+}
+
+# ==============================================================================
+# UI LAYOUT
+# ==============================================================================
+
+def build_ui() {
+    win = ui_window("AnikaLang Knowledge Graph Builder", 1400, 900)
+    
+    # --- HEADER ---
+    header_bg = ui_panel(win, 0, 0, 1400, 50)
+    ui_color(header_bg, "", "#1a1f35")
+    
+    title_lbl = ui_label(header_bg, "🕸️ AnikaLang Knowledge Graph Builder", 20, 12, 500, 25)
+    ui_color(title_lbl, "#ffffff", "")
+    ui_font(title_lbl, 14, "Segoe UI", true)
+    
+    status_label = ui_label(header_bg, "  Ready", 900, 15, 480, 20)
+    ui_color(status_label, "#8b949e", "")
+    
+    # --- LEFT PANEL: Controls ---
+    left_panel = ui_panel(win, 0, 50, 320, 820)
+    ui_color(left_panel, "", "#f8fafc")
+    
+    files_title = ui_label(left_panel, "📁 Files to Analyze", 20, 20, 280, 25)
+    ui_color(files_title, "#2c3e50", "")
+    ui_font(files_title, 12, "Segoe UI", true)
+    
+    btn_add_files = ui_button(left_panel, "➕ Add Files", "do_add_files", 20, 55, 280, 35)
+    ui_color(btn_add_files, "#ffffff", "#3498db")
+    
+    btn_clear_files = ui_button(left_panel, "🗑 Clear File List", "do_clear_files", 20, 100, 280, 35)
+    ui_color(btn_clear_files, "#ffffff", "#e74c3c")
+    
+    file_list_view = ui_listview(left_panel, ["File"], 20, 145, 280, 200)
+    ui_color(file_list_view, "#ffffff", "#f8fafc")
+    ui_font(file_list_view, 10, "Segoe UI", false)
+    
+    btn_scan = ui_button(left_panel, "🔍 Build Graph", "do_scan", 20, 360, 280, 35)
+    ui_color(btn_scan, "#ffffff", "#27ae60")
+    
+    btn_clear = ui_button(left_panel, "🗑 Clear Graph", "do_clear", 20, 405, 280, 35)
+    ui_color(btn_clear, "#ffffff", "#e74c3c")
+    
+    btn_export = ui_button(left_panel, "💾 Export as Text", "do_export", 20, 450, 280, 35)
+    ui_color(btn_export, "#ffffff", "#8e44ad")
+    
+    stats_title = ui_label(left_panel, "📊 Graph Statistics", 20, 505, 280, 20)
+    ui_color(stats_title, "#2c3e50", "")
+    ui_font(stats_title, 12, "Segoe UI", true)
+    
+    stats_label = ui_label(left_panel, "Nodes: 0  |  Edges: 0", 20, 535, 280, 20)
+    ui_color(stats_label, "#64748b", "")
+    ui_font(stats_label, 11, "Segoe UI", false)
+    
+    legend_title = ui_label(left_panel, "🎨 Node Legend", 20, 575, 280, 20)
+    ui_color(legend_title, "#2c3e50", "")
+    ui_font(legend_title, 12, "Segoe UI", true)
+    
+    legend_text = ui_label(left_panel, "📁 File\n🔷 Function\n🔶 Variable\n🔗 Relationship", 20, 605, 280, 100)
+    ui_color(legend_text, "#475569", "")
+    ui_font(legend_text, 11, "Segoe UI", false)
+    
+    tip_lbl = ui_label(left_panel, "💡 Tip: Add .fms files, then build the graph to see dependencies and relationships.", 20, 725, 280, 80)
+    ui_color(tip_lbl, "#94a3b8", "")
+    ui_font(tip_lbl, 10, "Segoe UI", false)
+    
+    # --- CENTER PANEL: Tree View ---
+    center_panel = ui_panel(win, 320, 50, 680, 820)
+    ui_color(center_panel, "", "#ffffff")
+    
+    tree_title = ui_label(center_panel, "🌳 Knowledge Graph (Tree View)", 20, 10, 400, 20)
+    ui_color(tree_title, "#2c3e50", "")
+    ui_font(tree_title, 12, "Segoe UI", true)
+    
+    tree_view = ui_tree(center_panel, 20, 40, 640, 760)
+    ui_color(tree_view, "#1e1e1e", "#f8fafc")
+    ui_font(tree_view, 11, "Consolas", false)
+    
+    # --- RIGHT PANEL: Details ---
+    right_panel = ui_panel(win, 1000, 50, 400, 820)
+    ui_color(right_panel, "", "#f8fafc")
+    
+    details_title = ui_label(right_panel, "📋 Graph Details", 20, 10, 360, 20)
+    ui_color(details_title, "#2c3e50", "")
+    ui_font(details_title, 12, "Segoe UI", true)
+    
+    details_view = ui_text(right_panel, "Add .fms files and build the graph to see details here.\n\nThe graph will show:\n• Files added to the project\n• Functions defined in each file\n• Variables used by each function\n• Function calls between functions\n• Cross-file dependencies", true, 20, 40, 360, 760)
+    ui_color(details_view, "#1e1e1e", "#ffffff")
+    ui_font(details_view, 11, "Consolas", false)
+    
+    # --- STATUS BAR ---
+    statusbar_bg = ui_panel(win, 0, 870, 1400, 30)
+    ui_color(statusbar_bg, "", "#1a1f35")
+    
+    footer_lbl = ui_label(statusbar_bg, "💡 Tip: Knowledge graphs help visualize code structure, dependencies, and complexity.", 15, 5, 1370, 20)
+    ui_color(footer_lbl, "#94a3b8", "")
+    
+    ui_bind(win, "resize", "on_resize")
+}
+
+# ==============================================================================
+# ACTIONS
+# ==============================================================================
+
+def do_add_files() {
+    file_path = ui_file_open(null)
+    if file_path == "" or file_path == null { return }
+    
+    if ends_with(lower(file_path), ".fms") == false {
+        ui_alert_err("Please select .fms files only!")
+        return
+    }
+    
+    if contains(files_to_process, file_path) {
+        ui_alert("File already in list!")
+        return
+    }
+    
+    list_append(files_to_process, file_path)
+    refresh_file_list()
+    set_status(rejoin("➕ Added: ", path_file(file_path)))
+}
+
+def do_clear_files() {
+    files_to_process = []
+    ui_listview_clear(file_list_view)
+    set_status("🗑 File list cleared")
+}
+
+def do_scan() {
+    if len(files_to_process) == 0 {
+        ui_alert_err("No files to analyze! Add some .fms files first.")
+        return
+    }
+    
+    set_status("⏳ Building knowledge graph...")
+    ui_color(status_label, "#f39c12", "")
+    ui_refresh(win)
+    
+    try {
+        graph_nodes = []
+        graph_edges = []
+        node_types = []
+        node_files = []
+        
+        processed = 0
+        for f in files_to_process {
+            process_file(f)
+            processed = processed + 1
+        }
+        
+        refresh_tree()
+        refresh_details()
+        update_stats()
+        
+        set_status(rejoin("✅ Analyzed ", str(processed), " files"))
+        ui_color(status_label, "#27ae60", "")
+        ui_alert(rejoin("Knowledge graph built successfully!\n\nFiles: ", str(processed), "\nNodes: ", str(len(graph_nodes)), "\nEdges: ", str(len(graph_edges))))
+        
+    } catch err {
+        set_status(rejoin("❌ Error: ", err))
+        ui_color(status_label, "#e74c3c", "")
+        ui_alert_err(rejoin("Failed to build graph:\n\n", err))
+    }
+}
+
+def do_clear() {
+    graph_nodes = []
+    graph_edges = []
+    node_types = []
+    node_files = []
+    
+    ui_tree_clear(tree_view)
+    ui_text_set(details_view, "Graph cleared. Add files and build the graph to see results.")
+    ui_set(stats_label, "Nodes: 0  |  Edges: 0")
+    set_status("🗑 Graph cleared")
+    ui_color(status_label, "#8b949e", "")
+}
+
+def do_export() {
+    if len(graph_nodes) == 0 {
+        ui_alert_err("No graph to export! Build the graph first.")
+        return
+    }
+    
+    save_path = ui_file_save(null)
+    if save_path == "" or save_path == null { return }
+    
+    if ends_with(lower(save_path), ".txt") == false {
+        save_path = rejoin(save_path, ".txt")
+    }
+    
+    try {
+        output = build_text_export()
+        file_write(save_path, output)
+        set_status(rejoin("💾 Exported to: ", path_file(save_path)))
+        ui_color(status_label, "#27ae60", "")
+        ui_alert(rejoin("Graph exported successfully!\n\n", save_path))
+    } catch err {
+        ui_alert_err(rejoin("Failed to export:\n\n", err))
+    }
+}
+
+# ==============================================================================
+# FILE LIST MANAGEMENT
+# ==============================================================================
+
+def refresh_file_list() {
+    ui_listview_clear(file_list_view)
+    for f in files_to_process {
+        ui_listview_insert(file_list_view, [path_file(f)])
+    }
+}
+
+# ==============================================================================
+# GRAPH BUILDING
+# ==============================================================================
+
+def process_file(file_path) {
+    content = file_read(file_path)
+    if starts_with(content, "ERROR") { return }
+    
+    file_name = path_file(file_path)
+    add_node(file_name, "file", file_path)
+    
+    functions = extract_functions(content)
+    for func in functions {
+        func_name = func[0]
+        func_body = func[1]
+        
+        add_node(func_name, "function", file_path)
+        add_edge(file_name, func_name, "contains")
+        
+        calls = extract_calls(func_body)
+        for call in calls {
+            if call != func_name {
+                add_edge(func_name, call, "calls")
+            }
+        }
+        
+        vars_used = extract_variables(func_body)
+        for v in vars_used {
+            add_node(v, "variable", file_path)
+            add_edge(func_name, v, "uses")
+        }
+    }
+}
+
+def add_node(name, node_type, file_path) {
+    i = 0
+    while i < len(graph_nodes) {
+        if graph_nodes[i] == name and node_types[i] == node_type {
+            return
+        }
+        i = i + 1
+    }
+    list_append(graph_nodes, name)
+    list_append(node_types, node_type)
+    list_append(node_files, file_path)
+}
+
+def add_edge(from_node, to_node, relation) {
+    i = 0
+    while i < len(graph_edges) {
+        edge = graph_edges[i]
+        if edge[0] == from_node and edge[1] == to_node and edge[2] == relation {
+            return
+        }
+        i = i + 1
+    }
+    list_append(graph_edges, [from_node, to_node, relation])
+}
+
+# ==============================================================================
+# PARSING
+# ==============================================================================
+
+def extract_functions(content) {
+    functions = []
+    lines = str_split(content, "\n")
+    i = 0
+    while i < len(lines) {
+        line = lines[i]
+        trimmed = trim(line)
+        
+        if starts_with(trimmed, "def ") {
+            paren_pos = str_find(trimmed, "(")
+            if paren_pos > 0 {
+                # "def " is 4 chars long
+                name_part = str_sub(trimmed, 4, paren_pos - 4)
+                func_name = trim(name_part)
+                
+                body = ""
+                brace_count = 0
+                started = false
+                j = i
+                while j < len(lines) {
+                    body = rejoin(body, lines[j], "\n")
+                    
+                    k = 0
+                    line_len = len(lines[j])
+                    while k < line_len {
+                        ch = char_at(lines[j], k)
+                        if ch == "{" {
+                            brace_count = brace_count + 1
+                            started = true
+                        }
+                        if ch == "}" {
+                            brace_count = brace_count - 1
+                        }
+                        k = k + 1
+                    }
+                    
+                    if started and brace_count == 0 {
+                        break
+                    }
+                    j = j + 1
+                }
+                
+                list_append(functions, [func_name, body])
+                i = j
+            }
+        }
+        i = i + 1
+    }
+    return functions
+}
+
+def extract_calls(body) {
+    calls = []
+    words = tokenize(body)
+    i = 0
+    while i < len(words) {
+        word = words[i]
+        if i + 1 < len(words) {
+            next_word = words[i + 1]
+            if next_word == "(" {
+                if is_keyword(word) == false {
+                    if contains(calls, word) == false {
+                        list_append(calls, word)
+                    }
+                }
+            }
+        }
+        i = i + 1
+    }
+    return calls
+}
+
+def extract_variables(body) {
+    vars_used = []
+    words = tokenize(body)
+    i = 0
+    while i < len(words) {
+        word = words[i]
+        if i + 1 < len(words) {
+            next_word = words[i + 1]
+            if next_word == "=" or next_word == "[" {
+                if is_keyword(word) == false {
+                    if contains(vars_used, word) == false {
+                        list_append(vars_used, word)
+                    }
+                }
+            }
+        }
+        i = i + 1
+    }
+    return vars_used
+}
+
+def tokenize(text) {
+    tokens = []
+    current = ""
+    i = 0
+    n = len(text)
+    while i < n {
+        ch = char_at(text, i)
+        if is_alnum(ch) or ch == "_" {
+            current = rejoin(current, ch)
+        } else {
+            if len(current) > 0 {
+                list_append(tokens, current)
+                current = ""
+            }
+            if ch == "(" or ch == ")" or ch == "=" or ch == "[" or ch == "]" {
+                list_append(tokens, ch)
+            }
+        }
+        i = i + 1
+    }
+    if len(current) > 0 {
+        list_append(tokens, current)
+    }
+    return tokens
+}
+
+def is_keyword(word) {
+    if word == "def" { return true }
+    if word == "if" { return true }
+    if word == "else" { return true }
+    if word == "while" { return true }
+    if word == "for" { return true }
+    if word == "in" { return true }
+    if word == "try" { return true }
+    if word == "catch" { return true }
+    if word == "return" { return true }
+    if word == "null" { return true }
+    if word == "true" { return true }
+    if word == "false" { return true }
+    if word == "and" { return true }
+    if word == "or" { return true }
+    if word == "not" { return true }
+    return false
+}
+
+def is_alnum(ch) {
+    if ch == "" { return false }
+    if contains("abcdefghijklmnopqrstuvwxyz", ch) { return true }
+    if contains("ABCDEFGHIJKLMNOPQRSTUVWXYZ", ch) { return true }
+    if contains("0123456789", ch) { return true }
+    return false
+}
+
+# ==============================================================================
+# DISPLAY
+# ==============================================================================
+
+def refresh_tree() {
+    ui_tree_clear(tree_view)
+    
+    file_list = []
+    i = 0
+    while i < len(graph_nodes) {
+        if node_types[i] == "file" {
+            list_append(file_list, graph_nodes[i])
+        }
+        i = i + 1
+    }
+    
+    for f in file_list {
+        file_id = rejoin("file:", f)
+        ui_tree_insert(tree_view, "root", file_id, rejoin("📁 ", f))
+        ui_tree_expand(tree_view, file_id, true)
+        
+        j = 0
+        while j < len(graph_nodes) {
+            if node_types[j] == "function" and node_files[j] == find_file_path(f) {
+                func_name = graph_nodes[j]
+                func_id = rejoin("func:", func_name)
+                ui_tree_insert(tree_view, file_id, func_id, rejoin("🔷 ", func_name))
+                ui_tree_expand(tree_view, func_id, true)
+                
+                k = 0
+                while k < len(graph_edges) {
+                    edge = graph_edges[k]
+                    if edge[0] == func_name {
+                        if edge[2] == "calls" {
+                            call_id = rejoin("call:", func_name, "->", edge[1])
+                            ui_tree_insert(tree_view, func_id, call_id, rejoin("  → calls ", edge[1]))
+                        }
+                        if edge[2] == "uses" {
+                            use_id = rejoin("use:", func_name, "->", edge[1])
+                            ui_tree_insert(tree_view, func_id, use_id, rejoin("  • uses ", edge[1]))
+                        }
+                    }
+                    k = k + 1
+                }
+            }
+            j = j + 1
+        }
+    }
+}
+
+def find_file_path(file_name) {
+    i = 0
+    while i < len(graph_nodes) {
+        if graph_nodes[i] == file_name and node_types[i] == "file" {
+            return node_files[i]
+        }
+        i = i + 1
+    }
+    return ""
+}
+
+def refresh_details() {
+    output = build_text_export()
+    ui_text_set(details_view, output)
+}
+
+def build_text_export() {
+    lines = []
+    list_append(lines, "========================================")
+    list_append(lines, "ANIKALANG KNOWLEDGE GRAPH")
+    list_append(lines, "========================================")
+    list_append(lines, rejoin("Nodes: ", str(len(graph_nodes))))
+    list_append(lines, rejoin("Edges: ", str(len(graph_edges))))
+    list_append(lines, "")
+    
+    list_append(lines, "--- NODES ---")
+    i = 0
+    while i < len(graph_nodes) {
+        icon = "•"
+        if node_types[i] == "file" { icon = "📁" }
+        if node_types[i] == "function" { icon = "🔷" }
+        if node_types[i] == "variable" { icon = "🔶" }
+        list_append(lines, rejoin(icon, " ", graph_nodes[i], " [", node_types[i], "]"))
+        i = i + 1
+    }
+    list_append(lines, "")
+    
+    list_append(lines, "--- RELATIONSHIPS ---")
+    i = 0
+    while i < len(graph_edges) {
+        edge = graph_edges[i]
+        list_append(lines, rejoin(edge[0], " --[", edge[2], "]--> ", edge[1]))
+        i = i + 1
+    }
+    list_append(lines, "")
+    
+    list_append(lines, "--- SUMMARY ---")
+    file_count = count_type("file")
+    func_count = count_type("function")
+    var_count = count_type("variable")
+    list_append(lines, rejoin("Files: ", str(file_count)))
+    list_append(lines, rejoin("Functions: ", str(func_count)))
+    list_append(lines, rejoin("Variables: ", str(var_count)))
+    list_append(lines, rejoin("Function Calls: ", str(count_relation("calls"))))
+    list_append(lines, rejoin("Variable Uses: ", str(count_relation("uses"))))
+    list_append(lines, rejoin("File Contains: ", str(count_relation("contains"))))
+    
+    result = ""
+    for line in lines {
+        result = rejoin(result, line, "\n")
+    }
+    return result
+}
+
+def count_type(node_type) {
+    count = 0
+    i = 0
+    while i < len(node_types) {
+        if node_types[i] == node_type {
+            count = count + 1
+        }
+        i = i + 1
+    }
+    return count
+}
+
+def count_relation(relation) {
+    count = 0
+    i = 0
+    while i < len(graph_edges) {
+        if graph_edges[i][2] == relation {
+            count = count + 1
+        }
+        i = i + 1
+    }
+    return count
+}
+
+def update_stats() {
+    ui_set(stats_label, rejoin("Nodes: ", str(len(graph_nodes)), "  |  Edges: ", str(len(graph_edges))))
+}
+
+def set_status(message) {
+    ui_set(status_label, rejoin("  ", message))
+}
+
+# ==============================================================================
+# RESIZE HANDLER
+# ==============================================================================
+
+def on_resize(widget, w, h) {
+    cs = ui_get_client_size(win)
+    cw = cs[0]
+    ch = cs[1]
+    
+    if cw < 1000 { cw = 1000 }
+    if ch < 600 { ch = 600 }
+    
+    header_h = 50
+    statusbar_h = 30
+    left_w = 320
+    right_w = 400
+    center_w = cw - left_w - right_w
+    content_h = ch - header_h - statusbar_h
+    
+    ui_pos(header_bg, 0, 0, cw, header_h)
+    ui_pos(statusbar_bg, 0, ch - statusbar_h, cw, statusbar_h)
+    ui_pos(left_panel, 0, header_h, left_w, content_h)
+    ui_pos(center_panel, left_w, header_h, center_w, content_h)
+    ui_pos(right_panel, cw - right_w, header_h, right_w, content_h)
+    
+    ui_size(tree_view, center_w - 40, content_h - 60)
+    ui_size(details_view, right_w - 40, content_h - 60)
+    
+    ui_pos(status_label, cw - 500, 15, 480, 20)
+    
+    ui_refresh(win)
+}
+
+# ==============================================================================
+# LAUNCH
+# ==============================================================================
+
+main()

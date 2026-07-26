@@ -1,0 +1,15 @@
+# A complete counter application
+count = 0
+display = null
+
+def increment() {
+    count = count + 1
+    ui_set(display, "Count: " + str(count))
+}
+
+# Build the UI
+win = ui_window("Counter App", 300, 200)
+display = ui_label(win, "Count: 0", 100, 50, 100, 30)
+ui_button(win, "+1", "increment", 110, 100, 80, 30)
+
+ui_mainloop(win)

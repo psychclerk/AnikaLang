@@ -1,0 +1,104 @@
+# ==============================================================================
+# DOCUMENT MANIPULATION DEMO (AnikaLang 1.2)
+# ==============================================================================
+
+# --- Create a Word Document ---
+doc = docx_create()
+docx_set_title(doc, "Quarterly Report")
+docx_set_author(doc, "AnikaLang")
+docx_set_header(doc, "Confidential - Q4 2024")
+docx_set_footer(doc, "Page Footer")
+
+docx_add_heading(doc, "Executive Summary", 1)
+docx_add_paragraph(doc, "This report summarizes Q4 performance across all departments.")
+
+docx_add_heading(doc, "Key Metrics", 2)
+docx_add_bullet(doc, "Revenue: $2.5M (+15% YoY)")
+docx_add_bullet(doc, "Customers: 1,250 (+200 new)")
+docx_add_bullet(doc, "Satisfaction: 94%")
+
+docx_add_page_break(doc)
+docx_add_heading(doc, "Department Performance", 2)
+
+table_data = [
+    ["Department", "Revenue", "Growth"],
+    ["Sales", "$1.2M", "+18%"],
+    ["Marketing", "$800K", "+12%"],
+    ["Engineering", "$500K", "+15%"]
+]
+docx_add_table(doc, table_data, true)
+
+docx_save(doc, "quarterly_report.docx")
+docx_close(doc)
+
+# --- Create a PowerPoint Presentation ---
+pres = pptx_create()
+
+# Title slide
+pptx_add_title_slide(pres, "Q4 2024 Results", "Presented by AnikaLang")
+
+# Content slide with bullets
+bullets = [
+    "Revenue exceeded targets by 15%",
+    "Customer acquisition up 200%",
+    "Product satisfaction at 94%",
+    "New markets launched in 3 regions"
+]
+pptx_add_content_slide(pres, "Key Achievements", bullets)
+
+# Slide with table
+slide_idx = pptx_add_slide(pres, 5)
+pptx_add_text_box(pres, slide_idx, "Financial Summary", 0.5, 0.3, 9, 0.8)
+
+fin_data = [
+    ["Metric", "Q3", "Q4", "Change"],
+    ["Revenue", "$2.1M", "$2.5M", "+19%"],
+    ["Profit", "$400K", "$520K", "+30%"],
+    ["Expenses", "$1.7M", "$1.98M", "+16%"]
+]
+pptx_add_table(pres, slide_idx, fin_data, 0.5, 1.5, 9, 3)
+
+# Add speaker notes
+pptx_add_notes(pres, 0, "Welcome everyone to our Q4 review.")
+pptx_add_notes(pres, 1, "Highlight the customer growth story.")
+
+pptx_save(pres, "quarterly_presentation.pptx")
+pptx_close(pres)
+
+# --- Enhanced Excel Operations ---
+data = [
+    {"Product": "Widget A", "Q3": 1000, "Q4": 1200},
+    {"Product": "Widget B", "Q3": 800, "Q4": 950},
+    {"Product": "Widget C", "Q3": 600, "Q4": 850}
+]
+excel_write("sales_data.xlsx", data, "Sales")
+
+# Format header row
+xlsx_format_cell("sales_data.xlsx", "Sales", "A1", true, "FFFFFF", "4472C4", 12)
+xlsx_format_cell("sales_data.xlsx", "Sales", "B1", true, "FFFFFF", "4472C4", 12)
+xlsx_format_cell("sales_data.xlsx", "Sales", "C1", true, "FFFFFF", "4472C4", 12)
+xlsx_format_cell("sales_data.xlsx", "Sales", "D1", true, "FFFFFF", "4472C4", 12)
+
+# Set column widths
+xlsx_set_column_width("sales_data.xlsx", "Sales", "A", 15)
+xlsx_set_column_width("sales_data.xlsx", "Sales", "B", 12)
+xlsx_set_column_width("sales_data.xlsx", "Sales", "C", 12)
+
+# Add a formula
+xlsx_add_formula("sales_data.xlsx", "Sales", "E2", "=C2-B2")
+xlsx_add_formula("sales_data.xlsx", "Sales", "E3", "=C3-B3")
+xlsx_add_formula("sales_data.xlsx", "Sales", "E4", "=C4-B4")
+
+# Add a chart
+xlsx_add_chart("sales_data.xlsx", "Sales", "bar", "A1:D4", "Quarterly Sales", "G2")
+
+# Convert to CSV
+xlsx_to_csv("sales_data.xlsx", "sales_data.csv", "Sales")
+
+ui_alert(rejoin(
+    "Documents created successfully!\n\n",
+    "• quarterly_report.docx\n",
+    "• quarterly_presentation.pptx\n",
+    "• sales_data.xlsx\n",
+    "• sales_data.csv"
+))

@@ -1,0 +1,1136 @@
+# ==============================================================================
+# ANIKALANG 1.2 INTERACTIVE TUTORIAL (Resizable)
+# 18 lessons · live code execution · syntax-highlighted editor · GUI projects
+# Run: python main.py tutor.fms
+# ==============================================================================
+
+# ---- global state ----
+tut_lesson = 0
+tut_total = 18
+tut_output = null
+tut_viewer = null
+tut_list = null
+tut_code = null
+tut_counter = null
+tut_progress = null
+
+# ---- widget handles for resize ----
+tut_win = null
+header = null
+h_title = null
+h_ver = null
+left = null
+l_lbl = null
+right = null
+c_lbl = null
+b_prev = null
+b_run = null
+b_next = null
+b_copy = null
+b_reset = null
+o_lbl = null
+
+# ---- layout constants ----
+HEADER_H = 50
+LEFT_W = 270
+BTN_H = 34
+LBL_H = 22
+PAD = 10
+GAP = 6
+
+# ==============================================================================
+# OUTPUT HELPERS
+# ==============================================================================
+
+def say(msg) {
+    try {
+        cur = ui_text_get(tut_output)
+        if len(trim(cur)) == 0 {
+            ui_text_set(tut_output, str(msg))
+        } else {
+            ui_text_set(tut_output, rejoin(cur, "\n", str(msg)))
+        }
+    } catch err {
+        # Window is closing — widget already destroyed, ignore silently
+    }
+}
+
+def clear_output() {
+    try {
+        ui_text_set(tut_output, "")
+    } catch err {
+        # Window is closing — widget already destroyed, ignore silently
+    }
+}
+
+def html_wrap(body) {
+    return rejoin(
+        '<html><head><style>',
+        'body{font-family:"Segoe UI",sans-serif;padding:18px 22px;background:#fff;color:#2c3e50;line-height:1.65;font-size:14px}',
+        'h1{color:#1a1a2e;border-bottom:2px solid #3498db;padding-bottom:6px;font-size:22px}',
+        'h2{color:#2980b9;margin-top:18px;font-size:16px}',
+        'pre{background:#f4f6f8;border:1px solid #dce1e6;border-radius:6px;padding:12px 14px;font-family:Consolas,monospace;font-size:13px;overflow-x:auto;line-height:1.5}',
+        'code{background:#eef1f4;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:13px}',
+        'pre code{background:none;padding:0}',
+        '.tip{background:#e8f5e9;border-left:4px solid #27ae60;padding:10px 14px;margin:10px 0;border-radius:0 6px 6px 0}',
+        '.warn{background:#fff3e0;border-left:4px solid #e67e22;padding:10px 14px;margin:10px 0;border-radius:0 6px 6px 0}',
+        '.info{background:#e3f2fd;border-left:4px solid #3498db;padding:10px 14px;margin:10px 0;border-radius:0 6px 6px 0}',
+        '.try{background:#f3e5f5;border-left:4px solid #9b59b6;padding:10px 14px;margin:10px 0;border-radius:0 6px 6px 0}',
+        'table{border-collapse:collapse;width:100%;margin:10px 0}',
+        'th,td{border:1px solid #ddd;padding:7px 10px;text-align:left;font-size:13px}',
+        'th{background:#f0f2f5}',
+        'ul{margin:6px 0 6px 20px}li{margin:3px 0}',
+        '</style></head><body>', body, '</body></html>'
+    )
+}
+
+# ==============================================================================
+# LESSON TITLES
+# ==============================================================================
+
+def get_lesson_titles() {
+    return [
+        "01 · Welcome to AnikaLang 1.2",
+        "02 · Your First Program",
+        "03 · Variables & Assignment",
+        "04 · Data Types & Conversion",
+        "05 · Numbers & Math",
+        "06 · Strings & Text",
+        "07 · Building Strings (rejoin)",
+        "08 · IF / ELSE Decisions",
+        "09 · WHILE Loops",
+        "10 · FOR Loops",
+        "11 · Functions (def)",
+        "12 · Lists",
+        "13 · Dictionaries",
+        "14 · Error Handling (try/catch)",
+        "15 · Your First GUI Window",
+        "16 · Buttons & Event Handlers",
+        "17 · Project: Calculator",
+        "18 · Project: Todo App"
+    ]
+}
+
+# ==============================================================================
+# LESSON CONTENT (HTML)
+# ==============================================================================
+
+def get_lesson_content(idx) {
+
+    if idx == 0 {
+        return html_wrap(rejoin(
+            '<h1>Welcome to AnikaLang 1.2!</h1>',
+            '<p>AnikaLang is a beginner-friendly language for building <b>desktop GUI apps</b> with wxPython. Version 1.2 brings modern syntax.</p>',
+            '<h2>What You Will Learn</h2>',
+            '<ul><li>Variables, types, operators</li>',
+            '<li>Control flow: <code>if</code>, <code>while</code>, <code>for</code></li>',
+            '<li>Functions with <code>def</code></li>',
+            '<li>Lists &amp; dictionaries</li>',
+            '<li>Error handling with <code>try / catch</code></li>',
+            '<li>Building GUI apps (windows, buttons, forms)</li>',
+            '<li>Two complete projects</li></ul>',
+            '<h2>Key Syntax in 1.2</h2>',
+            '<table><tr><th>Concept</th><th>Syntax</th></tr>',
+            '<tr><td>Assignment</td><td><code>x = 10</code></td></tr>',
+            '<tr><td>Function</td><td><code>def name() { }</code></td></tr>',
+            '<tr><td>If / Else</td><td><code>if cond { } else { }</code></td></tr>',
+            '<tr><td>Loop</td><td><code>for x in list { }</code></td></tr>',
+            '<tr><td>Strings</td><td><code>rejoin("a", "b")</code></td></tr>',
+            '<tr><td>Booleans</td><td><code>true</code> / <code>false</code> / <code>null</code></td></tr></table>',
+            '<div class="info">💡 In this tutorial, <code>say()</code> writes to the output box below. In real programs, use <code>ui_alert()</code> for popup messages.</div>',
+            '<p>Click <b>Next →</b> to begin!</p>'
+        ))
+    }
+
+    if idx == 1 {
+        return html_wrap(rejoin(
+            '<h1>Your First Program</h1>',
+            '<p>The simplest way to show output is <code>say()</code> (tutorial helper) or <code>ui_alert()</code> (real programs).</p>',
+            '<h2>Syntax</h2>',
+            '<pre>say("Hello!")          <span style="color:#888"># writes to output box</span>\nui_alert("Hello!")     <span style="color:#888"># shows a popup dialog</span></pre>',
+            '<h2>Comments</h2>',
+            '<p>Use <code>#</code> for single-line comments. The interpreter ignores them.</p>',
+            '<pre># This is a comment\nx = 10   # inline comment</pre>',
+            '<div class="tip">✅ Click <b>▶ Run It!</b> to execute the code and see output below.</div>'
+        ))
+    }
+
+    if idx == 2 {
+        return html_wrap(rejoin(
+            '<h1>Variables &amp; Assignment</h1>',
+            '<p>Use <code>=</code> to assign values. No <code>SET...TO</code> in 1.2.</p>',
+            '<pre>name = "Alice"\nage = 30\npi = 3.14159\nactive = true\nnothing = null</pre>',
+            '<h2>Rules</h2>',
+            '<ul><li>Names start with a letter or underscore</li>',
+            '<li>Case-sensitive: <code>Age</code> ≠ <code>age</code></li>',
+            '<li>Reassign anytime: <code>age = 31</code></li></ul>',
+            '<div class="warn">⚠️ Variables must be assigned <b>before</b> use.</div>'
+        ))
+    }
+
+    if idx == 3 {
+        return html_wrap(rejoin(
+            '<h1>Data Types &amp; Conversion</h1>',
+            '<table><tr><th>Type</th><th>Example</th><th>Check</th></tr>',
+            '<tr><td>String</td><td><code>"hello"</code></td><td><code>type_of(x)</code> → "STRING"</td></tr>',
+            '<tr><td>Integer</td><td><code>42</code></td><td>→ "INTEGER"</td></tr>',
+            '<tr><td>Float</td><td><code>3.14</code></td><td>→ "FLOAT"</td></tr>',
+            '<tr><td>Boolean</td><td><code>true / false</code></td><td>→ "BOOLEAN"</td></tr>',
+            '<tr><td>Null</td><td><code>null</code></td><td>→ "NULL"</td></tr></table>',
+            '<h2>Conversion Functions</h2>',
+            '<pre>str(42)       # "42"\nint("99")     # 99\nfloat("3.14") # 3.14</pre>'
+        ))
+    }
+
+    if idx == 4 {
+        return html_wrap(rejoin(
+            '<h1>Numbers &amp; Math</h1>',
+            '<table><tr><th>Operation</th><th>Syntax</th><th>Result</th></tr>',
+            '<tr><td>Add</td><td><code>10 + 3</code></td><td>13</td></tr>',
+            '<tr><td>Subtract</td><td><code>10 - 3</code></td><td>7</td></tr>',
+            '<tr><td>Multiply</td><td><code>10 * 3</code></td><td>30</td></tr>',
+            '<tr><td>Divide</td><td><code>10 / 3</code></td><td>3.333…</td></tr>',
+            '<tr><td>Power</td><td><code>pow(2, 10)</code></td><td>1024</td></tr>',
+            '<tr><td>Sqrt</td><td><code>sqrt(144)</code></td><td>12</td></tr>',
+            '<tr><td>Pi</td><td><code>pi()</code></td><td>3.14159…</td></tr></table>',
+            '<div class="warn">⚠️ No <code>%</code> (modulo) or <code>^</code> (power) operators. Use <code>pow()</code>.</div>'
+        ))
+    }
+
+    if idx == 5 {
+        return html_wrap(rejoin(
+            '<h1>Strings &amp; Text</h1>',
+            '<p>Strings are wrapped in <code>"double"</code> or <code>\'single\'</code> quotes.</p>',
+            '<h2>Useful Functions</h2>',
+            '<table><tr><th>Function</th><th>Example</th><th>Result</th></tr>',
+            '<tr><td><code>len(s)</code></td><td><code>len("hello")</code></td><td>5</td></tr>',
+            '<tr><td><code>upper(s)</code></td><td><code>upper("hi")</code></td><td>"HI"</td></tr>',
+            '<tr><td><code>lower(s)</code></td><td><code>lower("HI")</code></td><td>"hi"</td></tr>',
+            '<tr><td><code>trim(s)</code></td><td><code>trim("  hi  ")</code></td><td>"hi"</td></tr>',
+            '<tr><td><code>left(s, n)</code></td><td><code>left("hello", 3)</code></td><td>"hel"</td></tr>',
+            '<tr><td><code>right(s, n)</code></td><td><code>right("hello", 3)</code></td><td>"llo"</td></tr>',
+            '<tr><td><code>mid(s, start, len)</code></td><td><code>mid("hello", 1, 3)</code></td><td>"ell"</td></tr>',
+            '<tr><td><code>replace(s, old, new)</code></td><td><code>replace("hi", "i", "ello")</code></td><td>"hello"</td></tr></table>'
+        ))
+    }
+
+    if idx == 6 {
+        return html_wrap(rejoin(
+            '<h1>Building Strings with rejoin()</h1>',
+            '<p><code>rejoin()</code> concatenates multiple values into one string. It accepts any number of arguments.</p>',
+            '<pre>greeting = rejoin("Hello, ", name, "!")\nmsg = rejoin("Score: ", str(score), " / 100")</pre>',
+            '<h2>The + Operator Also Works</h2>',
+            '<pre>msg = "Hello, " + name + "!"   # also valid in 1.2</pre>',
+            '<div class="info">💡 <code>rejoin()</code> is preferred for multi-part strings. <code>+</code> works for simple two-part joins.</div>',
+            '<div class="warn">⚠️ The old <code>&amp;</code> operator was <b>removed</b> in 1.2. Use <code>rejoin()</code> or <code>+</code>.</div>'
+        ))
+    }
+
+    if idx == 7 {
+        return html_wrap(rejoin(
+            '<h1>IF / ELSE Decisions</h1>',
+            '<pre>if score >= 90 {\n    say("Grade: A")\n} else {\n    say("Keep trying!")\n}</pre>',
+            '<h2>Comparison Operators</h2>',
+            '<table><tr><th>Op</th><th>Meaning</th></tr>',
+            '<tr><td><code>==</code></td><td>Equal</td></tr>',
+            '<tr><td><code>!=</code></td><td>Not equal</td></tr>',
+            '<tr><td><code>&lt; &gt; &lt;= &gt;=</code></td><td>Comparisons</td></tr>',
+            '<tr><td><code>and</code></td><td>Both true</td></tr>',
+            '<tr><td><code>or</code></td><td>At least one true</td></tr>',
+            '<tr><td><code>not</code></td><td>Negate</td></tr></table>',
+            '<div class="warn">⚠️ No <code>else if</code>. Nest <code>if</code> inside <code>else { }</code> instead.</div>'
+        ))
+    }
+
+    if idx == 8 {
+        return html_wrap(rejoin(
+            '<h1>WHILE Loops</h1>',
+            '<pre>count = 1\nwhile count <= 5 {\n    say(rejoin("Count: ", str(count)))\n    count = count + 1\n}</pre>',
+            '<h2>Loop Control</h2>',
+            '<ul><li><code>break</code> — exit the loop immediately</li>',
+            '<li><code>continue</code> — skip to the next iteration</li></ul>',
+            '<div class="warn">⚠️ Always ensure the condition becomes <code>false</code>, or you create an infinite loop!</div>'
+        ))
+    }
+
+    if idx == 9 {
+        return html_wrap(rejoin(
+            '<h1>FOR Loops</h1>',
+            '<h2>Iterate a List</h2>',
+            '<pre>fruits = ["apple", "banana", "cherry"]\nfor fruit in fruits {\n    say(fruit)\n}</pre>',
+            '<h2>Range Loop (inclusive)</h2>',
+            '<pre>for i in 1..5 {\n    say(str(i))    # 1, 2, 3, 4, 5\n}</pre>',
+            '<h2>Range with Step</h2>',
+            '<pre>for i in 0..20 step 5 {\n    say(str(i))    # 0, 5, 10, 15, 20\n}</pre>'
+        ))
+    }
+
+    if idx == 10 {
+        return html_wrap(rejoin(
+            '<h1>Functions (def)</h1>',
+            '<pre>def greet(name) {\n    return rejoin("Hello, ", name, "!")\n}\n\nsay(greet("Alice"))   # Hello, Alice!</pre>',
+            '<h2>Multiple Parameters</h2>',
+            '<pre>def add(a, b) {\n    return a + b\n}</pre>',
+            '<h2>Recursion</h2>',
+            '<pre>def factorial(n) {\n    if n <= 1 { return 1 }\n    return n * factorial(n - 1)\n}</pre>',
+            '<div class="info">💡 Functions use <code>def name(params) { }</code> — no <code>FUNCTION...END FUNCTION</code>.</div>'
+        ))
+    }
+
+    if idx == 11 {
+        return html_wrap(rejoin(
+            '<h1>Lists</h1>',
+            '<pre>nums = [10, 20, 30, 40, 50]\nsay(str(nums[0]))       # 10  (0-based index)\nsay(str(len(nums)))     # 5</pre>',
+            '<h2>Modifying Lists</h2>',
+            '<pre>list_append(nums, 60)   # add to end\nlist_set(nums, 0, 100)  # replace index 0</pre>',
+            '<h2>Iterate</h2>',
+            '<pre>for n in nums {\n    say(str(n))\n}</pre>',
+            '<div class="warn">⚠️ Cannot use <code>nums[0] = 100</code>. Use <code>list_set()</code>.</div>'
+        ))
+    }
+
+    if idx == 12 {
+        return html_wrap(rejoin(
+            '<h1>Dictionaries</h1>',
+            '<pre>person = {\n    "name": "Alice",\n    "age": 30,\n    "city": "NYC"\n}</pre>',
+            '<h2>Access Values</h2>',
+            '<pre>say(person["name"])   # Alice\nsay(person.city)      # NYC  (dot access)</pre>',
+            '<h2>Modify</h2>',
+            '<pre>dict_set(person, "email", "a@b.com")\nsay(str(dict_has_key(person, "phone")))  # false</pre>',
+            '<h2>Iterate Keys</h2>',
+            '<pre>for key in dict_keys(person) {\n    say(rejoin(key, " = ", str(person[key])))\n}</pre>'
+        ))
+    }
+
+    if idx == 13 {
+        return html_wrap(rejoin(
+            '<h1>Error Handling (try / catch)</h1>',
+            '<pre>try {\n    result = 10 / 0\n} catch err {\n    say(rejoin("Caught: ", err))\n}</pre>',
+            '<p>The <code>err</code> variable holds the error message as a string.</p>',
+            '<h2>Common Uses</h2>',
+            '<ul><li>Division by zero</li><li>File not found</li><li>Invalid input</li></ul>',
+            '<div class="info">💡 Syntax: <code>try { } catch err { }</code> — no <code>THEN</code> or <code>END TRY</code>.</div>'
+        ))
+    }
+
+    if idx == 14 {
+        return html_wrap(rejoin(
+            '<h1>Your First GUI Window</h1>',
+            '<pre>win = ui_window("My App", 400, 300)\nui_label(win, "Hello GUI!", 140, 120, 120, 30)\nui_mainloop(win)</pre>',
+            '<h2>Widget Coordinates</h2>',
+            '<p>All widgets use <b>absolute positioning</b>: <code>(x, y, width, height)</code></p>',
+            '<ul><li><b>x, y</b> — pixels from top-left</li>',
+            '<li><b>w, h</b> — size in pixels</li></ul>',
+            '<h2>Common Widgets</h2>',
+            '<table><tr><th>Widget</th><th>Function</th></tr>',
+            '<tr><td>Label</td><td><code>ui_label(parent, text, x, y, w, h)</code></td></tr>',
+            '<tr><td>Panel</td><td><code>ui_panel(parent, x, y, w, h)</code></td></tr>',
+            '<tr><td>Button</td><td><code>ui_button(parent, text, "cb", x, y, w, h)</code></td></tr>',
+            '<tr><td>Entry</td><td><code>ui_entry(parent, text, x, y, w, h)</code></td></tr></table>',
+            '<div class="try">🚀 Click <b>▶ Run It!</b> — a real window will appear! Close it to return.</div>'
+        ))
+    }
+
+    if idx == 15 {
+        return html_wrap(rejoin(
+            '<h1>Buttons &amp; Event Handlers</h1>',
+            '<p>Buttons call a function by <b>name (as a string)</b> when clicked.</p>',
+            '<pre>def on_click() {\n    ui_alert("Clicked!")\n}\n\nwin = ui_window("Events", 300, 150)\nui_button(win, "Click Me", "on_click", 90, 50, 120, 35)\nui_mainloop(win)</pre>',
+            '<h2>Other Events with ui_bind()</h2>',
+            '<pre>ui_bind(entry, "CHANGE", "on_change")\nui_bind(list, "SELECT", "on_select")</pre>',
+            '<table><tr><th>Event</th><th>Fires When</th></tr>',
+            '<tr><td>CLICK</td><td>Widget clicked</td></tr>',
+            '<tr><td>CHANGE</td><td>Text changed</td></tr>',
+            '<tr><td>SELECT</td><td>Item selected</td></tr>',
+            '<tr><td>DOUBLE_CLICK</td><td>Double-clicked</td></tr></table>'
+        ))
+    }
+
+    if idx == 16 {
+        return html_wrap(rejoin(
+            '<h1>Project: Build a Calculator</h1>',
+            '<p>Combines everything: variables, functions, GUI, events, error handling.</p>',
+            '<h2>Features</h2>',
+            '<ul><li>Two number inputs</li>',
+            '<li>Four operation buttons (+, −, ×, ÷)</li>',
+            '<li>Result display with color feedback</li>',
+            '<li>Division-by-zero protection</li></ul>',
+            '<div class="try">🚀 Click <b>▶ Run It!</b> to launch the calculator. Enter numbers and click operations!</div>'
+        ))
+    }
+
+    if idx == 17 {
+        return html_wrap(rejoin(
+            '<h1>Project: Build a Todo App</h1>',
+            '<p>A complete task manager with a ListView.</p>',
+            '<h2>Features</h2>',
+            '<ul><li>Add tasks from a text entry</li>',
+            '<li>Toggle done / not done</li>',
+            '<li>Task counter</li>',
+            '<li>Color-coded status</li></ul>',
+            '<h2>Concepts Used</h2>',
+            '<ul><li>Lists &amp; dictionaries for data</li>',
+            '<li>ListView widget</li>',
+            '<li>Event-driven architecture</li>',
+            '<li>Dynamic UI updates</li></ul>',
+            '<div class="try">🚀 Click <b>▶ Run It!</b> to launch the Todo App!</div>',
+            '<div class="info">🎓 <b>Congratulations!</b> You have completed all 18 lessons. You can now build real desktop apps with AnikaLang 1.2!</div>'
+        ))
+    }
+
+    return html_wrap('<h1>Lesson not found</h1>')
+}
+
+# ==============================================================================
+# LESSON CODE (runnable AnikaLang 1.2)
+# ==============================================================================
+
+def get_lesson_code(idx) {
+
+    if idx == 0 { return '# Welcome! Click "Next →" to start learning.' }
+
+    if idx == 1 {
+        return rejoin(
+            '# Your first AnikaLang 1.2 program!\n',
+            'say("Hello, World!")\n',
+            'say("Welcome to AnikaLang 1.2!")\n',
+            'say("Let us learn programming together!")\n',
+            '\n',
+            '# In real programs, use ui_alert() for popups:\n',
+            '# ui_alert("Hello!")'
+        )
+    }
+
+    if idx == 2 {
+        return rejoin(
+            'name = "Alice"\n',
+            'age = 30\n',
+            'height = 5.7\n',
+            'active = true\n',
+            '\n',
+            'say(rejoin("Name: ", name))\n',
+            'say(rejoin("Age: ", str(age)))\n',
+            'say(rejoin("Height: ", str(height)))\n',
+            'say(rejoin("Active: ", str(active)))\n',
+            '\n',
+            '# Reassignment\n',
+            'age = 31\n',
+            'say(rejoin("Next year age: ", str(age)))'
+        )
+    }
+
+    if idx == 3 {
+        return rejoin(
+            'x = 42\n',
+            'y = 3.14\n',
+            's = "hello"\n',
+            'b = true\n',
+            'n = null\n',
+            '\n',
+            'say(rejoin("x is: ", type_of(x)))\n',
+            'say(rejoin("y is: ", type_of(y)))\n',
+            'say(rejoin("s is: ", type_of(s)))\n',
+            'say(rejoin("b is: ", type_of(b)))\n',
+            'say(rejoin("n is: ", type_of(n)))\n',
+            '\n',
+            '# Conversion\n',
+            'say(rejoin("str(42) = ", str(42)))\n',
+            'say(rejoin("int(3.9) = ", str(int(3.9))))\n',
+            'say(rejoin("float(7) = ", str(float(7))))'
+        )
+    }
+
+    if idx == 4 {
+        return rejoin(
+            'a = 10\n',
+            'b = 3\n',
+            '\n',
+            'say(rejoin("Add:      ", str(a + b)))\n',
+            'say(rejoin("Subtract: ", str(a - b)))\n',
+            'say(rejoin("Multiply: ", str(a * b)))\n',
+            'say(rejoin("Divide:   ", str(a / b)))\n',
+            'say(rejoin("Power:    ", str(pow(2, 10))))\n',
+            'say(rejoin("Sqrt:     ", str(sqrt(144))))\n',
+            'say(rejoin("Pi:       ", str(pi())))\n',
+            'say(rejoin("Abs:      ", str(abs(-7))))\n',
+            'say(rejoin("Round:    ", str(round(3.14159, 2))))'
+        )
+    }
+
+    if idx == 5 {
+        return rejoin(
+            'msg = "Hello, World!"\n',
+            '\n',
+            'say(rejoin("Original:  ", msg))\n',
+            'say(rejoin("Length:    ", str(len(msg))))\n',
+            'say(rejoin("Upper:     ", upper(msg)))\n',
+            'say(rejoin("Lower:     ", lower(msg)))\n',
+            'say(rejoin("Left 5:    ", left(msg, 5)))\n',
+            'say(rejoin("Right 6:   ", right(msg, 6)))\n',
+            'say(rejoin("Mid 7,5:   ", mid(msg, 7, 5)))\n',
+            'say(rejoin("Replace:   ", replace(msg, "World", "AnikaLang")))\n',
+            'say(rejoin("Trim:      [", trim("  padded  "), "]"))'
+        )
+    }
+
+    if idx == 6 {
+        return rejoin(
+            'first = "Anika"\n',
+            'last = "Lang"\n',
+            'ver = 1.2\n',
+            '\n',
+            '# rejoin() — multiple parts\n',
+            'full = rejoin(first, last, " v", str(ver))\n',
+            'say(rejoin("rejoin: ", full))\n',
+            '\n',
+            '# + also works for strings\n',
+            'greeting = "Hello, " + first + "!"\n',
+            'say(rejoin("plus:   ", greeting))\n',
+            '\n',
+            '# Build a sentence\n',
+            'score = 95\n',
+            'total = 100\n',
+            'report = rejoin("Score: ", str(score), " / ", str(total), " (", str(round(score / total * 100, 1)), "%)")\n',
+            'say(report)'
+        )
+    }
+
+    if idx == 7 {
+        return rejoin(
+            'score = 85\n',
+            '\n',
+            'if score >= 90 {\n',
+            '    say("Grade: A")\n',
+            '} else {\n',
+            '    if score >= 80 {\n',
+            '        say("Grade: B")\n',
+            '    } else {\n',
+            '        if score >= 70 {\n',
+            '            say("Grade: C")\n',
+            '        } else {\n',
+            '            say("Grade: F")\n',
+            '        }\n',
+            '    }\n',
+            '}\n',
+            '\n',
+            '# Logical operators\n',
+            'age = 25\n',
+            'has_id = true\n',
+            'if age >= 18 and has_id {\n',
+            '    say("Access granted")\n',
+            '}\n',
+            'if age < 13 or age > 65 {\n',
+            '    say("Discount!")\n',
+            '} else {\n',
+            '    say("Standard price")\n',
+            '}'
+        )
+    }
+
+    if idx == 8 {
+        return rejoin(
+            '# Sum 1 to 10\n',
+            'count = 1\n',
+            'total = 0\n',
+            'while count <= 10 {\n',
+            '    total = total + count\n',
+            '    count = count + 1\n',
+            '}\n',
+            'say(rejoin("Sum 1..10 = ", str(total)))\n',
+            '\n',
+            '# break example\n',
+            'i = 0\n',
+            'while true {\n',
+            '    i = i + 1\n',
+            '    if i > 5 { break }\n',
+            '}\n',
+            'say(rejoin("Broke at: ", str(i)))\n',
+            '\n',
+            '# continue example\n',
+            'result = ""\n',
+            'n = 0\n',
+            'while n < 10 {\n',
+            '    n = n + 1\n',
+            '    if n == 5 { continue }\n',
+            '    result = rejoin(result, str(n), " ")\n',
+            '}\n',
+            'say(rejoin("Skip 5: ", result))'
+        )
+    }
+
+    if idx == 9 {
+        return rejoin(
+            '# Iterate a list\n',
+            'fruits = ["apple", "banana", "cherry"]\n',
+            'for fruit in fruits {\n',
+            '    say(rejoin("Fruit: ", fruit))\n',
+            '}\n',
+            '\n',
+            '# Range loop (inclusive)\n',
+            'squares = ""\n',
+            'for i in 1..5 {\n',
+            '    squares = rejoin(squares, str(i), "^2=", str(pow(i, 2)), "  ")\n',
+            '}\n',
+            'say(rejoin("Squares: ", squares))\n',
+            '\n',
+            '# Range with step\n',
+            'evens = ""\n',
+            'for i in 0..20 step 2 {\n',
+            '    evens = rejoin(evens, str(i), " ")\n',
+            '}\n',
+            'say(rejoin("Evens: ", evens))'
+        )
+    }
+
+    if idx == 10 {
+        return rejoin(
+            'def greet(name) {\n',
+            '    return rejoin("Hello, ", name, "!")\n',
+            '}\n',
+            '\n',
+            'def add(a, b) {\n',
+            '    return a + b\n',
+            '}\n',
+            '\n',
+            'def factorial(n) {\n',
+            '    if n <= 1 { return 1 }\n',
+            '    return n * factorial(n - 1)\n',
+            '}\n',
+            '\n',
+            'def fibonacci(n) {\n',
+            '    if n <= 1 { return n }\n',
+            '    return fibonacci(n - 1) + fibonacci(n - 2)\n',
+            '}\n',
+            '\n',
+            'say(greet("Alice"))\n',
+            'say(rejoin("5 + 3 = ", str(add(5, 3))))\n',
+            'say(rejoin("5! = ", str(factorial(5))))\n',
+            'say(rejoin("fib(10) = ", str(fibonacci(10))))'
+        )
+    }
+
+    if idx == 11 {
+        return rejoin(
+            'nums = [10, 20, 30, 40, 50]\n',
+            '\n',
+            'say(rejoin("First: ", str(nums[0])))\n',
+            'say(rejoin("Last:  ", str(nums[4])))\n',
+            'say(rejoin("Len:   ", str(len(nums))))\n',
+            '\n',
+            '# Modify\n',
+            'list_append(nums, 60)\n',
+            'list_set(nums, 0, 100)\n',
+            '\n',
+            '# Iterate & sum\n',
+            'total = 0\n',
+            'for n in nums {\n',
+            '    total = total + n\n',
+            '}\n',
+            'say(rejoin("Sum: ", str(total)))\n',
+            '\n',
+            '# Build display\n',
+            'display = ""\n',
+            'for n in nums {\n',
+            '    display = rejoin(display, str(n), " ")\n',
+            '}\n',
+            'say(rejoin("List: ", display))'
+        )
+    }
+
+    if idx == 12 {
+        return rejoin(
+            'person = {\n',
+            '    "name": "Alice",\n',
+            '    "age": 30,\n',
+            '    "city": "New York"\n',
+            '}\n',
+            '\n',
+            'say(rejoin("Name: ", person["name"]))\n',
+            'say(rejoin("Age:  ", str(person["age"])))\n',
+            'say(rejoin("City: ", person.city))\n',
+            '\n',
+            '# Add key\n',
+            'dict_set(person, "email", "alice@example.com")\n',
+            'say(rejoin("Email: ", person["email"]))\n',
+            '\n',
+            '# Check key\n',
+            'say(rejoin("Has phone? ", str(dict_has_key(person, "phone"))))\n',
+            '\n',
+            '# Iterate all keys\n',
+            'for key in dict_keys(person) {\n',
+            '    say(rejoin("  ", key, " = ", str(person[key])))\n',
+            '}'
+        )
+    }
+
+    if idx == 13 {
+        return rejoin(
+            '# Division by zero\n',
+            'try {\n',
+            '    result = 10 / 0\n',
+            '} catch err {\n',
+            '    say(rejoin("Caught: ", err))\n',
+            '}\n',
+            '\n',
+            '# Safe file read\n',
+            'try {\n',
+            '    content = file_read("nonexistent_file.txt")\n',
+            '    say(content)\n',
+            '} catch err {\n',
+            '    say(rejoin("File error: ", err))\n',
+            '}\n',
+            '\n',
+            '# Program continues!\n',
+            'say("Program is still running!")\n',
+            '\n',
+            '# Nested try\n',
+            'try {\n',
+            '    x = int("not_a_number")\n',
+            '    say(rejoin("Parsed: ", str(x)))\n',
+            '} catch err {\n',
+            '    say(rejoin("Parse error: ", err))\n',
+            '}'
+        )
+    }
+
+    if idx == 14 {
+        return rejoin(
+            'win = ui_window("My First GUI", 420, 320)\n',
+            '\n',
+            '# Title\n',
+            'title = ui_label(win, "Welcome to AnikaLang!", 100, 30, 220, 30)\n',
+            'ui_font(title, 16, "Segoe UI", true)\n',
+            'ui_color(title, "#2c3e50", "")\n',
+            '\n',
+            '# Info labels\n',
+            'ui_label(win, "This is a real wxPython window.", 100, 80, 250, 22)\n',
+            'ui_label(win, "Widgets use absolute positioning.", 100, 110, 250, 22)\n',
+            '\n',
+            '# Colored panel\n',
+            'panel = ui_panel(win, 60, 160, 300, 70)\n',
+            'ui_color(panel, "white", "#3498db")\n',
+            'p_lbl = ui_label(panel, "  Colored Panel!", 0, 22, 300, 25)\n',
+            'ui_color(p_lbl, "white", "#3498db")\n',
+            'ui_font(p_lbl, 13, "Segoe UI", true)\n',
+            '\n',
+            'ui_mainloop(win)'
+        )
+    }
+
+    if idx == 15 {
+        return rejoin(
+            'counter = 0\n',
+            'display = null\n',
+            '\n',
+            'def increment() {\n',
+            '    counter = counter + 1\n',
+            '    ui_set(display, rejoin("Count: ", str(counter)))\n',
+            '}\n',
+            '\n',
+            'def reset_count() {\n',
+            '    counter = 0\n',
+            '    ui_set(display, "Count: 0")\n',
+            '}\n',
+            '\n',
+            'win = ui_window("Counter App", 320, 200)\n',
+            '\n',
+            'display = ui_label(win, "Count: 0", 110, 30, 100, 30)\n',
+            'ui_font(display, 16, "Segoe UI", true)\n',
+            '\n',
+            'b1 = ui_button(win, "+ Increment", "increment", 40, 90, 110, 35)\n',
+            'ui_color(b1, "white", "#27ae60")\n',
+            '\n',
+            'b2 = ui_button(win, "Reset", "reset_count", 170, 90, 110, 35)\n',
+            'ui_color(b2, "white", "#e74c3c")\n',
+            '\n',
+            'ui_mainloop(win)'
+        )
+    }
+
+    if idx == 16 {
+        return rejoin(
+            'e1 = null\n',
+            'e2 = null\n',
+            'res = null\n',
+            '\n',
+            'def calc(op) {\n',
+            '    a_str = ui_get(e1)\n',
+            '    b_str = ui_get(e2)\n',
+            '    if len(trim(a_str)) == 0 or len(trim(b_str)) == 0 {\n',
+            '        ui_set(res, "Enter both numbers!")\n',
+            '        ui_color(res, "white", "#e67e22")\n',
+            '        return\n',
+            '    }\n',
+            '    try {\n',
+            '        a = float(a_str)\n',
+            '        b = float(b_str)\n',
+            '        answer = 0\n',
+            '        if op == "+" { answer = a + b }\n',
+            '        if op == "-" { answer = a - b }\n',
+            '        if op == "*" { answer = a * b }\n',
+            '        if op == "/" { answer = a / b }\n',
+            '        ui_set(res, rejoin("Result: ", str(answer)))\n',
+            '        ui_color(res, "white", "#27ae60")\n',
+            '    } catch err {\n',
+            '        ui_set(res, rejoin("Error: ", err))\n',
+            '        ui_color(res, "white", "#c0392b")\n',
+            '    }\n',
+            '}\n',
+            '\n',
+            'def do_add() { calc("+") }\n',
+            'def do_sub() { calc("-") }\n',
+            'def do_mul() { calc("*") }\n',
+            'def do_div() { calc("/") }\n',
+            '\n',
+            'win = ui_window("Calculator", 400, 280)\n',
+            '\n',
+            'ui_label(win, "Number 1:", 30, 20, 80, 25)\n',
+            'e1 = ui_entry(win, "", 120, 18, 250, 28)\n',
+            '\n',
+            'ui_label(win, "Number 2:", 30, 58, 80, 25)\n',
+            'e2 = ui_entry(win, "", 120, 56, 250, 28)\n',
+            '\n',
+            'ba = ui_button(win, "+", "do_add", 30, 105, 80, 40)\n',
+            'ui_color(ba, "white", "#3498db")\n',
+            'bs = ui_button(win, "-", "do_sub", 120, 105, 80, 40)\n',
+            'ui_color(bs, "white", "#3498db")\n',
+            'bm = ui_button(win, "*", "do_mul", 210, 105, 80, 40)\n',
+            'ui_color(bm, "white", "#3498db")\n',
+            'bd = ui_button(win, "/", "do_div", 300, 105, 80, 40)\n',
+            'ui_color(bd, "white", "#3498db")\n',
+            '\n',
+            'res = ui_label(win, "Result appears here", 30, 170, 340, 40)\n',
+            'ui_color(res, "white", "#34495e")\n',
+            'ui_font(res, 14, "Segoe UI", true)\n',
+            '\n',
+            'ui_mainloop(win)'
+        )
+    }
+
+    if idx == 17 {
+        return rejoin(
+            'todos = []\n',
+            'todo_lv = null\n',
+            'todo_entry = null\n',
+            'todo_count_lbl = null\n',
+            '\n',
+            'def refresh_todos() {\n',
+            '    ui_listview_clear(todo_lv)\n',
+            '    done_count = 0\n',
+            '    for t in todos {\n',
+            '        status = "[ ]"\n',
+            '        if t["done"] == true {\n',
+            '            status = "[x]"\n',
+            '            done_count = done_count + 1\n',
+            '        }\n',
+            '        ui_listview_insert(todo_lv, [status, t["text"]])\n',
+            '    }\n',
+            '    ui_set(todo_count_lbl, rejoin(str(done_count), " / ", str(len(todos)), " done"))\n',
+            '}\n',
+            '\n',
+            'def add_todo() {\n',
+            '    txt = ui_get(todo_entry)\n',
+            '    if len(trim(txt)) == 0 { return }\n',
+            '    list_append(todos, {"text": txt, "done": false})\n',
+            '    ui_set(todo_entry, "")\n',
+            '    refresh_todos()\n',
+            '}\n',
+            '\n',
+            'def toggle_todo() {\n',
+            '    sel = ui_listview_get_selected(todo_lv)\n',
+            '    if sel == null { return }\n',
+            '    target = sel[1]\n',
+            '    for t in todos {\n',
+            '        if t["text"] == target {\n',
+            '            if t["done"] == true {\n',
+            '                dict_set(t, "done", false)\n',
+            '            } else {\n',
+            '                dict_set(t, "done", true)\n',
+            '            }\n',
+            '            break\n',
+            '        }\n',
+            '    }\n',
+            '    refresh_todos()\n',
+            '}\n',
+            '\n',
+            'win = ui_window("Todo App", 450, 380)\n',
+            '\n',
+            'hdr = ui_label(win, "My Tasks", 20, 12, 200, 28)\n',
+            'ui_font(hdr, 16, "Segoe UI", true)\n',
+            '\n',
+            'todo_entry = ui_entry(win, "Type a task...", 20, 50, 310, 28)\n',
+            'ab = ui_button(win, "Add", "add_todo", 340, 48, 90, 30)\n',
+            'ui_color(ab, "white", "#27ae60")\n',
+            '\n',
+            'tb = ui_button(win, "Toggle Done", "toggle_todo", 20, 90, 120, 30)\n',
+            'ui_color(tb, "white", "#3498db")\n',
+            '\n',
+            'todo_count_lbl = ui_label(win, "0 / 0 done", 330, 95, 100, 22)\n',
+            'ui_color(todo_count_lbl, "#7f8c8d", "")\n',
+            '\n',
+            'todo_lv = ui_listview(win, ["Done", "Task"], 20, 130, 410, 220)\n',
+            'ui_listview_set_column_width(todo_lv, 0, 50)\n',
+            'ui_listview_set_column_width(todo_lv, 1, 340)\n',
+            '\n',
+            'ui_mainloop(win)'
+        )
+    }
+
+    return '# No code for this lesson'
+}
+
+# ==============================================================================
+# UI FUNCTIONS
+# ==============================================================================
+
+def load_lesson(idx) {
+    tut_lesson = idx
+    titles = get_lesson_titles()
+
+    # update html viewer
+    content = get_lesson_content(idx)
+    ui_html_set(tut_viewer, content)
+
+    # update code editor
+    code = get_lesson_code(idx)
+    ui_text_set(tut_code, code)
+    ui_highlight(tut_code)
+
+    # clear output
+    ui_text_set(tut_output, "")
+
+    # update counter & progress
+    ui_set(tut_counter, rejoin("Lesson ", str(idx + 1), " / ", str(tut_total)))
+    pct = int((idx + 1) * 100 / tut_total)
+    ui_set(tut_progress, rejoin("Progress: ", str(pct), "%"))
+
+    # select in listbox
+    ui_listbox_select(tut_list, idx)
+}
+
+def run_current_lesson() {
+    try {
+        code = ui_text_get(tut_code)
+        if len(trim(code)) == 0 {
+            ui_text_set(tut_output, "No code to run.")
+            return
+        }
+        clear_output()
+        say("▶ Running...")
+        result = eval_fms(code)
+        if is_error(result) {
+            say(rejoin("✗ ERROR: ", error_message(result)))
+        } else {
+            say("✓ Done!")
+        }
+    } catch err {
+        # Window closed during execution — ignore
+    }
+}
+
+def next_lesson() {
+    if tut_lesson < tut_total - 1 {
+        load_lesson(tut_lesson + 1)
+    }
+}
+
+def prev_lesson() {
+    if tut_lesson > 0 {
+        load_lesson(tut_lesson - 1)
+    }
+}
+
+def on_lesson_select() {
+    sel = ui_listbox_get(tut_list)
+    if sel == null { return }
+    titles = get_lesson_titles()
+    i = 0
+    for t in titles {
+        if t == sel {
+            load_lesson(i)
+            return
+        }
+        i = i + 1
+    }
+}
+
+def copy_code() {
+    code = ui_text_get(tut_code)
+    clipboard_set(code)
+    clear_output()
+    say("📋 Code copied to clipboard!")
+}
+
+def reset_code() {
+    code = get_lesson_code(tut_lesson)
+    ui_text_set(tut_code, code)
+    ui_highlight(tut_code)
+    clear_output()
+    say("Code reset to original example.")
+}
+
+# ==============================================================================
+# RESPONSIVE LAYOUT ENGINE
+# ==============================================================================
+
+def layout() {
+    cs = ui_get_client_size(tut_win)
+    cw = cs[0]
+    ch = cs[1]
+
+    # --- header (full width, fixed height) ---
+    ui_pos(header, 0, 0, cw, HEADER_H)
+    ui_pos(h_title, 10, 12, 450, 28)
+    ui_pos(tut_counter, 500, 15, 130, 22)
+    ui_pos(tut_progress, 650, 15, 130, 22)
+    ui_pos(h_ver, cw - 380, 15, 360, 22)
+
+    # --- left panel (fixed width, full remaining height) ---
+    left_h = ch - HEADER_H
+    ui_pos(left, 0, HEADER_H, LEFT_W, left_h)
+    ui_pos(l_lbl, 10, 8, LEFT_W - 20, 24)
+    ui_pos(tut_list, 8, 38, LEFT_W - 16, left_h - 48)
+
+    # --- right panel (fills remaining width) ---
+    right_x = LEFT_W
+    right_w = cw - LEFT_W
+    ui_pos(right, right_x, HEADER_H, right_w, left_h)
+
+    # --- right panel internal layout (proportional) ---
+    inner_w = right_w - PAD * 2
+    inner_h = left_h - PAD * 2
+
+    # viewer: top 35%
+    viewer_h = int(inner_h * 0.35)
+    if viewer_h < 120 { viewer_h = 120 }
+    ui_pos(tut_viewer, PAD, PAD, inner_w, viewer_h)
+
+    # code label
+    code_lbl_y = PAD + viewer_h + GAP
+    ui_pos(c_lbl, PAD, code_lbl_y, inner_w, LBL_H)
+
+    # code editor: 28%
+    code_y = code_lbl_y + LBL_H + 2
+    code_h = int(inner_h * 0.28)
+    if code_h < 80 { code_h = 80 }
+    ui_pos(tut_code, PAD, code_y, inner_w, code_h)
+
+    # buttons row
+    btn_y = code_y + code_h + GAP
+    btn_w = 90
+    btn_gap = 10
+    ui_pos(b_prev, PAD, btn_y, btn_w, BTN_H)
+    ui_pos(b_run, PAD + (btn_w + btn_gap) * 1, btn_y, btn_w + 20, BTN_H)
+    ui_pos(b_next, PAD + (btn_w + btn_gap) * 2 + 20, btn_y, btn_w, BTN_H)
+    ui_pos(b_copy, PAD + (btn_w + btn_gap) * 3 + 20, btn_y, btn_w, BTN_H)
+    ui_pos(b_reset, PAD + (btn_w + btn_gap) * 4 + 20, btn_y, btn_w, BTN_H)
+
+    # output label
+    out_lbl_y = btn_y + BTN_H + GAP
+    ui_pos(o_lbl, PAD, out_lbl_y, inner_w, LBL_H)
+
+    # output: fills remaining space
+    out_y = out_lbl_y + LBL_H + 2
+    out_h = inner_h - (out_y - PAD) - 4
+    if out_h < 60 { out_h = 60 }
+    ui_pos(tut_output, PAD, out_y, inner_w, out_h)
+
+    ui_refresh(tut_win)
+}
+
+def on_resize(w, nw, nh) {
+    layout()
+}
+
+# ==============================================================================
+# BUILD THE TUTORIAL UI
+# ==============================================================================
+
+tut_win = ui_window("AnikaLang 1.2 — Interactive Tutorial", 1300, 820)
+
+# ---- header ----
+header = ui_panel(tut_win, 0, 0, 1300, HEADER_H)
+ui_color(header, "white", "#1a1a2e")
+
+h_title = ui_label(header, "  AnikaLang 1.2 Interactive Tutorial", 10, 12, 450, 28)
+ui_color(h_title, "white", "#1a1a2e")
+ui_font(h_title, 16, "Segoe UI", true)
+
+tut_counter = ui_label(header, "Lesson 1 / 18", 500, 15, 130, 22)
+ui_color(tut_counter, "#74b9ff", "#1a1a2e")
+ui_font(tut_counter, 11, "Segoe UI", true)
+
+tut_progress = ui_label(header, "Progress: 6%", 650, 15, 130, 22)
+ui_color(tut_progress, "#55efc4", "#1a1a2e")
+ui_font(tut_progress, 11, "Segoe UI", true)
+
+h_ver = ui_label(header, "v1.2  ·  def { }  ·  rejoin()  ·  lowercase", 920, 15, 360, 22)
+ui_color(h_ver, "#636e72", "#1a1a2e")
+
+# ---- left panel: lesson list ----
+left = ui_panel(tut_win, 0, HEADER_H, LEFT_W, 770)
+ui_color(left, "", "#f0f2f5")
+
+l_lbl = ui_label(left, "  Lessons", 10, 8, LEFT_W - 20, 24)
+ui_font(l_lbl, 12, "Segoe UI", true)
+ui_color(l_lbl, "#2c3e50", "#f0f2f5")
+
+tut_list = ui_listbox(left, 8, 38, LEFT_W - 16, 720)
+titles = get_lesson_titles()
+for t in titles {
+    ui_listbox_insert(tut_list, t)
+}
+ui_bind(tut_list, "SELECT", "on_lesson_select")
+
+# ---- right panel ----
+right = ui_panel(tut_win, LEFT_W, HEADER_H, 1030, 770)
+
+# html lesson viewer
+tut_viewer = ui_htmlview(right, PAD, PAD, 1010, 255)
+
+# code editor label
+c_lbl = ui_label(right, "Example Code  (editable — modify and run!)", PAD, 275, 400, LBL_H)
+ui_font(c_lbl, 11, "Segoe UI", true)
+ui_color(c_lbl, "#2c3e50", "")
+
+# code editor (syntax-highlighted)
+tut_code = ui_code_editor(right, PAD, 300, 1010, 168)
+
+# button row
+b_prev = ui_button(right, "← Prev", "prev_lesson", PAD, 480, 90, BTN_H)
+ui_color(b_prev, "white", "#636e72")
+
+b_run = ui_button(right, "▶ Run It!", "run_current_lesson", 110, 480, 110, BTN_H)
+ui_color(b_run, "white", "#27ae60")
+ui_font(b_run, 11, "Segoe UI", true)
+
+b_next = ui_button(right, "Next →", "next_lesson", 230, 480, 90, BTN_H)
+ui_color(b_next, "white", "#3498db")
+
+b_copy = ui_button(right, "📋 Copy", "copy_code", 330, 480, 90, BTN_H)
+ui_color(b_copy, "white", "#e67e22")
+
+b_reset = ui_button(right, "↺ Reset", "reset_code", 430, 480, 90, BTN_H)
+ui_color(b_reset, "white", "#d63031")
+
+# output label
+o_lbl = ui_label(right, "Output", PAD, 525, 200, LBL_H)
+ui_font(o_lbl, 11, "Segoe UI", true)
+ui_color(o_lbl, "#2c3e50", "")
+
+# output box
+tut_output = ui_text(right, "", true, PAD, 550, 1010, 200)
+ui_font(tut_output, 10, "Consolas", false)
+ui_color(tut_output, "#2c3e50", "#fafbfc")
+
+# ---- bind resize & keyboard shortcut ----
+ui_bind(tut_win, "RESIZE", "on_resize")
+ui_bind(tut_win, "KEY_SHORTCUT", "Ctrl+Enter", "run_current_lesson")
+
+# ==============================================================================
+# BOOT
+# ==============================================================================
+
+load_lesson(0)
+layout()
+ui_mainloop(tut_win)

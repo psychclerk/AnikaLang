@@ -1,0 +1,1018 @@
+# ==============================================================================
+# ANIKALANG 1.2 FORM DESIGNER (Consolidated & Fixed)
+# Absolute positioning, outline mode, live code generation.
+# ==============================================================================
+
+# ---- Global State ----
+designer_win = null
+elements = []
+next_id = 1
+selected_elem = null
+current_parent = "win"
+last_order = []
+
+# ---- Widget Handles ----
+elem_list = null
+code_editor = null
+status_label = null
+left_pane = null
+mid_pane = null
+right_pane = null
+toolbar = null
+status_bar = null
+prop_name = null
+prop_type = null
+prop_parent = null
+prop_text = null
+prop_x = null
+prop_y = null
+prop_w = null
+prop_h = null
+prop_callback = null
+prop_event = null
+prop_extra = null
+
+# ---- Default Widget Sizes [w, h] ----
+DEFAULT_SIZES = {
+    "UI_WINDOW": [800, 600],
+    "UI_PANEL": [300, 200],
+    "UI_LABEL": [160, 26],
+    "UI_ENTRY": [220, 26],
+    "UI_BUTTON": [120, 32],
+    "UI_CHECKBOX": [160, 26],
+    "UI_COMBOBOX": [220, 26],
+    "UI_LISTVIEW": [400, 200],
+    "UI_TEXT": [300, 150]
+}
+
+# ==============================================================================
+# LOW-LEVEL HELPERS
+# ==============================================================================
+
+def set_status(t) {
+    ui_set(status_label, t)
+}
+
+def get_default_size(t) {
+    if dict_has_key(DEFAULT_SIZES, t) {
+        return DEFAULT_SIZES[t]
+    }
+    return [120, 30]
+}
+
+def find_elem_by_name(nm) {
+    for e in elements {
+        if e.name == nm {
+            return e
+        }
+    }
+    return null
+}
+
+def parent_of(nm) {
+    for e in elements {
+        if e.name == nm {
+            return e.parent
+        }
+    }
+    return ""
+}
+
+def name_exists(nm) {
+    for e in elements {
+        if e.name == nm {
+            return true
+        }
+    }
+    return false
+}
+
+def unique_name_for(base) {
+    cand = base
+    if name_exists(cand) == false and is_reserved(cand) == false {
+        return cand
+    }
+    n = 2
+    cand = rejoin(base, "_", str(n))
+    while name_exists(cand) or is_reserved(cand) {
+        n = n + 1
+        cand = rejoin(base, "_", str(n))
+    }
+    return cand
+}
+
+def reserved_names() {
+    return ["ui_window", "ui_panel", "ui_label", "ui_entry", "ui_button", "ui_text", "ui_checkbox", "ui_radio", "ui_combobox", "ui_listview", "ui_listbox", "ui_tree", "ui_htmlview", "ui_sheet", "ui_code_editor", "ui_tabs", "ui_menu", "ui_popup", "ui_popup_menu", "ui_statusbar", "ui_datepicker", "ui_md_editor", "ui_richtext"]
+}
+
+def is_reserved(nm) {
+    low = lower(str(nm))
+    r = reserved_names()
+    i = 0
+    while i < len(r) {
+        if r[i] == low { return true }
+        i = i + 1
+    }
+    return false
+}
+
+def friendly_base(type_str) {
+    return lower(replace(type_str, "UI_", ""))
+}
+
+def make_indent(depth) {
+    s = ""
+    i = 0
+    while i < depth {
+        s = rejoin(s, "  ")
+        i = i + 1
+    }
+    return s
+}
+
+def depth_of(nm) {
+    d = 0
+    cur = parent_of(nm)
+    guard = 0
+    while cur != "" and guard < 64 {
+        d = d + 1
+        cur = parent_of(cur)
+        guard = guard + 1
+    }
+    return d
+}
+
+def make_display(e) {
+    return rejoin(make_indent(depth_of(e.name)), e.type, "  ", e.name)
+}
+
+def is_container(t) {
+    if t == "UI_WINDOW" or t == "UI_PANEL" {
+        return true
+    }
+    return false
+}
+
+def direct_children(parent_name) {
+    out = []
+    for e in elements {
+        if e.parent == parent_name {
+            list_append(out, e)
+        }
+    }
+    return out
+}
+
+def elements_in_tree_order() {
+    names_set = {}
+    for e in elements {
+        dict_set(names_set, e.name, true)
+    }
+    emitted = {}
+    order = []
+    total = len(elements)
+    guard = 0
+    while len(order) < total and guard < total + 5 {
+        guard = guard + 1
+        progress = false
+        for e in elements {
+            if dict_has_key(emitted, e.name) {
+                # already emitted
+            } else {
+                parent_ok = (e.type == "UI_WINDOW") or (not dict_has_key(names_set, e.parent)) or dict_has_key(emitted, e.parent)
+                if parent_ok {
+                    list_append(order, e)
+                    dict_set(emitted, e.name, true)
+                    progress = true
+                }
+            }
+        }
+        if progress == false {
+            for e in elements {
+                if not dict_has_key(emitted, e.name) {
+                    list_append(order, e)
+                    dict_set(emitted, e.name, true)
+                    progress = true
+                    break
+                }
+            }
+        }
+    }
+    return order
+}
+
+def index_in_order(nm) {
+    i = 0
+    while i < len(last_order) {
+        if last_order[i].name == nm {
+            return i
+        }
+        i = i + 1
+    }
+    return -1
+}
+
+def collect_descendants(nm) {
+    out = [nm]
+    added = {}
+    dict_set(added, nm, true)
+    changed = true
+    while changed {
+        changed = false
+        for e in elements {
+            if dict_has_key(added, e.name) {
+                # skip
+            } else {
+                if dict_has_key(added, e.parent) {
+                    list_append(out, e.name)
+                    dict_set(added, e.name, true)
+                    changed = true
+                }
+            }
+        }
+    }
+    return out
+}
+
+# ==============================================================================
+# OUTLINE & SELECTION
+# ==============================================================================
+
+def rebuild_list() {
+    ui_listview_clear(elem_list)
+    last_order = elements_in_tree_order()
+    for e in last_order {
+        ui_listview_insert(elem_list, [make_display(e), e.parent])
+    }
+}
+
+def select_by_name(nm) {
+    if nm == null {
+        selected_elem = null
+        clear_props()
+        return
+    }
+    idx = index_in_order(nm)
+    if idx >= 0 {
+        ui_listview_set_selection(elem_list, idx)
+    }
+    selected_elem = find_elem_by_name(nm)
+    populate_props()
+}
+
+def on_elem_select(widget) {
+    sel = ui_listview_get_selected(elem_list)
+    if sel == null {
+        selected_elem = null
+        clear_props()
+        return
+    }
+    disp = sel[0]
+    found = null
+    for e in elements {
+        if make_display(e) == disp {
+            found = e
+        }
+    }
+    if found == null {
+        selected_elem = null
+        clear_props()
+        return
+    }
+    selected_elem = found
+    if is_container(found.type) {
+        current_parent = found.name
+    } else {
+        current_parent = found.parent
+    }
+    populate_props()
+    set_status(rejoin("Selected ", found.type, "  [", found.name, "]   —  new widgets nest under: ", current_parent))
+}
+
+def clear_props() {
+    ui_set(prop_name, "")
+    ui_set(prop_type, "")
+    ui_set(prop_parent, "")
+    ui_set(prop_text, "")
+    ui_set(prop_x, "0")
+    ui_set(prop_y, "0")
+    ui_set(prop_w, "0")
+    ui_set(prop_h, "0")
+    ui_set(prop_callback, "")
+    ui_set(prop_event, "")
+    ui_set(prop_extra, "")
+}
+
+def populate_props() {
+    if selected_elem == null {
+        clear_props()
+        return
+    }
+    e = selected_elem
+    ui_set(prop_name, e.name)
+    ui_set(prop_type, e.type)
+    ui_set(prop_parent, e.parent)
+    ui_set(prop_text, e.text)
+    ui_set(prop_x, str(e.x))
+    ui_set(prop_y, str(e.y))
+    ui_set(prop_w, str(e.w))
+    ui_set(prop_h, str(e.h))
+    ui_set(prop_callback, e.callback)
+    ui_set(prop_event, e.event)
+    ui_set(prop_extra, e.extra)
+}
+
+# ==============================================================================
+# ADD / DELETE / MOVE / DUPLICATE
+# ==============================================================================
+
+def add_element(type_str) {
+    if type_str == "UI_WINDOW" {
+        for e in elements {
+            if e.type == "UI_WINDOW" {
+                ui_alert_err("A design has exactly one UI_WINDOW. Edit its properties instead.")
+                return
+            }
+        }
+    }
+    ds = get_default_size(type_str)
+    nm = unique_name_for(friendly_base(type_str))
+    txt = type_str
+    cb = ""
+    ev = ""
+    ex = ""
+    px = 0
+    py = 0
+    pw = ds[0]
+    ph = ds[1]
+    if type_str == "UI_WINDOW" {
+        nm = "win"
+        txt = "My Application"
+        px = 0
+        py = 0
+        pw = 800
+        ph = 600
+    }
+    if type_str == "UI_PANEL" {
+        txt = ""
+    }
+    if type_str == "UI_LABEL" {
+        txt = "Label text"
+    }
+    if type_str == "UI_ENTRY" {
+        txt = ""
+    }
+    if type_str == "UI_BUTTON" {
+        txt = "Click Me"
+        cb = rejoin(nm, "_click")
+    }
+    if type_str == "UI_CHECKBOX" {
+        txt = "Enable option"
+        ev = "CLICK"
+        cb = rejoin(nm, "_click")
+    }
+    if type_str == "UI_COMBOBOX" {
+        ex = "'Option 1','Option 2','Option 3'"
+        ev = "SELECT"
+        cb = rejoin(nm, "_change")
+    }
+    if type_str == "UI_LISTVIEW" {
+        ex = "'Column 1','Column 2'"
+        ev = "SELECT"
+        cb = rejoin(nm, "_select")
+    }
+    if type_str == "UI_TEXT" {
+        txt = "Multi-line text area"
+    }
+    parent = current_parent
+    if type_str == "UI_WINDOW" {
+        parent = ""
+    } else {
+        # Cascade position
+        kids = direct_children(parent)
+        n = len(kids)
+        wrap = n - 12 * int(n / 12)
+        ox = 20 + wrap * 18
+        oy = 20 + wrap * 18
+        
+        # FIX: Use parent's size for bounds, NOT for the widget's size!
+        parent_w = 800
+        parent_h = 600
+        pe = find_elem_by_name(parent)
+        if pe != null {
+            parent_w = pe.w
+            parent_h = pe.h
+        }
+        
+        max_ox = parent_w - ds[0] - 10
+        if max_ox < 20 { max_ox = 20 }
+        if ox > max_ox { ox = 20 }
+        
+        max_oy = parent_h - ds[1] - 10
+        if max_oy < 20 { max_oy = 20 }
+        if oy > max_oy { oy = 20 }
+        
+        px = ox
+        py = oy
+    }
+    new_elem = {
+        "id": next_id,
+        "type": type_str,
+        "name": nm,
+        "parent": parent,
+        "text": txt,
+        "x": px,
+        "y": py,
+        "w": pw,
+        "h": ph,
+        "callback": cb,
+        "event": ev,
+        "extra": ex
+    }
+    list_append(elements, new_elem)
+    next_id = next_id + 1
+    if is_container(type_str) {
+        current_parent = nm
+    }
+    rebuild_list()
+    select_by_name(nm)
+    generate_code()
+    set_status(rejoin("Added ", type_str, "  [", nm, "]  at (", str(px), ",", str(py), ")"))
+}
+
+def delete_selected() {
+    if selected_elem == null {
+        ui_alert_err("Nothing selected.")
+        return
+    }
+    gone = collect_descendants(selected_elem.name)
+    delset = {}
+    for g in gone {
+        dict_set(delset, g, true)
+    }
+    keep = []
+    for e in elements {
+        if not dict_has_key(delset, e.name) {
+            list_append(keep, e)
+        }
+    }
+    elements = keep
+    rebuild_list()
+    selected_elem = null
+    clear_props()
+    generate_code()
+    set_status("Deleted element (and its children).")
+}
+
+def move_selected(dir) {
+    if selected_elem == null {
+        return
+    }
+    sibs = direct_children(selected_elem.parent)
+    pos = -1
+    i = 0
+    while i < len(sibs) {
+        if sibs[i].name == selected_elem.name {
+            pos = i
+        }
+        i = i + 1
+    }
+    target = pos + dir
+    if pos < 0 or target < 0 or target >= len(sibs) {
+        return
+    }
+    other_name = sibs[target].name
+    gi = -1
+    gt = -1
+    i = 0
+    while i < len(elements) {
+        if elements[i].name == selected_elem.name {
+            gi = i
+        }
+        if elements[i].name == other_name {
+            gt = i
+        }
+        i = i + 1
+    }
+    if gi >= 0 and gt >= 0 {
+        tmp = elements[gi]
+        list_set(elements, gi, elements[gt])
+        list_set(elements, gt, tmp)
+    }
+    rebuild_list()
+    select_by_name(selected_elem.name)
+    generate_code()
+}
+
+def duplicate_selected() {
+    if selected_elem == null {
+        return
+    }
+    src = selected_elem
+    newname = unique_name_for(rejoin(src.name, "_copy"))
+    cp = [src.x + 20, src.y + 20]
+    copy = {}
+    dict_set(copy, "id", next_id)
+    dict_set(copy, "type", src.type)
+    dict_set(copy, "name", newname)
+    dict_set(copy, "parent", src.parent)
+    dict_set(copy, "text", src.text)
+    dict_set(copy, "x", cp[0])
+    dict_set(copy, "y", cp[1])
+    dict_set(copy, "w", src.w)
+    dict_set(copy, "h", src.h)
+    dict_set(copy, "callback", src.callback)
+    dict_set(copy, "event", src.event)
+    dict_set(copy, "extra", src.extra)
+    next_id = next_id + 1
+    gi = -1
+    i = 0
+    while i < len(elements) {
+        if elements[i].name == src.name {
+            gi = i
+        }
+        i = i + 1
+    }
+    newlist = []
+    i = 0
+    while i < len(elements) {
+        list_append(newlist, elements[i])
+        if i == gi {
+            list_append(newlist, copy)
+        }
+        i = i + 1
+    }
+    elements = newlist
+    rebuild_list()
+    select_by_name(newname)
+    generate_code()
+    set_status(rejoin("Duplicated as ", newname))
+}
+
+# ==============================================================================
+# PROPERTIES -> MODEL
+# ==============================================================================
+
+def save_properties() {
+    if selected_elem == null {
+        ui_alert_err("Select an element first.")
+        return
+    }
+    e = selected_elem
+    old_name = e.name
+    new_name = ui_get(prop_name)
+    if len(trim(new_name)) == 0 {
+        ui_alert_err("Name cannot be empty.")
+        return
+    }
+    if new_name != old_name and name_exists(new_name) {
+        ui_alert_err(rejoin("Name '", new_name, "' already exists."))
+        return
+    }
+    if new_name != old_name and is_reserved(new_name) {
+        ui_alert_err(rejoin("Name '", new_name, "' is reserved (it shadows a built-in). Use something like '", friendly_base(e.type), "'."))
+        return
+    }
+    new_parent = ui_get(prop_parent)
+    dict_set(e, "name", new_name)
+    dict_set(e, "parent", new_parent)
+    dict_set(e, "text", ui_get(prop_text))
+    dict_set(e, "x", int(ui_get(prop_x)))
+    dict_set(e, "y", int(ui_get(prop_y)))
+    dict_set(e, "w", int(ui_get(prop_w)))
+    dict_set(e, "h", int(ui_get(prop_h)))
+    dict_set(e, "callback", ui_get(prop_callback))
+    dict_set(e, "event", ui_get(prop_event))
+    dict_set(e, "extra", ui_get(prop_extra))
+    if old_name != new_name {
+        for c in elements {
+            if c.parent == old_name {
+                dict_set(c, "parent", new_name)
+            }
+        }
+        if current_parent == old_name {
+            current_parent = new_name
+        }
+    }
+    rebuild_list()
+    select_by_name(new_name)
+    generate_code()
+    set_status("Properties applied.")
+}
+
+# ==============================================================================
+# CODE GENERATION
+# ==============================================================================
+
+def escape_string(s) {
+    r = replace(s, "\\", "\\\\")
+    r = replace(r, "'", "\\'")
+    r = replace(r, "\n", "\\n")
+    return r
+}
+
+def generate_code() {
+    ordered = elements_in_tree_order()
+
+    # Pass 1: auto-fill empty button callbacks, then collect handler stubs
+    stubs = {}
+    for e in ordered {
+        if e.type == "UI_BUTTON" and e.callback == "" {
+            dict_set(e, "callback", rejoin(e.name, "_click"))
+        }
+        if e.callback != "" {
+            dict_set(stubs, e.callback, true)
+        }
+    }
+
+    # Find the real window variable name (default "win")
+    win_name = "win"
+    for e in ordered {
+        if e.type == "UI_WINDOW" {
+            win_name = e.name
+        }
+    }
+
+    # Build handler block (emitted ABOVE the widget declarations)
+    handlers_code = ""
+    if len(dict_keys(stubs)) > 0 {
+        handlers_code = "# ---- event handlers (fill in your logic) ----\n"
+        keys = dict_keys(stubs)
+        for cb in keys {
+            handlers_code = rejoin(handlers_code, "def ", cb, "() {\n")
+            handlers_code = rejoin(handlers_code, "    # TODO: implement\n")
+            handlers_code = rejoin(handlers_code, "}\n\n")
+        }
+    }
+
+    # Build widget creation block (topological order: parents before children)
+    creation_code = ""
+    for e in ordered {
+        t = e.type
+        n = e.name
+        p = e.parent
+        txt = escape_string(e.text)
+        x = str(e.x)
+        y = str(e.y)
+        w = str(e.w)
+        h = str(e.h)
+        cb = e.callback
+
+        if t == "UI_WINDOW" {
+            creation_code = rejoin(creation_code, n, " = ui_window('", txt, "', ", w, ", ", h, ")\n")
+        }
+        if t == "UI_PANEL" {
+            creation_code = rejoin(creation_code, n, " = ui_panel(", p, ", ", x, ", ", y, ", ", w, ", ", h, ")\n")
+        }
+        if t == "UI_LABEL" {
+            creation_code = rejoin(creation_code, n, " = ui_label(", p, ", '", txt, "', ", x, ", ", y, ", ", w, ", ", h, ")\n")
+        }
+        if t == "UI_ENTRY" {
+            creation_code = rejoin(creation_code, n, " = ui_entry(", p, ", '", txt, "', ", x, ", ", y, ", ", w, ", ", h, ")\n")
+        }
+        if t == "UI_BUTTON" {
+            creation_code = rejoin(creation_code, n, " = ui_button(", p, ", '", txt, "', '", cb, "', ", x, ", ", y, ", ", w, ", ", h, ")\n")
+        }
+        if t == "UI_CHECKBOX" {
+            creation_code = rejoin(creation_code, n, " = ui_checkbox(", p, ", '", txt, "', ", x, ", ", y, ", ", w, ", ", h, ")\n")
+        }
+        if t == "UI_COMBOBOX" {
+            items = e.extra
+            if items == "" { items = "'Option 1','Option 2'" }
+            creation_code = rejoin(creation_code, n, " = ui_combobox(", p, ", [", items, "], ", x, ", ", y, ", ", w, ", ", h, ")\n")
+        }
+        if t == "UI_LISTVIEW" {
+            cols = e.extra
+            if cols == "" { cols = "'Column 1','Column 2'" }
+            creation_code = rejoin(creation_code, n, " = ui_listview(", p, ", [", cols, "], ", x, ", ", y, ", ", w, ", ", h, ")\n")
+        }
+        if t == "UI_TEXT" {
+            creation_code = rejoin(creation_code, n, " = ui_text(", p, ", '", txt, "', true, ", x, ", ", y, ", ", w, ", ", h, ")\n")
+        }
+    }
+
+    # Build binding block (non-button widgets)
+    bind_code = ""
+    for e in ordered {
+        if e.type != "UI_BUTTON" and e.event != "" and e.callback != "" {
+            bind_code = rejoin(bind_code, "ui_bind(", e.name, ", \"", e.event, "\", \"", e.callback, "\")\n")
+        }
+    }
+
+    # Assemble: header -> handlers -> creation -> bindings -> mainloop
+    code = "# Generated by AnikaLang 1.2 Form Designer\n"
+    code = rejoin(code, "# Generated: ", now(), "\n\n")
+    code = rejoin(code, handlers_code)
+    code = rejoin(code, creation_code, "\n")
+    code = rejoin(code, bind_code, "\n")
+    code = rejoin(code, "ui_mainloop(", win_name, ")\n")
+
+    ui_text_set(code_editor, code)
+    ui_highlight(code_editor)
+}
+
+# ==============================================================================
+# FILE OPS
+# ==============================================================================
+
+def make_initial_window() {
+    w = {}
+    dict_set(w, "id", 1)
+    dict_set(w, "type", "UI_WINDOW")
+    dict_set(w, "name", "win")
+    dict_set(w, "parent", "")
+    dict_set(w, "text", "My Application")
+    dict_set(w, "x", 0)
+    dict_set(w, "y", 0)
+    dict_set(w, "w", 800)
+    dict_set(w, "h", 600)
+    dict_set(w, "callback", "")
+    dict_set(w, "event", "")
+    dict_set(w, "extra", "")
+    return w
+}
+
+def new_design() {
+    elements = [make_initial_window()]
+    next_id = 2
+    selected_elem = null
+    current_parent = "win"
+    rebuild_list()
+    clear_props()
+    generate_code()
+    set_status("New design.")
+}
+
+def save_design() {
+    p = ui_file_save(null)
+    if p == "" {
+        return
+    }
+    if ends_with(p, ".json") == false {
+        p = rejoin(p, ".json")
+    }
+    res = file_write(p, json_stringify(elements))
+    if res == "SUCCESS" {
+        ui_alert(rejoin("Design saved:\n", p))
+    } else {
+        ui_alert_err(rejoin("Save failed: ", res))
+    }
+}
+
+def load_design() {
+    p = ui_file_open(null)
+    if p == "" {
+        return
+    }
+    txt = file_read(p)
+    if starts_with(txt, "ERROR") {
+        ui_alert_err(rejoin("Cannot read file: ", txt))
+        return
+    }
+    data = json_parse(txt)
+    if type_of(data) != "LIST" {
+        ui_alert_err("File is not a saved design (expected a list).")
+        return
+    }
+    elements = data
+    mx = 1
+    for e in elements {
+        if e.id > mx {
+            mx = e.id
+        }
+    }
+    next_id = mx + 1
+    selected_elem = null
+    current_parent = "win"
+    for e in elements {
+        if e.type == "UI_WINDOW" {
+            current_parent = e.name
+        }
+    }
+    rebuild_list()
+    clear_props()
+    generate_code()
+    set_status(rejoin("Loaded design from ", path_file(p)))
+}
+
+def save_code_as() {
+    p = ui_file_save(null)
+    if p == "" {
+        return
+    }
+    if ends_with(p, ".fms") == false {
+        p = rejoin(p, ".fms")
+    }
+    res = file_write(p, ui_text_get(code_editor))
+    if res == "SUCCESS" {
+        ui_alert(rejoin("Code saved:\n", p))
+    } else {
+        ui_alert_err(rejoin("Save failed: ", res))
+    }
+}
+
+def run_preview() {
+    code = ui_text_get(code_editor)
+    temp_path = path_join(path_cwd(), "preview_temp.fms")
+    file_write(temp_path, code)
+    interp = interpreter_path()
+    exe_path = replace(interp, ".py", ".exe")
+    if file_exists(exe_path) {
+        exec(rejoin(exe_path, " ", temp_path))
+    } else {
+        exec(rejoin("python ", interp, " ", temp_path))
+    }
+    set_status(rejoin("Launched preview: ", path_file(temp_path)))
+}
+
+def show_about() {
+    ui_alert("AnikaLang 1.2 Form Designer\n\nAbsolute positioning, outline mode, live code generation.\n\nAdd widgets from the toolbar, edit them in the inspector, and let the engine place them. Code is generated live and can be saved or previewed.")
+}
+
+def exit_app() {
+    ui_close(designer_win)
+}
+
+# ---- toolbar wrappers ----
+def add_window_btn() { add_element("UI_WINDOW") }
+def add_panel_btn() { add_element("UI_PANEL") }
+def add_label_btn() { add_element("UI_LABEL") }
+def add_entry_btn() { add_element("UI_ENTRY") }
+def add_button_btn() { add_element("UI_BUTTON") }
+def add_checkbox_btn() { add_element("UI_CHECKBOX") }
+def add_combobox_btn() { add_element("UI_COMBOBOX") }
+def add_listview_btn() { add_element("UI_LISTVIEW") }
+def add_text_btn() { add_element("UI_TEXT") }
+def move_up_btn() { move_selected(-1) }
+def move_down_btn() { move_selected(1) }
+def dup_btn() { duplicate_selected() }
+def del_btn() { delete_selected() }
+
+# ==============================================================================
+# RESPONSIVE LAYOUT
+# ==============================================================================
+
+def layout() {
+    cs = ui_get_client_size(designer_win)
+    cw = cs[0]
+    ch = cs[1]
+    toolbar_h = 50
+    status_h = 28
+    content_y = toolbar_h + status_h
+    content_h = ch - content_y
+    if content_h < 200 {
+        content_h = 200
+    }
+    left_w = 280
+    mid_w = 360
+    right_w = cw - left_w - mid_w
+    if right_w < 240 {
+        right_w = 240
+    }
+
+    ui_pos(toolbar, 0, 0, cw, toolbar_h)
+    ui_pos(status_bar, 0, ch - status_h, cw, status_h)
+    ui_pos(status_label, 10, 5, cw - 20, 20)
+
+    ui_pos(left_pane, 0, content_y, left_w, content_h)
+    ui_pos(elem_list, 10, 40, left_w - 20, content_h - 50)
+
+    ui_pos(mid_pane, left_w, content_y, mid_w, content_h)
+
+    ui_pos(right_pane, left_w + mid_w, content_y, right_w, content_h)
+    ui_pos(code_editor, 10, 40, right_w - 20, content_h - 50)
+
+    ui_refresh(designer_win)
+}
+
+def on_resize(w, nw, nh) {
+    layout()
+}
+
+# ==============================================================================
+# BUILD THE DESIGNER UI
+# ==============================================================================
+
+designer_win = ui_window("AnikaLang 1.2 Form Designer", 1500, 900)
+
+# ---- menu bar ----
+mb = ui_menu(designer_win)
+fm = ui_menu_add(mb, "File")
+ui_menu_item(fm, "New Design", "new_design")
+ui_menu_item(fm, "Open Design...", "load_design")
+ui_menu_item(fm, "Save Design", "save_design")
+ui_menu_separator(fm)
+ui_menu_item(fm, "Save Code As...", "save_code_as")
+ui_menu_item(fm, "Run Preview", "run_preview")
+ui_menu_separator(fm)
+ui_menu_item(fm, "Exit", "exit_app")
+em = ui_menu_add(mb, "Edit")
+ui_menu_item(em, "Delete", "del_btn")
+ui_menu_item(em, "Duplicate", "dup_btn")
+ui_menu_item(em, "Move Up", "move_up_btn")
+ui_menu_item(em, "Move Down", "move_down_btn")
+hm = ui_menu_add(mb, "Help")
+ui_menu_item(hm, "About", "show_about")
+ui_set_menu(designer_win, mb)
+
+# ---- toolbar ----
+toolbar = ui_panel(designer_win, 0, 0, 1500, 50)
+ui_color(toolbar, null, "#2c3e50")
+
+ui_button(toolbar, "+Win", "add_window_btn", 8, 10, 56, 30)
+ui_button(toolbar, "+Pnl", "add_panel_btn", 68, 10, 56, 30)
+ui_button(toolbar, "+Lbl", "add_label_btn", 128, 10, 56, 30)
+ui_button(toolbar, "+Ent", "add_entry_btn", 188, 10, 56, 30)
+ui_button(toolbar, "+Btn", "add_button_btn", 248, 10, 56, 30)
+ui_button(toolbar, "+Chk", "add_checkbox_btn", 308, 10, 56, 30)
+ui_button(toolbar, "+Cmb", "add_combobox_btn", 368, 10, 56, 30)
+ui_button(toolbar, "+Lst", "add_listview_btn", 428, 10, 56, 30)
+ui_button(toolbar, "+Txt", "add_text_btn", 488, 10, 56, 30)
+
+ui_button(toolbar, "Up", "move_up_btn", 560, 10, 40, 30)
+ui_button(toolbar, "Dn", "move_down_btn", 604, 10, 40, 30)
+ui_button(toolbar, "Dup", "dup_btn", 648, 10, 52, 30)
+ui_button(toolbar, "Del", "del_btn", 704, 10, 52, 30)
+
+ui_button(toolbar, "Generate", "generate_code", 772, 10, 84, 30)
+ui_button(toolbar, "Preview", "run_preview", 864, 10, 78, 30)
+ui_button(toolbar, "Save", "save_design", 950, 10, 60, 30)
+ui_button(toolbar, "Open", "load_design", 1018, 10, 60, 30)
+ui_button(toolbar, ".fms", "save_code_as", 1086, 10, 60, 30)
+
+# ---- status bar ----
+status_bar = ui_panel(designer_win, 0, 872, 1500, 28)
+ui_color(status_bar, null, "#34495e")
+status_label = ui_label(status_bar, "  Ready — add widgets with the toolbar; the outline shows nesting; the inspector edits; code is live.", 10, 5, 1480, 20)
+ui_color(status_label, "#ecf0f1", "#34495e")
+
+# ---- left pane: outline ----
+left_pane = ui_panel(designer_win, 0, 78, 280, 794)
+ui_color(left_pane, null, "#ecf0f1")
+lbl_elem = ui_label(left_pane, "Element Outline", 10, 10, 260, 24)
+ui_font(lbl_elem, 12, "Segoe UI", true)
+elem_list = ui_listview(left_pane, ["Element", "Parent"], 10, 40, 260, 744)
+ui_listview_set_column_width(elem_list, 0, 196)
+ui_listview_set_column_width(elem_list, 1, 56)
+ui_bind(elem_list, "SELECT", "on_elem_select")
+
+# ---- mid pane: properties ----
+mid_pane = ui_panel(designer_win, 280, 78, 360, 794)
+ui_color(mid_pane, null, "#ffffff")
+lbl_prop = ui_label(mid_pane, "Properties", 10, 10, 340, 24)
+ui_font(lbl_prop, 12, "Segoe UI", true)
+
+ui_label(mid_pane, "Name", 10, 44, 70, 22)
+prop_name = ui_entry(mid_pane, "", 86, 42, 260, 24)
+
+ui_label(mid_pane, "Type", 10, 72, 70, 22)
+prop_type = ui_label(mid_pane, "", 86, 72, 260, 22)
+
+ui_label(mid_pane, "Parent", 10, 100, 70, 22)
+prop_parent = ui_entry(mid_pane, "win", 86, 98, 260, 24)
+
+ui_label(mid_pane, "Text", 10, 128, 70, 22)
+prop_text = ui_entry(mid_pane, "", 86, 126, 260, 24)
+
+ui_label(mid_pane, "X", 10, 156, 24, 22)
+prop_x = ui_entry(mid_pane, "0", 36, 154, 60, 24)
+ui_label(mid_pane, "Y", 104, 156, 24, 22)
+prop_y = ui_entry(mid_pane, "0", 130, 154, 60, 24)
+ui_label(mid_pane, "W", 198, 156, 24, 22)
+prop_w = ui_entry(mid_pane, "100", 224, 154, 60, 24)
+ui_label(mid_pane, "H", 10, 184, 24, 22)
+prop_h = ui_entry(mid_pane, "30", 36, 182, 60, 24)
+
+ui_label(mid_pane, "Callback", 10, 212, 70, 22)
+prop_callback = ui_entry(mid_pane, "", 86, 210, 260, 24)
+
+ui_label(mid_pane, "Event", 10, 240, 70, 22)
+prop_event = ui_entry(mid_pane, "", 86, 238, 260, 24)
+
+ui_label(mid_pane, "Extra", 10, 268, 70, 22)
+prop_extra = ui_entry(mid_pane, "", 86, 266, 260, 24)
+
+ui_button(mid_pane, "Apply Properties", "save_properties", 10, 300, 160, 30)
+ui_label(mid_pane, "Absolute positioning — every widget uses explicit X / Y / W / H. New widgets cascade diagonally so they never overlap; select a container to nest inside it.", 10, 342, 340, 56)
+
+# ---- right pane: generated code ----
+right_pane = ui_panel(designer_win, 640, 78, 860, 794)
+ui_color(right_pane, null, "#ffffff")
+lbl_code = ui_label(right_pane, "Generated Code  (live preview — save with .fms, run with Preview)", 10, 10, 840, 24)
+ui_font(lbl_code, 12, "Segoe UI", true)
+code_editor = ui_code_editor(right_pane, 10, 40, 840, 744)
+
+# ---- responsive ----
+ui_bind(designer_win, "RESIZE", "on_resize")
+
+# ==============================================================================
+# BOOT
+# ==============================================================================
+
+elements = [make_initial_window()]
+next_id = 2
+rebuild_list()
+generate_code()
+layout()
+
+ui_mainloop(designer_win)

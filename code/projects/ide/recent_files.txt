@@ -1,0 +1,10 @@
+C:\ahk\anikawxv1_2\projects\image_audio_video\test.fms
+C:\ahk\anikawxv1_2\projects\ide\idetabs2.fms
+C:\ahk\anikawxv1_2\projects\tutor\tutor.fms
+C:\ahk\anikawxv1_2\projects\tts\tts.fms
+C:\ahk\anikawxv1_2\projects\timer\timer.fms
+C:\ahk\anikawxv1_2\projects\formdesigner\formdesigner.fms
+C:\ahk\anikawxv1_2\projects\stats\ss.fms
+C:\ahk\anikawxv1_2\projects\markdown\temp_run.fms
+C:\ahk\anikawxv1_2\projects\test\testall.fms
+C:\ahk\anikawxv1_2\projects\emr\emr.fms

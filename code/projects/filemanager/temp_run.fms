@@ -1,0 +1,655 @@
+# ==============================================================================
+# ANIKALANG FILE EXPLORER v2.1 - Using single quotes for cleaner commands
+# ==============================================================================
+
+# --- Global State ---
+win = null
+currentPath = ""
+navigationHistory = []
+historyIndex = -1
+clipboardFiles = []
+clipboardAction = ""
+isLoading = false
+
+# UI References
+pathEntry = null
+searchEntry = null
+folderTree = null
+fileList = null
+statusLabel = null
+toolbarBg = null
+statusbarBg = null
+treePanel = null
+listPanel = null
+goButton = null
+
+# Popup state
+renameState = null
+createFolderState = null
+
+# Layout constants
+TOOLBAR_HEIGHT = 50
+STATUSBAR_HEIGHT = 30
+MIN_TREE_WIDTH = 200
+MIN_LIST_WIDTH = 400
+
+# ==============================================================================
+# INITIALIZATION
+# ==============================================================================
+
+def initApp() {
+    currentPath = path_cwd()
+    navigationHistory = [currentPath]
+    historyIndex = 0
+    
+    buildUI()
+    loadDirectory(currentPath)
+    populateDriveTree()
+    updateLayout()
+    
+    ui_mainloop(win)
+}
+
+# ==============================================================================
+# UI LAYOUT
+# ==============================================================================
+
+def buildUI() {
+    win = ui_window("AnikaLang File Explorer v2.1", 1200, 800)
+    
+    # --- Menu Bar ---
+    menubar = ui_menu(win)
+    
+    fileMenu = ui_menu_add(menubar, "File")
+    ui_menu_item(fileMenu, "New Folder", "createNewFolder")
+    ui_menu_separator(fileMenu)
+    ui_menu_item(fileMenu, "Refresh", "refreshView")
+    ui_menu_separator(fileMenu)
+    ui_menu_item(fileMenu, "Exit", "exitApp")
+    
+    editMenu = ui_menu_add(menubar, "Edit")
+    ui_menu_item(editMenu, "Copy", "copyFiles")
+    ui_menu_item(editMenu, "Cut", "cutFiles")
+    ui_menu_item(editMenu, "Paste", "pasteFiles")
+    ui_menu_separator(editMenu)
+    ui_menu_item(editMenu, "Delete", "deleteFiles")
+    ui_menu_item(editMenu, "Rename", "renameFile")
+    
+    helpMenu = ui_menu_add(menubar, "Help")
+    ui_menu_item(helpMenu, "About", "showAbout")
+    
+    ui_set_menu(win, menubar)
+    
+    # --- Toolbar ---
+    toolbarBg = ui_panel(win, 0, 0, 1200, TOOLBAR_HEIGHT)
+    ui_color(toolbarBg, "", "#f8f9fa")
+    
+    ui_color(ui_button(toolbarBg, "⬅", "goBack", 10, 10, 40, 30), "white", "#34495e")
+    ui_color(ui_button(toolbarBg, "➡", "goForward", 55, 10, 40, 30), "white", "#34495e")
+    ui_color(ui_button(toolbarBg, "⬆", "goUp", 100, 10, 40, 30), "white", "#34495e")
+    ui_color(ui_button(toolbarBg, "🏠", "goHome", 145, 10, 40, 30), "white", "#34495e")
+    ui_color(ui_button(toolbarBg, "🔄", "refreshView", 190, 10, 40, 30), "white", "#34495e")
+    
+    ui_color(ui_label(toolbarBg, "Path:", 250, 15, 40, 20), "#2c3e50", "")
+    pathEntry = ui_entry(toolbarBg, currentPath, 290, 10, 600, 30)
+    ui_bind(pathEntry, "KEY_PRESS", "onPathKeypress")
+    
+    goButton = ui_button(toolbarBg, "Go", "navigateFromPath", 900, 10, 50, 30)
+    ui_color(goButton, "white", "#27ae60")
+    
+    ui_color(ui_label(toolbarBg, "Search:", 970, 15, 50, 20), "#2c3e50", "")
+    searchEntry = ui_entry(toolbarBg, "", 1020, 10, 200, 30)
+    ui_bind(searchEntry, "CHANGE", "onSearchChange")
+    
+    # --- Left Panel: Folder Tree ---
+    treePanel = ui_panel(win, 0, TOOLBAR_HEIGHT, 280, 820)
+    ui_color(treePanel, "", "#ffffff")
+    ui_color(ui_label(treePanel, " Quick Access", 10, 10, 150, 20), "#2c3e50", "")
+    folderTree = ui_tree(treePanel, 10, 35, 260, 775)
+    ui_bind(folderTree, "SELECT", "onTreeSelect")
+    
+    # --- Right Panel: File List ---
+    listPanel = ui_panel(win, 280, TOOLBAR_HEIGHT, 920, 820)
+    ui_color(listPanel, "", "#ffffff")
+    fileList = ui_listview(listPanel, ["Name", "Size", "Type", "Modified"], 10, 10, 900, 800)
+    ui_bind(fileList, "DOUBLE_CLICK", "onListDoubleClick")
+    ui_bind(fileList, "SELECT", "onListSelect")
+    
+    # --- Status Bar ---
+    statusbarBg = ui_panel(win, 0, 870, 1200, STATUSBAR_HEIGHT)
+    ui_color(statusbarBg, "", "#2c3e50")
+    statusLabel = ui_label(statusbarBg, "  Ready", 0, 0, 1200, STATUSBAR_HEIGHT)
+    ui_color(statusLabel, "#ecf0f1", "#2c3e50")
+    
+    ui_bind(win, "RESIZE", "onResize")
+}
+
+# ==============================================================================
+# RESPONSIVE LAYOUT MANAGER
+# ==============================================================================
+
+def updateLayout() {
+    cs = ui_get_client_size(win)
+    cw = cs[0]
+    ch = cs[1]
+    
+    contentHeight = ch - TOOLBAR_HEIGHT - STATUSBAR_HEIGHT
+    if contentHeight < 400 { contentHeight = 400 }
+    
+    treeWidth = cw * 0.25
+    listWidth = cw - treeWidth
+    
+    if treeWidth < MIN_TREE_WIDTH { treeWidth = MIN_TREE_WIDTH }
+    if listWidth < MIN_LIST_WIDTH { listWidth = MIN_LIST_WIDTH }
+    
+    ui_pos(toolbarBg, 0, 0, cw, TOOLBAR_HEIGHT)
+    ui_pos(statusbarBg, 0, ch - STATUSBAR_HEIGHT, cw, STATUSBAR_HEIGHT)
+    
+    ui_pos(treePanel, 0, TOOLBAR_HEIGHT, treeWidth, contentHeight)
+    ui_pos(listPanel, treeWidth, TOOLBAR_HEIGHT, listWidth, contentHeight)
+    
+    ui_size(folderTree, treeWidth - 20, contentHeight - 45)
+    ui_size(fileList, listWidth - 20, contentHeight - 20)
+    
+    pathWidth = cw - 350
+    if pathWidth < 300 { pathWidth = 300 }
+    ui_pos(pathEntry, 290, 10, pathWidth, 30)
+    
+    goBtnX = 290 + pathWidth + 10
+    ui_pos(goButton, goBtnX, 10, 50, 30)
+    
+    searchX = goBtnX + 60
+    ui_pos(searchEntry, searchX, 10, 200, 30)
+    
+    ui_pos(statusLabel, 0, 0, cw, STATUSBAR_HEIGHT)
+}
+
+def onResize(widget, w, h) {
+    ui_after(50, "updateLayout")
+}
+
+# ==============================================================================
+# DIRECTORY LOADING
+# ==============================================================================
+
+def loadDirectory(path) {
+    if isLoading { return }
+    isLoading = true
+    
+    ui_listview_clear(fileList)
+    
+    if len(path) == 0 { path = path_cwd() }
+    currentPath = path
+    ui_set(pathEntry, path)
+    ui_set(searchEntry, "")
+    
+    folderCount = 0
+    fileCount = 0
+    
+    try {
+        contents = path_list(path)
+        folders = []
+        files = []
+        
+        i = 0
+        while i < len(contents) {
+            item = contents[i]
+            if item != "." and item != ".." {
+                fullPath = path_join(path, item)
+                if path_isdir(fullPath) {
+                    list_append(folders, item)
+                } else {
+                    list_append(files, item)
+                }
+            }
+            i = i + 1
+        }
+        
+        parentPath = path_dir(path)
+        if parentPath != path {
+            ui_listview_insert(fileList, ["..", "", "Parent Folder", ""])
+        }
+        
+        i = 0
+        while i < len(folders) {
+            f = folders[i]
+            ui_listview_insert(fileList, [f, "<DIR>", "Folder", ""])
+            folderCount = folderCount + 1
+            i = i + 1
+        }
+        
+        i = 0
+        while i < len(files) {
+            f = files[i]
+            ext = upper(path_ext(f))
+            ui_listview_insert(fileList, [f, "File", ext, ""])
+            fileCount = fileCount + 1
+            i = i + 1
+        }
+        
+        ui_listview_autofit(fileList)
+        updateStatus(rejoin(folderCount, ' folders, ', fileCount, ' files'))
+        
+    } catch err {
+        ui_listview_insert(fileList, [rejoin('[Error: ', err, ']'), "", "", ""])
+        updateStatus(rejoin('Error: ', err))
+    }
+    
+    isLoading = false
+}
+
+def filterFiles(searchText) {
+    if isLoading { return }
+    isLoading = true
+    
+    ui_listview_clear(fileList)
+    
+    lowerSearch = lower(searchText)
+    
+    try {
+        contents = path_list(currentPath)
+        
+        parentPath = path_dir(currentPath)
+        if parentPath != currentPath {
+            ui_listview_insert(fileList, ["..", "", "Parent Folder", ""])
+        }
+        
+        i = 0
+        while i < len(contents) {
+            item = contents[i]
+            if item != "." and item != ".." {
+                lowerItem = lower(item)
+                if contains(lowerItem, lowerSearch) {
+                    fullPath = path_join(currentPath, item)
+                    if path_isdir(fullPath) {
+                        ui_listview_insert(fileList, [item, "<DIR>", "Folder", ""])
+                    } else {
+                        ext = upper(path_ext(item))
+                        ui_listview_insert(fileList, [item, "File", ext, ""])
+                    }
+                }
+            }
+            i = i + 1
+        }
+        
+        ui_listview_autofit(fileList)
+    } catch err {
+        updateStatus(rejoin('Search error: ', err))
+    }
+    
+    isLoading = false
+}
+
+# ==============================================================================
+# NAVIGATION
+# ==============================================================================
+
+def navigateTo(path) {
+    if historyIndex < len(navigationHistory) - 1 {
+        newHistory = []
+        i = 0
+        while i <= historyIndex {
+            list_append(newHistory, navigationHistory[i])
+            i = i + 1
+        }
+        navigationHistory = newHistory
+    }
+    
+    list_append(navigationHistory, path)
+    historyIndex = len(navigationHistory) - 1
+    
+    loadDirectory(path)
+}
+
+def goBack() {
+    if historyIndex > 0 {
+        historyIndex = historyIndex - 1
+        loadDirectory(navigationHistory[historyIndex])
+    }
+}
+
+def goForward() {
+    if historyIndex < len(navigationHistory) - 1 {
+        historyIndex = historyIndex + 1
+        loadDirectory(navigationHistory[historyIndex])
+    }
+}
+
+def goUp() {
+    parent = path_dir(currentPath)
+    if parent != currentPath {
+        navigateTo(parent)
+    }
+}
+
+def goHome() {
+    navigateTo(path_cwd())
+}
+
+def navigateFromPath() {
+    path = trim(ui_get(pathEntry))
+    if path_isdir(path) {
+        navigateTo(path)
+    } else {
+        ui_alert_err(rejoin('Invalid directory: ', path))
+    }
+}
+
+def onPathKeypress(widget, keyCode) {
+    if keyCode == 13 { navigateFromPath() }
+}
+
+def onSearchChange() {
+    query = ui_get(searchEntry)
+    if len(trim(query)) == 0 {
+        loadDirectory(currentPath)
+    } else {
+        filterFiles(query)
+    }
+}
+
+# ==============================================================================
+# FILE OPERATIONS
+# ==============================================================================
+
+def getSelectedPaths() {
+    selectedRow = ui_listview_get_selected(fileList)
+    paths = []
+    if selectedRow != null {
+        itemName = selectedRow[0]
+        if itemName != ".." {
+            list_append(paths, path_join(currentPath, itemName))
+        }
+    }
+    return paths
+}
+
+def copyFiles() {
+    paths = getSelectedPaths()
+    if len(paths) > 0 {
+        clipboardFiles = paths
+        clipboardAction = "copy"
+        updateStatus(rejoin('Copied ', len(paths), ' item(s)'))
+    }
+}
+
+def cutFiles() {
+    paths = getSelectedPaths()
+    if len(paths) > 0 {
+        clipboardFiles = paths
+        clipboardAction = "cut"
+        updateStatus(rejoin('Cut ', len(paths), ' item(s)'))
+    }
+}
+
+def pasteFiles() {
+    if len(clipboardFiles) == 0 {
+        ui_alert("Clipboard is empty!")
+        return
+    }
+    
+    i = 0
+    while i < len(clipboardFiles) {
+        srcPath = clipboardFiles[i]
+        filename = path_file(srcPath)
+        destPath = path_join(currentPath, filename)
+        
+        # ✅ MUCH CLEANER with single quotes - no \" escapes!
+        if clipboardAction == "copy" {
+            cmd = rejoin('cmd /c xcopy "', srcPath, '" "', destPath, '" /E /I /Y')
+        } else {
+            cmd = rejoin('cmd /c move "', srcPath, '" "', destPath, '"')
+        }
+        
+        try {
+            exec(cmd)
+        } catch err {
+            ui_alert_err(rejoin('Failed: ', filename))
+        }
+        i = i + 1
+    }
+    
+    if clipboardAction == "cut" {
+        clipboardFiles = []
+        clipboardAction = ""
+    }
+    
+    refreshView()
+}
+
+def deleteFiles() {
+    paths = getSelectedPaths()
+    if len(paths) == 0 { return }
+    
+    confirmed = ui_confirm(rejoin('Delete ', len(paths), ' item(s)?\n\nThis cannot be undone.'), "Confirm Deletion")
+    if confirmed == false { return }
+    
+    i = 0
+    while i < len(paths) {
+        path = paths[i]
+        # ✅ Clean command building with single quotes
+        if path_isdir(path) {
+            cmd = rejoin('cmd /c rmdir /s /q "', path, '"')
+        } else {
+            cmd = rejoin('cmd /c del /f /q "', path, '"')
+        }
+        try {
+            exec(cmd)
+        } catch err {
+            ui_alert_err(rejoin('Delete failed: ', path))
+        }
+        i = i + 1
+    }
+    
+    refreshView()
+}
+
+def renameFile() {
+    paths = getSelectedPaths()
+    if len(paths) != 1 {
+        ui_alert_err("Select one file to rename")
+        return
+    }
+    
+    oldPath = paths[0]
+    oldName = path_file(oldPath)
+    
+    popup = ui_popup("Rename", 400, 150)
+    ui_label(popup, "New name:", 20, 20, 100, 25)
+    newNameEntry = ui_entry(popup, oldName, 120, 20, 250, 25)
+    ui_button(popup, "OK", "doRenameExecute", 120, 60, 100, 30)
+    ui_button(popup, "Cancel", "closeRenamePopup", 240, 60, 100, 30)
+    
+    renameState = {"oldPath": oldPath, "entry": newNameEntry, "popup": popup}
+}
+
+def doRenameExecute() {
+    if renameState == null { return }
+    
+    newName = trim(ui_get(renameState["entry"]))
+    oldPath = renameState["oldPath"]
+    
+    if len(newName) > 0 {
+        # ✅ Clean ren command
+        cmd = rejoin('cmd /c ren "', oldPath, '" "', newName, '"')
+        try {
+            exec(cmd)
+            refreshView()
+        } catch err {
+            ui_alert_err(rejoin('Rename failed: ', err))
+        }
+    }
+    ui_close(renameState["popup"])
+    renameState = null
+}
+
+def closeRenamePopup() {
+    if renameState != null {
+        ui_close(renameState["popup"])
+        renameState = null
+    }
+}
+
+def createNewFolder() {
+    popup = ui_popup("New Folder", 400, 150)
+    ui_label(popup, "Folder name:", 20, 20, 100, 25)
+    folderNameEntry = ui_entry(popup, "New Folder", 120, 20, 250, 25)
+    ui_button(popup, "Create", "doCreateFolder", 120, 60, 100, 30)
+    ui_button(popup, "Cancel", "closeCreateFolder", 240, 60, 100, 30)
+    
+    createFolderState = {"entry": folderNameEntry, "popup": popup}
+}
+
+def doCreateFolder() {
+    if createFolderState == null { return }
+    
+    folderName = trim(ui_get(createFolderState["entry"]))
+    if len(folderName) > 0 {
+        newPath = path_join(currentPath, folderName)
+        try {
+            path_mkdir(newPath)
+            refreshView()
+        } catch err {
+            ui_alert_err(rejoin('Failed: ', err))
+        }
+    }
+    ui_close(createFolderState["popup"])
+    createFolderState = null
+}
+
+def closeCreateFolder() {
+    if createFolderState != null {
+        ui_close(createFolderState["popup"])
+        createFolderState = null
+    }
+}
+
+def refreshView() {
+    loadDirectory(currentPath)
+}
+
+def exitApp() {
+    ui_close(win)
+}
+
+def showAbout() {
+    ui_alert(rejoin(
+        'AnikaLang File Explorer v2.1\n\n',
+        '2-pane file manager\n',
+        'Files open with default Windows handlers\n',
+        'Built with AnikaLang 1.2\n\n',
+        'Features:\n',
+        '- Responsive layout\n',
+        '- Navigation history\n',
+        '- Copy/Cut/Paste\n',
+        '- Search & filter\n',
+        '- Quick access tree\n',
+        '- Clean command building with single quotes'
+    ))
+}
+
+def populateDriveTree() {
+    ui_tree_clear(folderTree)
+    
+    userProfile = ""
+    try {
+        result = exec_capture("echo %USERPROFILE%")
+        if result[0] == true {
+            userProfile = trim(result[1])
+        }
+    } catch err {
+        userProfile = path_cwd()
+    }
+    
+    if len(userProfile) == 0 {
+        userProfile = path_cwd()
+    }
+    
+    ui_tree_insert(folderTree, "root", "desktop", "🖥️ Desktop")
+    ui_tree_insert(folderTree, "root", "documents", "📄 Documents")
+    ui_tree_insert(folderTree, "root", "downloads", "⬇️ Downloads")
+    ui_tree_insert(folderTree, "root", "c_drive", "💾 Local Disk (C:)")
+    
+    ui_tree_expand(folderTree, "root", true)
+}
+
+def onTreeSelect() {
+    selectedId = ui_tree_get_selected(folderTree)
+    if selectedId == null { return }
+    
+    targetPath = ""
+    
+    try {
+        result = exec_capture("echo %USERPROFILE%")
+        if result[0] == true {
+            userProfile = trim(result[1])
+            
+            if selectedId == "desktop" {
+                targetPath = path_join(userProfile, "Desktop")
+            }
+            if selectedId == "documents" {
+                targetPath = path_join(userProfile, "Documents")
+            }
+            if selectedId == "downloads" {
+                targetPath = path_join(userProfile, "Downloads")
+            }
+            if selectedId == "c_drive" {
+                targetPath = "C:\\"
+            }
+        }
+    } catch err {
+        if selectedId == "c_drive" {
+            targetPath = "C:\\"
+        } else {
+            targetPath = path_cwd()
+        }
+    }
+    
+    if len(targetPath) > 0 and path_isdir(targetPath) {
+        navigateTo(targetPath)
+    } else {
+        ui_alert_err(rejoin('Cannot access: ', targetPath))
+    }
+}
+
+def onListDoubleClick() {
+    selectedRow = ui_listview_get_selected(fileList)
+    if selectedRow == null { return }
+    
+    itemName = selectedRow[0]
+    if itemName == ".." {
+        goUp()
+        return
+    }
+    
+    fullPath = path_join(currentPath, itemName)
+    
+    if path_isdir(fullPath) {
+        navigateTo(fullPath)
+    } else {
+        try {
+            # ✅ Clean Windows 'start' command with single quotes
+            exec(rejoin('start "" "', fullPath, '"'))
+            updateStatus(rejoin('Opened: ', itemName))
+        } catch err {
+            ui_alert_err(rejoin('Cannot open file: ', err))
+        }
+    }
+}
+
+def onListSelect() {
+    selectedRow = ui_listview_get_selected(fileList)
+    if selectedRow != null {
+        updateStatus(rejoin('Selected: ', selectedRow[0]))
+    }
+}
+
+def updateStatus(message) {
+    ui_set(statusLabel, rejoin('  ', message))
+}
+
+# ==============================================================================
+# LAUNCH
+# ==============================================================================
+
+initApp()

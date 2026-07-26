@@ -1,0 +1,340 @@
+# ==============================================================================
+# ANIKALANG 1.2 COMPREHENSIVE TEST SUITE
+# Tests Built-ins, MathUtils, and StringUtils
+# ==============================================================================
+
+INCLUDE "../../includes/mathutils.fms"
+INCLUDE "../../includes/stringutils.fms"
+
+# --- Global State ---
+win = null
+logText = null
+testCount = 0
+passCount = 0
+failCount = 0
+
+# ==============================================================================
+# TEST FRAMEWORK
+# ==============================================================================
+
+def log(msg) {
+    ui_text_append(logText, rejoin(msg, "\n"))
+}
+
+def assert_eq(expected, actual, name) {
+    testCount = testCount + 1
+    if expected == actual {
+        passCount = passCount + 1
+        log(rejoin("✅ PASS: ", name))
+    } else {
+        failCount = failCount + 1
+        log(rejoin("❌ FAIL: ", name, " (Expected: ", str(expected), ", Got: ", str(actual), ")"))
+    }
+}
+
+def assert_true(cond, name) {
+    assert_eq(true, cond, name)
+}
+
+def assert_float_eq(expected, actual, name) {
+    assert_eq(round(expected, 4), round(actual, 4), name)
+}
+
+def join_custom(list, delim) {
+    d = ""
+    if delim != null { d = str(delim) }
+    result = ""
+    i = 0
+    while i < len(list) {
+        if i > 0 { result = rejoin(result, d) }
+        result = rejoin(result, str(list[i]))
+        i = i + 1
+    }
+    return result
+}
+
+# ==============================================================================
+# TEST CASES
+# ==============================================================================
+
+def run_all_tests() {
+    ui_text_set(logText, "")
+    testCount = 0
+    passCount = 0
+    failCount = 0
+    
+    log("Starting AnikaLang 1.2 Comprehensive Test Suite...\n")
+    
+    test_builtins_math()
+    test_builtins_string()
+    test_builtins_list_dict()
+    test_builtins_types_regex_json()
+    
+    test_mathutils_basic()
+    test_mathutils_number_theory()
+    test_mathutils_trig_geometry()
+    test_mathutils_conversions()
+    test_mathutils_stats()
+    
+    test_stringutils_case()
+    test_stringutils_whitespace()
+    test_stringutils_search()
+    test_stringutils_validation()
+    test_stringutils_transformation()
+    
+    log("\n" + rejoin("=", repeatStr("=", 50)))
+    log(rejoin("TESTS COMPLETED: ", str(testCount), " total"))
+    log(rejoin("✅ Passed: ", str(passCount)))
+    log(rejoin("❌ Failed: ", str(failCount)))
+    log(rejoin("=", repeatStr("=", 50)))
+    
+    ui_alert(rejoin("Tests Completed!\nPassed: ", str(passCount), "\nFailed: ", str(failCount)))
+}
+
+def test_builtins_math() {
+    log("--- Core Built-ins: Math ---")
+    assert_eq(10, abs(-10), "abs()")
+    assert_eq(3, round(3.14, 0), "round()")
+    assert_eq(2, sqrt(4), "sqrt()")
+    assert_eq(8, pow(2, 3), "pow()")
+    assert_eq(3, floor(3.99), "floor()")
+    assert_eq(4, ceil(3.01), "ceil()")
+    assert_eq(1, min(1, 5), "min()")
+    assert_eq(5, max(1, 5), "max()")
+    assert_eq(6, sum([1, 2, 3]), "sum()")
+    assert_eq(2, avg([1, 2, 3]), "avg()")
+    assert_eq(120, fact(5), "fact()")
+    assert_eq(10, comb(5, 2), "comb()")
+    assert_eq(20, perm(5, 2), "perm()")
+    assert_float_eq(3.14159, pi(), "pi()")
+}
+
+def test_builtins_string() {
+    log("\n--- Core Built-ins: String ---")
+    assert_eq("HELLO", upper("hello"), "upper()")
+    assert_eq("world", lower("WORLD"), "lower()")
+    assert_eq("trim", trim("  trim  "), "trim()")
+    assert_eq(5, len("hello"), "len()")
+    assert_eq("hXllo", replace("hello", "e", "X"), "replace()")
+    assert_eq("he", left("hello", 2), "left()")
+    assert_eq("lo", right("hello", 2), "right()")
+    assert_eq("l", mid("hello", 2, 1), "mid()")
+    assert_eq(true, starts_with("hello", "he"), "starts_with()")
+    assert_eq(true, ends_with("hello", "lo"), "ends_with()")
+    assert_eq(true, contains("hello", "ell"), "contains()")
+    assert_eq(1, index_of("hello", "e"), "index_of()")
+    assert_eq("a-b-c", JOIN("-", ["a", "b", "c"]), "JOIN() built-in")
+    assert_eq("a b c", rejoin("a", " ", "b", " ", "c"), "rejoin()")
+}
+
+def test_builtins_list_dict() {
+    log("\n--- Core Built-ins: List & Dict ---")
+    lst = []
+    list_append(lst, "a")
+    list_append(lst, "b")
+    assert_eq(2, len(lst), "list_append length")
+    assert_eq("a", lst[0], "list index access")
+    list_set(lst, 0, "z")
+    assert_eq("z", lst[0], "list_set")
+    list_remove(lst, 1)
+    assert_eq(1, len(lst), "list_remove length")
+    assert_true(list_contains(lst, "z"), "list_contains")
+    
+    d = {}
+    dict_set(d, "name", "Anika")
+    dict_set(d, "version", "1.2")
+    assert_eq("Anika", dict_get(d, "name"), "dict_set/get")
+    assert_true(dict_has_key(d, "version"), "dict_has_key")
+    assert_eq(2, len(dict_keys(d)), "dict_keys length")
+}
+
+def test_builtins_types_regex_json() {
+    log("\n--- Core Built-ins: Types, Regex, JSON ---")
+    assert_eq(10, int("10"), "int()")
+    assert_eq(3.14, float("3.14"), "float()")
+    assert_eq("42", str(42), "str()")
+    assert_eq("yes", iif(true, "yes", "no"), "iif()")
+    
+    assert_true(regex_match("^[0-9]+$", "123"), "regex_match()")
+    assert_eq("456", regex_search("[0-9]+", "abc456def"), "regex_search()")
+    # FIXED: Replacing "a" with "x" in "a-b-a" yields "x-b-x"
+    assert_eq("x-b-x", regex_replace("a", "a-b-a", "x"), "regex_replace()")
+    # FIXED: "a1b2c3" has 3 digits, not 2
+    assert_eq(3, len(regex_findall("[0-9]", "a1b2c3")), "regex_findall()")
+    
+    json_str = json_stringify({"a": 1})
+    parsed = json_parse(json_str)
+    assert_eq(1, dict_get(parsed, "a"), "json_stringify/parse")
+}
+
+def test_mathutils_basic() {
+    log("\n--- MathUtils: Basic & Properties ---")
+    assert_float_eq(1.61803, phi(), "phi()")
+    assert_float_eq(6.28318, tau(), "tau()")
+    assert_eq(1, mod(5, 2), "mod()")
+    assert_eq(1, sign(10), "sign() positive")
+    assert_eq(-1, sign(-10), "sign() negative")
+    assert_eq(5, clamp(10, 0, 5), "clamp() max")
+    assert_eq(0, clamp(-10, 0, 5), "clamp() min")
+    assert_float_eq(5.0, lerp(0, 10, 0.5), "lerp()")
+    assert_float_eq(0.5, inverseLerp(0, 10, 5), "inverseLerp()")
+    assert_float_eq(50.0, remap(5, 0, 10, 0, 100), "remap()")
+    assert_eq("Error", safeDivide(10, 0), "safeDivide() zero")
+    assert_eq(10, absVal(-10), "absVal()")
+    assert_true(isNan("NaN"), "isNan()")
+}
+
+def test_mathutils_number_theory() {
+    log("\n--- MathUtils: Number Theory ---")
+    assert_true(isEven(4), "isEven()")
+    assert_true(isOdd(5), "isOdd()")
+    assert_true(isBetween(5, 0, 10), "isBetween()")
+    assert_true(isPositive(1), "isPositive()")
+    assert_true(isNegative(-1), "isNegative()")
+    assert_true(isZero(0), "isZero()")
+    assert_eq(15, digitSum(12345), "digitSum()")
+    assert_eq(5, digitCount(12345), "digitCount()")
+    assert_eq(54321, reverseNum(12345), "reverseNum()")
+    assert_eq(25, square(5), "square()")
+    assert_eq(27, cube(3), "cube()")
+    assert_eq(5, pythagorean(3, 4), "pythagorean()")
+    assert_eq(5, gcd(10, 15), "gcd()")
+    assert_eq(30, lcm(10, 15), "lcm()")
+    assert_true(isPrime(7), "isPrime() true")
+    assert_true(isPrime(2), "isPrime() 2")
+    assert_true(not isPrime(4), "isPrime() false")
+    # FIXED: nextPrime(5) should be 7 (strictly greater than 5)
+    assert_eq(7, nextPrime(5), "nextPrime()")
+    assert_eq(5, fibonacci(5), "fibonacci()")
+    assert_true(isPowerOfTwo(8), "isPowerOfTwo()")
+    assert_eq(8, nextPowerOfTwo(5), "nextPowerOfTwo()")
+}
+
+def test_mathutils_trig_geometry() {
+    log("\n--- MathUtils: Trig & Geometry ---")
+    assert_float_eq(0.0, sinDeg(0), "sinDeg(0)")
+    assert_float_eq(1.0, cosDeg(0), "cosDeg(0)")
+    assert_float_eq(1.0, tanDeg(45), "tanDeg(45)")
+    assert_float_eq(5.0, distance2d(0, 0, 3, 4), "distance2d()")
+    assert_float_eq(3.14159, circleArea(1), "circleArea()")
+    assert_float_eq(6.28318, circleCircumference(1), "circleCircumference()")
+    assert_float_eq(4.18879, sphereVolume(1), "sphereVolume()")
+    assert_eq(10, triangleArea(4, 5), "triangleArea()")
+    assert_eq(20, rectangleArea(4, 5), "rectangleArea()")
+    assert_eq(18, rectanglePerimeter(4, 5), "rectanglePerimeter()")
+}
+
+def test_mathutils_conversions() {
+    log("\n--- MathUtils: Conversions & Formatting ---")
+    assert_eq(212, celsiusToFahrenheit(100), "celsiusToFahrenheit()")
+    assert_eq(0, fahrenheitToCelsius(32), "fahrenheitToCelsius()")
+    assert_eq(373.15, celsiusToKelvin(100), "celsiusToKelvin()")
+    assert_eq(0, kelvinToCelsius(273.15), "kelvinToCelsius()")
+    assert_eq("1010", decToBin(10), "decToBin()")
+    assert_eq("A", decToHex(10), "decToHex()")
+    assert_eq(10, binToDec("1010"), "binToDec()")
+    assert_eq(10, hexToDec("A"), "hexToDec()")
+    assert_eq("12", decToOct(10), "decToOct()")
+    assert_eq(10, octToDec("12"), "octToDec()")
+    assert_eq("50%", formatPercent(0.5, 0), "formatPercent()")
+    assert_eq("1 KB", formatBytes(1024), "formatBytes()")
+    assert_eq("$10.00", formatCurrency(10, "$"), "formatCurrency()")
+}
+
+def test_mathutils_stats() {
+    log("\n--- MathUtils: Stats ---")
+    assert_eq(15, sumList([1, 2, 3, 4, 5]), "sumList()")
+    assert_eq(3, mean([1, 2, 3, 4, 5]), "mean()")
+    assert_eq(3, median([1, 2, 3, 4, 5]), "median() odd")
+    assert_eq(2.5, median([1, 2, 3, 4]), "median() even")
+    assert_eq(1, minList([3, 1, 2]), "minList()")
+    assert_eq(3, maxList([3, 1, 2]), "maxList()")
+    assert_eq(2, rangeList([1, 2, 3]), "rangeList()")
+    assert_eq(50, percentOf(50, 100), "percentOf()")
+    assert_eq(100.0, percentChange(50, 100), "percentChange()")
+    assert_eq(50.0, percentRatio(50, 100), "percentRatio()")
+}
+
+def test_stringutils_case() {
+    log("\n--- StringUtils: Case Conversion ---")
+    assert_eq("Hello", capitalize("hello"), "capitalize()")
+    assert_eq("Hello World", titleCase("hello world"), "titleCase()")
+    assert_eq("hELLO wORLD", swapCase("Hello World"), "swapCase()")
+    assert_eq("helloWorld", camelCase("hello world"), "camelCase()")
+    assert_eq("hello_world", snakeCase("Hello World"), "snakeCase()")
+    assert_eq("hello-world", kebabCase("Hello World"), "kebabCase()")
+}
+
+def test_stringutils_whitespace() {
+    log("\n--- StringUtils: Whitespace & Padding ---")
+    assert_eq("trim", lTrim("  trim"), "lTrim()")
+    assert_eq("trim", rTrim("trim  "), "rTrim()")
+    assert_eq("trim", strip("xxtrimxx", "x"), "strip()")
+    assert_eq("  hi", padLeft("hi", 4, " "), "padLeft()")
+    assert_eq("hi  ", padRight("hi", 4, " "), "padRight()")
+    assert_eq(" hi ", center("hi", 4, " "), "center()")
+    assert_eq("aaa", repeatStr("a", 3), "repeatStr()")
+    assert_eq(3, wordCount("one two three"), "wordCount()")
+}
+
+def test_stringutils_search() {
+    log("\n--- StringUtils: Search & Extract ---")
+    assert_eq(3, lastIndexOf("hello", "l"), "lastIndexOf()")
+    assert_eq(2, countOccurrences("hello", "l"), "countOccurrences()")
+    assert_eq("ll", extractBetween("hello", "he", "o"), "extractBetween()")
+    assert_eq("hel", before("hello", "lo"), "before()")
+    assert_eq("lo", after("hello", "hel"), "after()")
+}
+
+def test_stringutils_validation() {
+    log("\n--- StringUtils: Validation ---")
+    assert_true(isEmpty("  "), "isEmpty()")
+    assert_true(isNumeric("123"), "isNumeric()")
+    assert_true(isAlpha("abc"), "isAlpha()")
+    assert_true(isAlphanum("abc123"), "isAlphanum()")
+    assert_true(isEmail("test@example.com"), "isEmail()")
+    assert_true(isUrl("https://example.com"), "isUrl()")
+    assert_true(isUpper("ABC"), "isUpper()")
+    assert_true(isLower("abc"), "isLower()")
+    assert_true(isPalindrome("racecar"), "isPalindrome()")
+}
+
+def test_stringutils_transformation() {
+    log("\n--- StringUtils: Transformation ---")
+    assert_eq("olleh", reverse("hello"), "reverse()")
+    assert_eq("uryyb", rot13("hello"), "rot13()")
+    assert_eq("hello-world", slugify("Hello World!"), "slugify()")
+    assert_eq("he...", truncate("hello world", 5), "truncate()")
+    assert_eq("he...", truncateWithSuffix("hello world", 5, "..."), "truncateWithSuffix()")
+    assert_eq("a-b-c", join_custom(["a", "b", "c"], "-"), "join_custom()")
+    assert_eq("b", charAt("abc", 1), "charAt()")
+    assert_eq(65, charCode("A"), "charCode()")
+    assert_eq("A", fromCharCode(65), "fromCharCode()")
+    assert_eq("a", first_Char("abc"), "first_Char()")
+    assert_eq("c", last_Char("abc"), "last_Char()")
+}
+
+# ==============================================================================
+# UI LAYOUT
+# ==============================================================================
+
+win = ui_window("AnikaLang 1.2 Test Suite", 900, 700)
+
+topPanel = ui_panel(win, 0, 0, 900, 60)
+ui_color(topPanel, "", "#2c3e50")
+
+btnRun = ui_button(topPanel, "▶ Run All Tests", "run_all_tests", 20, 15, 150, 30)
+ui_color(btnRun, "#ffffff", "#27ae60")
+
+btnClear = ui_button(topPanel, "🗑 Clear Log", "clear_log", 180, 15, 120, 30)
+ui_color(btnClear, "#ffffff", "#e74c3c")
+
+logText = ui_text(win, "Click 'Run All Tests' to start.\n\n", true, 10, 70, 880, 620)
+ui_color(logText, "#1e1e1e", "#f8fafc")
+ui_font(logText, 11, "Consolas", false)
+
+def clear_log() {
+    ui_text_set(logText, "Log cleared.\n")
+}
+
+ui_mainloop(win)

@@ -1,0 +1,102 @@
+# ==============================================================================
+# phase 1 syntax test suite
+# tests: assignment, blocks {}, def, + concatenation, ranges
+# ==============================================================================
+
+# 1. variable assignment & string concatenation (+)
+appTitle = "phase 1 syntax test"
+appGreeting = "hello, " + appTitle + "!"
+
+# 2. function definition (def)
+def calculateSum(numA, numB) {
+    calcResult = numA + numB
+    return calcResult
+}
+
+# 3. if/else blocks
+valX = 10
+valY = 20
+appStatus = ""
+
+if valX < valY {
+    appStatus = "x is less than y"
+} else {
+    appStatus = "x is greater or equal"
+}
+
+# 4. while loop
+loopCount = 0
+whileLog = ""
+while loopCount < 3 {
+    whileLog = whileLog + "count: " + loopCount + "\n"
+    loopCount = loopCount + 1
+}
+
+# 5. for loop (list)
+listLog = ""
+for item in ["apple", "banana", "cherry"] {
+    listLog = listLog + "fruit: " + item + "\n"
+}
+
+# 6. for loop (range with ..)
+rangeLog = ""
+for i in 1..5 {
+    rangeLog = rangeLog + "num: " + i + "\n"
+}
+
+# 7. try/catch block
+errorLog = ""
+try {
+    # this should fail because 'undefinedVar' doesn't exist
+    badVal = undefinedVar + 1
+} catch catchErr {
+    errorLog = "caught error: " + catchErr
+}
+
+# 8. nested blocks
+nestedLog = ""
+for i in 1..3 {
+    if i == 2 {
+        nestedLog = nestedLog + "found 2!\n"
+    } else {
+        nestedLog = nestedLog + "not 2\n"
+    }
+}
+
+# 9. calling functions
+sumResult = calculateSum(5, 7)
+
+# ==============================================================================
+# ui layout (to display results)
+# ==============================================================================
+
+mainWin = ui_window(appTitle, 600, 500)
+
+# header
+headerPanel = ui_panel(mainWin, 0, 0, 600, 40)
+ui_color(headerPanel, "", "#2c3e50")
+lblTitle = ui_label(headerPanel, "  " + appGreeting, 10, 10, 500, 25)
+ui_color(lblTitle, "#ffffff", "")
+
+# content text area
+contentText = ui_text(mainWin, "", true, 10, 50, 580, 400)
+ui_font(contentText, 10, "consolas", false)
+
+fullText = "1. status: " + appStatus + "\n"
+fullText = fullText + "2. while loop:\n" + whileLog + "\n"
+fullText = fullText + "3. for list:\n" + listLog + "\n"
+fullText = fullText + "4. for range:\n" + rangeLog + "\n"
+fullText = fullText + "5. try/catch: " + errorLog + "\n"
+fullText = fullText + "6. nested: " + nestedLog + "\n"
+fullText = fullText + "7. function result (5+7): " + sumResult + "\n"
+
+ui_text_set(contentText, fullText)
+
+# footer
+btnClose = ui_button(mainWin, "close", "exitApp", 250, 460, 100, 30)
+
+def exitApp() {
+    ui_close(mainWin)
+}
+
+ui_mainloop(mainWin)

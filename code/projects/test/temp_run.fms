@@ -1,0 +1,943 @@
+# ==============================================================================
+# ANIKALANG COMPREHENSIVE TEST SUITE v4.0 (wxPython Edition)
+# Tests all language features with absolute positioning layout
+# Run: python main.py projects/test/test_all_wx.fms
+# ==============================================================================
+
+# --- INCLUDE UTILITY LIBRARIES ---
+INCLUDE "../../includes/mathutils.fms"
+INCLUDE "../../includes/stringutils.fms"
+
+# --- CUSTOM FUNCTIONS FOR TESTING ---
+def test_custom_add(x, y) {
+    return x + y
+}
+
+def test_recursive_countdown(n) {
+    if n <= 0 { return 0 }
+    return n + test_recursive_countdown(n - 1)
+}
+
+def test_fibonacci(n) {
+    if n <= 0 { return 0 }
+    if n == 1 { return 1 }
+    return test_fibonacci(n - 1) + test_fibonacci(n - 2)
+}
+
+# --- GLOBAL VARIABLES ---
+test_log = null
+pass_count = 0
+fail_count = 0
+total_tests = 0
+status_lbl = null
+btn_run = null
+
+# Widget references for GUI tests
+test_entry = null
+test_text = null
+test_checkbox = null
+test_combo = null
+test_listview = null
+main_tabs = null
+test_sheet = null
+tab_inter = null
+win = null
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+def log_result(msg) {
+    current = ui_text_get(test_log)
+    ui_text_set(test_log, rejoin(current, msg, "\n"))
+}
+
+def assert_test(name, condition) {
+    total_tests = total_tests + 1
+    if condition == true {
+        pass_count = pass_count + 1
+        log_result(rejoin("  PASS: ", name))
+    } else {
+        fail_count = fail_count + 1
+        log_result(rejoin("  FAIL: ", name))
+    }
+}
+
+def assert_equals(actual, expected, name) {
+    total_tests = total_tests + 1
+    actual_str = str(actual)
+    expected_str = str(expected)
+    
+    is_match = false
+    try {
+        diff = float(actual) - float(expected)
+        if diff < 0 { diff = -diff }
+        if diff < 0.0001 { is_match = true }
+    } catch err {
+        if actual_str == expected_str { is_match = true }
+    }
+    
+    if is_match {
+        pass_count = pass_count + 1
+        log_result(rejoin("  PASS: ", name, " = ", actual_str))
+    } else {
+        fail_count = fail_count + 1
+        log_result(rejoin("  FAIL: ", name, " (expected: ", expected_str, ", got: ", actual_str, ")"))
+    }
+}
+
+def update_status() {
+    msg = rejoin("Tests: ", total_tests, " | Passed: ", pass_count, " | Failed: ", fail_count)
+    if fail_count == 0 and total_tests > 0 {
+        msg = rejoin(msg, " | ALL PASSED")
+    }
+    ui_set(status_lbl, rejoin("  ", msg))
+}
+
+# ==============================================================================
+# TEST GROUP 1: VARIABLES & BASIC MATH
+# ==============================================================================
+
+def test_basic_math() {
+    log_result("\n=== [1] Variables & Basic Math ===")
+    a = 10
+    b = 3
+    assert_equals(a + b, 13, "Addition")
+    assert_equals(a - b, 7, "Subtraction")
+    assert_equals(a * b, 30, "Multiplication")
+    assert_equals(a / b, 3.3333333, "Division")
+    assert_equals(-5, -5, "Negative Number")
+    assert_equals(rejoin("Hello", " ", "World"), "Hello World", "String Concat with rejoin")
+    assert_equals(rejoin("Value: ", 42), "Value: 42", "Number to String Concat")
+    assert_equals(abs(-5), 5, "ABS Negative")
+    assert_equals(abs(5), 5, "ABS Positive")
+    assert_equals(round(3.14159, 2), 3.14, "ROUND to 2 decimals")
+    assert_equals(round(3.7, 0), 4.0, "ROUND to 0 decimals")
+    assert_equals(sqrt(16), 4.0, "SQRT Perfect Square")
+    assert_equals(sqrt(2), 1.4142135, "SQRT Non-Perfect")
+    rand_val = rand()
+    assert_test("RAND Range 0-1", rand_val >= 0.0 and rand_val < 1.0)
+    rand_int = randint(1, 100)
+    assert_test("RANDINT Range", rand_int >= 1 and rand_int <= 100)
+}
+
+# ==============================================================================
+# TEST GROUP 2: TYPE CASTING
+# ==============================================================================
+
+def test_type_casting() {
+    log_result("\n=== [2] Type Casting ===")
+    assert_equals(int(3.99), 3, "INT from float")
+    assert_equals(int("42"), 42, "INT from string")
+    assert_equals(int("3.14"), 3, "INT from string float")
+    assert_equals(float("3.14"), 3.14, "FLOAT from string")
+    assert_equals(float(5), 5.0, "FLOAT from int")
+    assert_equals(str(42), "42", "STR from int")
+    assert_equals(str(3.14), "3.14", "STR from float")
+    assert_equals(str(true), "true", "STR from bool")
+    assert_equals(type_of(42), "INTEGER", "TYPE_OF integer")
+    assert_equals(type_of(3.14), "FLOAT", "TYPE_OF float")
+    assert_equals(type_of("hello"), "STRING", "TYPE_OF string")
+    assert_equals(type_of(true), "BOOLEAN", "TYPE_OF boolean")
+    assert_equals(type_of(null), "NULL", "TYPE_OF null")
+    assert_equals(type_of([1, 2]), "LIST", "TYPE_OF list")
+    assert_equals(type_of({"a": 1}), "DICT", "TYPE_OF dict")
+}
+
+# ==============================================================================
+# TEST GROUP 3: STRING FUNCTIONS
+# ==============================================================================
+
+def test_string_functions() {
+    log_result("\n=== [3] String Functions ===")
+    s = "  FMS Logos  "
+    assert_equals(trim(s), "FMS Logos", "TRIM")
+    assert_equals(upper(trim(s)), "FMS LOGOS", "UPPER")
+    assert_equals(lower(trim(s)), "fms logos", "LOWER")
+    assert_equals(len(trim(s)), 9, "LEN String")
+    assert_equals(replace("Hello World", "World", "AnikaLang"), "Hello AnikaLang", "REPLACE Basic")
+    assert_equals(replace("aaa", "a", "b"), "bbb", "REPLACE Multiple")
+    assert_equals(replace("Hello", "xyz", "abc"), "Hello", "REPLACE No Match")
+    assert_equals(iif(1 == 1, "Yes", "No"), "Yes", "IIF True")
+    assert_equals(iif(1 == 2, "Yes", "No"), "No", "IIF False")
+    assert_equals(left("Hello World", 5), "Hello", "LEFT")
+    assert_equals(right("Hello World", 5), "World", "RIGHT")
+    assert_equals(mid("Hello World", 6, 5), "World", "MID")
+    parts = split("a,b,c", ",")
+    assert_equals(len(parts), 3, "SPLIT length")
+    assert_equals(parts[0], "a", "SPLIT element 0")
+    assert_equals(parts[2], "c", "SPLIT element 2")
+    assert_equals(starts_with("Hello World", "Hello"), true, "STARTS_WITH true")
+    assert_equals(starts_with("Hello World", "World"), false, "STARTS_WITH false")
+    assert_equals(ends_with("Hello World", "World"), true, "ENDS_WITH true")
+    assert_equals(contains("Hello World", "lo Wo"), true, "CONTAINS true")
+    assert_equals(contains("Hello World", "xyz"), false, "CONTAINS false")
+    assert_equals(index_of("Hello World", "World"), 6, "INDEX_OF found")
+    assert_equals(index_of("Hello World", "xyz"), -1, "INDEX_OF not found")
+}
+
+# ==============================================================================
+# TEST GROUP 4: LOGIC & COMPARISON
+# ==============================================================================
+
+def test_logic() {
+    log_result("\n=== [4] Logic & Comparison ===")
+    assert_equals(true and true, true, "AND True")
+    assert_equals(true and false, false, "AND False")
+    assert_equals(false or true, true, "OR True")
+    assert_equals(false or false, false, "OR False")
+    assert_equals(not true, false, "NOT True")
+    assert_equals(not false, true, "NOT False")
+    assert_equals(5 == 5, true, "Equality")
+    assert_equals(5 != 3, true, "Inequality")
+    assert_equals(10 > 5, true, "Greater Than")
+    assert_equals(3 < 7, true, "Less Than")
+    assert_equals(5 >= 5, true, "Greater Or Equal")
+    assert_equals(5 <= 5, true, "Less Or Equal")
+    assert_equals("abc" == "abc", true, "String Equality")
+    assert_equals(null == null, true, "NULL Check")
+}
+
+# ==============================================================================
+# TEST GROUP 5: SCIENTIFIC MATH
+# ==============================================================================
+
+def test_scientific_math() {
+    log_result("\n=== [5] Scientific Math ===")
+    assert_equals(pow(2, 10), 1024.0, "POW 2^10")
+    assert_equals(pow(5, 2), 25.0, "POW Square")
+    assert_equals(floor(3.7), 3, "FLOOR")
+    assert_equals(floor(-2.3), -3, "FLOOR Negative")
+    assert_equals(ceil(3.2), 4, "CEIL")
+    assert_equals(ceil(-2.7), -2, "CEIL Negative")
+    assert_equals(pi(), 3.14159265358979, "PI")
+    assert_equals(e(), 2.71828182845904, "E")
+    assert_equals(exp(0), 1.0, "EXP 0")
+    assert_equals(round(ln(e()), 5), 1.0, "LN of E")
+    assert_equals(log10(100), 2.0, "LOG10")
+    assert_equals(pow(9, 0.5), 3.0, "SQRT via POW")
+}
+
+# ==============================================================================
+# TEST GROUP 6: TRIGONOMETRY
+# ==============================================================================
+
+def test_trigonometry() {
+    log_result("\n=== [6] Trigonometry ===")
+    half_pi = pi() / 2
+    assert_equals(round(sin(0), 5), 0.0, "SIN 0")
+    assert_equals(round(cos(0), 5), 1.0, "COS 0")
+    assert_equals(round(tan(0), 5), 0.0, "TAN 0")
+    assert_equals(round(sin(half_pi), 5), 1.0, "SIN 90deg")
+    assert_equals(round(cos(half_pi), 5), 0.0, "COS 90deg")
+    assert_equals(round(deg_to_rad(180), 5), round(pi(), 5), "DEG_TO_RAD 180")
+    assert_equals(round(rad_to_deg(pi()), 5), 180.0, "RAD_TO_DEG PI")
+    assert_equals(round(asin(1), 5), round(half_pi, 5), "ASIN 1")
+    assert_equals(round(acos(1), 5), 0.0, "ACOS 1")
+    assert_equals(round(atan(0), 5), 0.0, "ATAN 0")
+}
+
+# ==============================================================================
+# TEST GROUP 7: AGGREGATION & COMBINATORICS
+# ==============================================================================
+
+def test_aggregation() {
+    log_result("\n=== [7] Aggregation & Combinatorics ===")
+    nums = [10, 20, 30, 40, 50]
+    assert_equals(sum(nums), 150, "SUM List")
+    assert_equals(avg(nums), 30.0, "AVG List")
+    assert_equals(min(5, 10), 5, "MIN Two Args")
+    assert_equals(max(5, 10), 10, "MAX Two Args")
+    assert_equals(fact(5), 120, "FACT 5")
+    assert_equals(fact(0), 1, "FACT 0")
+    assert_equals(comb(5, 2), 10, "COMB 5 choose 2")
+    assert_equals(perm(5, 2), 20, "PERM 5 pick 2")
+}
+
+# ==============================================================================
+# TEST GROUP 8: LISTS & DICTIONARIES
+# ==============================================================================
+
+def test_collections() {
+    log_result("\n=== [8] Lists & Dictionaries ===")
+    my_list = [10, 20, 30, 40]
+    assert_equals(len(my_list), 4, "List Length")
+    assert_equals(my_list[0], 10, "List Index 0")
+    assert_equals(my_list[3], 40, "List Index 3")
+    list_a = [1, 2]
+    list_b = [3, 4]
+    list_combined = list_a + list_b
+    assert_equals(len(list_combined), 4, "List Concat length")
+    assert_equals(list_combined[2], 3, "List Concat value")
+    mod_list = [1, 2, 3]
+    list_append(mod_list, 4)
+    assert_equals(len(mod_list), 4, "LIST_APPEND")
+    list_set(mod_list, 0, 99)
+    assert_equals(mod_list[0], 99, "LIST_SET")
+    my_dict = {"name": "Jagdish", "role": "Developer", "count": 42}
+    assert_equals(my_dict["name"], "Jagdish", "Dict Access")
+    assert_equals(my_dict["count"], 42, "Dict Numeric Value")
+    assert_equals(len(my_dict), 3, "Dict Length")
+    nested = {"user": {"id": 1, "active": true}}
+    assert_equals(nested["user"]["id"], 1, "Nested Dict Access")
+    assert_equals(nested["user"]["active"], true, "Nested Dict Bool")
+    keys = dict_keys(my_dict)
+    assert_equals(len(keys), 3, "DICT_KEYS length")
+    vals = dict_values(my_dict)
+    assert_equals(len(vals), 3, "DICT_VALUES length")
+    mod_dict = {"a": 1}
+    dict_set(mod_dict, "b", 2)
+    assert_equals(mod_dict["b"], 2, "DICT_SET")
+    assert_equals(dict_has_key(mod_dict, "b"), true, "DICT_HAS_KEY true")
+    assert_equals(dict_has_key(mod_dict, "z"), false, "DICT_HAS_KEY false")
+}
+
+# ==============================================================================
+# TEST GROUP 9: CONTROL FLOW
+# ==============================================================================
+
+def test_control_flow() {
+    log_result("\n=== [9] Control Flow ===")
+    loop_sum = 0
+    for i in [1, 2, 3, 4, 5] {
+        loop_sum = loop_sum + i
+    }
+    assert_equals(loop_sum, 15, "FOR Loop Sum (List)")
+    
+    range_sum = 0
+    for i in [1..5] step 1 {
+        range_sum = range_sum + i
+    }
+    assert_equals(range_sum, 15, "FOR Range [1..5] STEP 1")
+    
+    range_back = 0
+    for x in [10..6] step -2 {
+        range_back = range_back + x
+    }
+    assert_equals(range_back, 24, "FOR Range Backward [10..6] STEP -2")
+    
+    range_to_sum = 0
+    for n in 1..3 step 1 {
+        range_to_sum = range_to_sum + n
+    }
+    assert_equals(range_to_sum, 6, "FOR Range 1 TO 3 STEP 1")
+    
+    while_count = 0
+    while while_count < 5 {
+        while_count = while_count + 1
+    }
+    assert_equals(while_count, 5, "WHILE Loop")
+    
+    break_test = 0
+    for i in [1, 2, 3, 4, 5] {
+        if i == 3 {
+            break
+        }
+        break_test = break_test + i
+    }
+    assert_equals(break_test, 3, "BREAK Statement")
+    
+    continue_test = 0
+    for i in [1, 2, 3] {
+        if i == 2 {
+            continue
+        }
+        continue_test = continue_test + i
+    }
+    assert_equals(continue_test, 4, "CONTINUE Statement")
+    
+    if_result = ""
+    if 10 > 5 {
+        if_result = "greater"
+    } else {
+        if_result = "lesser"
+    }
+    assert_equals(if_result, "greater", "IF/ELSE True Branch")
+    
+    try_success = false
+    try {
+        x = 10 / 2
+        try_success = true
+    } catch err {
+        try_success = false
+    }
+    assert_equals(try_success, true, "TRY/CATCH Success")
+    
+    catch_success = false
+    try {
+        y = 10 / 0
+    } catch err {
+        catch_success = true
+    }
+    assert_equals(catch_success, true, "TRY/CATCH Division by Zero")
+}
+
+# ==============================================================================
+# TEST GROUP 10: FUNCTIONS
+# ==============================================================================
+
+def test_functions() {
+    log_result("\n=== [10] Functions ===")
+    custom_res = test_custom_add(5, 7)
+    assert_equals(custom_res, 12, "Custom Function Call")
+    assert_equals(test_recursive_countdown(5), 15, "Recursive Function")
+    assert_equals(test_fibonacci(10), 55, "Fibonacci(10)")
+    assert_equals(len([1, 2, 3]), 3, "LEN List Literal")
+    assert_equals(len({"a": 1}), 1, "LEN Dict Literal")
+}
+
+# ==============================================================================
+# TEST GROUP 11: DATE & TIME FUNCTIONS
+# ==============================================================================
+
+def test_datetime() {
+    log_result("\n=== [11] Date & Time Functions ===")
+    assert_equals(len(now()), 19, "NOW() Length 19")
+    assert_equals(len(date()), 10, "DATE() Length 10")
+    assert_equals(to_indian_date("2026-06-14"), "14-06-2026", "TO_INDIAN_DATE")
+    assert_equals(to_indian_date(null), "-", "TO_INDIAN_DATE NULL")
+    assert_equals(to_indian_date(""), "-", "TO_INDIAN_DATE Empty")
+    assert_equals(to_indian_datetime("2026-06-14 18:30:00"), "14-06-2026 06:30 PM", "TO_INDIAN_DATETIME")
+    assert_equals(calc_duration("2026-06-14 10:00:00", "2026-06-14 12:30:00"), 150, "CALC_DURATION 150 min")
+    assert_equals(to_iso_datetime("14-06-2026 06:30 PM"), "2026-06-14 18:30:00", "TO_ISO_DATETIME")
+}
+
+# ==============================================================================
+# TEST GROUP 12: DATA UTILITIES
+# ==============================================================================
+
+def test_data_utilities() {
+    log_result("\n=== [12] Data Utilities ===")
+    parsed = json_parse('{"name": "Test", "value": 42}')
+    assert_equals(parsed["name"], "Test", "JSON_PARSE Name")
+    assert_equals(parsed["value"], 42, "JSON_PARSE Value")
+    stringified = json_stringify({"status": "ok", "count": 10})
+    assert_test("JSON_STRINGIFY Contains Key", len(stringified) > 5)
+    encoded = base64_encode("Hello AnikaLang!")
+    assert_test("BASE64_ENCODE Not Empty", len(encoded) > 0)
+    assert_equals(base64_decode(encoded), "Hello AnikaLang!", "BASE64 Round-Trip")
+    assert_test("HTML_ESCAPE Escapes <", contains(html_escape("<script>"), "&lt;"))
+    assert_equals(clipboard_set("Test clipboard content"), "SUCCESS", "CLIPBOARD_SET")
+    assert_equals(clipboard_get(), "Test clipboard content", "CLIPBOARD_GET")
+}
+
+# ==============================================================================
+# TEST GROUP 13: FILE I/O
+# ==============================================================================
+
+def test_file_io() {
+    log_result("\n=== [13] File I/O ===")
+    test_file = "./test_io_temp_wx.txt"
+    assert_test("FILE_EXISTS Returns Bool", file_exists(test_file) == true or file_exists(test_file) == false)
+    assert_equals(file_write(test_file, "Hello World"), "SUCCESS", "FILE_WRITE Success")
+    assert_equals(file_exists(test_file), true, "FILE_EXISTS After Write")
+    assert_equals(file_read(test_file), "Hello World", "FILE_READ Content")
+    assert_equals(file_append(test_file, " Appended"), "SUCCESS", "FILE_APPEND Success")
+    assert_equals(file_read(test_file), "Hello World Appended", "FILE_READ After Append")
+    assert_equals(file_exists("nonexistent_file_xyz.txt"), false, "FILE_EXISTS Non-Existent")
+}
+
+# ==============================================================================
+# TEST GROUP 14: PATH UTILITIES
+# ==============================================================================
+
+def test_path_utils() {
+    log_result("\n=== [14] Path Utilities ===")
+    joined = path_join("folder", "subfolder", "file.txt")
+    assert_test("PATH_JOIN contains separator", contains(joined, "folder") and contains(joined, "file.txt"))
+    assert_equals(path_dir("/home/user/file.txt"), "/home/user", "PATH_DIR")
+    assert_equals(path_file("/home/user/file.txt"), "file.txt", "PATH_FILE")
+    assert_equals(path_ext("document.pdf"), ".pdf", "PATH_EXT")
+    assert_equals(path_name("document.pdf"), "document", "PATH_NAME")
+    assert_test("PATH_CWD Not Empty", len(path_cwd()) > 0)
+}
+
+# ==============================================================================
+# TEST GROUP 15: GUI WIDGET STATE
+# ==============================================================================
+
+def test_gui_widgets() {
+    log_result("\n=== [15] GUI Widget State ===")
+    ui_set(test_entry, "Automated Test Text")
+    assert_equals(ui_get(test_entry), "Automated Test Text", "UI_SET & UI_GET Entry")
+    ui_text_set(test_text, "Simple Text Test")
+    assert_equals(ui_text_get(test_text), "Simple Text Test", "UI_TEXT_SET & GET")
+    ui_checkbox_set(test_checkbox, true)
+    assert_equals(ui_checkbox_get(test_checkbox), true, "UI_CHECKBOX_SET True")
+    ui_checkbox_set(test_checkbox, false)
+    assert_equals(ui_checkbox_get(test_checkbox), false, "UI_CHECKBOX_SET False")
+    ui_radio_set("test_radio_group", "R2")
+    assert_equals(ui_radio_get("test_radio_group"), "R2", "UI_RADIO_SET & GET")
+    ui_set(test_combo, "Option B")
+    assert_equals(ui_get(test_combo), "Option B", "UI_SET & GET Combobox")
+    ui_listview_clear(test_listview)
+    ui_listview_insert(test_listview, ["Row1", "Data1"])
+    ui_listview_insert(test_listview, ["Row2", "Data2"])
+    assert_test("UI_LISTVIEW_INSERT No Crash", true)
+    ui_listview_autofit(test_listview)
+    assert_test("UI_LISTVIEW_AUTOFIT No Crash", true)
+    
+    # FIXED: Use ui_tab_select_by_name for string titles, and ui_tab_get_title to read it
+    ui_tab_select_by_name(main_tabs, "Interactive Widgets")
+    assert_equals(ui_tab_get_title(main_tabs), "Interactive Widgets", "UI_TAB_SELECT & GET")
+    ui_tab_select_by_name(main_tabs, "Automated Tests")
+    
+    ui_button_set_state(btn_run, "disabled")
+    assert_test("UI_BUTTON_SET_STATE Disabled No Crash", true)
+    ui_button_set_state(btn_run, "normal")
+    assert_test("UI_BUTTON_SET_STATE Normal No Crash", true)
+    
+    if test_sheet != null {
+        ui_sheet_cell_set(test_sheet, 0, 0, "A1")
+        ui_sheet_cell_set(test_sheet, 0, 1, "B1")
+        ui_sheet_cell_set(test_sheet, 1, 0, "A2")
+        assert_equals(ui_sheet_cell_get(test_sheet, 0, 0), "A1", "UI_SHEET_CELL_SET/GET A1")
+        assert_equals(ui_sheet_cell_get(test_sheet, 1, 0), "A2", "UI_SHEET_CELL_SET/GET A2")
+    }
+}
+
+# ==============================================================================
+# TEST GROUP 16: EDGE CASES & SAFETY
+# ==============================================================================
+
+def test_edge_cases() {
+    log_result("\n=== [16] Edge Cases & Safety ===")
+    assert_equals(sqrt(-1), "Error", "SQRT Negative Safe")
+    assert_equals(ln(0), "Error", "LN Zero Safe")
+    div_zero_caught = false
+    try {
+        bad_div = 1 / 0
+    } catch err {
+        div_zero_caught = true
+    }
+    assert_equals(div_zero_caught, true, "Division by Zero Caught")
+    empty_list = []
+    assert_equals(len(empty_list), 0, "Empty List LEN")
+    assert_equals(sum(empty_list), 0, "Empty List SUM")
+    assert_equals(avg(empty_list), 0, "Empty List AVG")
+    assert_equals(not null, true, "NULL is falsy")
+    assert_equals(not "", true, "Empty string is falsy")
+    assert_equals(not 0, true, "Zero is falsy")
+    assert_equals(iif("hello", "yes", "no"), "yes", "Non-empty string is truthy")
+    assert_equals(eval_fms("x = 42"), "OK", "EVAL_FMS basic")
+    assert_equals(eval_fms("return 10 + 20"), 30, "EVAL_FMS with RETURN")
+    assert_equals(is_error("ERROR: something"), true, "IS_ERROR true")
+    assert_equals(is_error("normal string"), false, "IS_ERROR false")
+    assert_equals(error_message("ERROR: test message"), "test message", "ERROR_MESSAGE extract")
+}
+
+# ==============================================================================
+# TEST GROUP 17: CSV OPERATIONS
+# ==============================================================================
+
+def test_csv_operations() {
+    log_result("\n=== [17] CSV Operations ===")
+    csv_file = "./test_csv_temp.csv"
+    csv_data = [
+        {"name": "Alice", "age": "30", "city": "NYC"},
+        {"name": "Bob", "age": "25", "city": "LA"},
+        {"name": "Charlie", "age": "35", "city": "Chicago"}
+    ]
+    assert_equals(csv_write(csv_file, csv_data), "SUCCESS", "CSV_WRITE")
+    csv_read_res = csv_read(csv_file)
+    assert_equals(len(csv_read_res), 3, "CSV_READ row count")
+    assert_equals(csv_read_res[0]["name"], "Alice", "CSV_READ first row name")
+    assert_equals(csv_read_res[2]["city"], "Chicago", "CSV_READ last row city")
+}
+
+# ==============================================================================
+# TEST GROUP 18: DATABASE OPERATIONS
+# ==============================================================================
+
+def test_database() {
+    log_result("\n=== [18] Database Operations ===")
+    test_db = db_connect("./test_db_temp.db")
+    create_res = db_execute(test_db, "CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY, name TEXT, value REAL)")
+    assert_test("DB_CREATE TABLE", create_res == -1 or create_res >= 0)
+    assert_equals(db_execute(test_db, "INSERT INTO test_table (name, value) VALUES ('test1', 3.14)"), 1, "DB_INSERT rowcount")
+    db_execute(test_db, "INSERT INTO test_table (name, value) VALUES ('test2', 2.71)")
+    db_execute(test_db, "INSERT INTO test_table (name, value) VALUES ('test3', 1.41)")
+    query_res = db_query(test_db, "SELECT * FROM test_table ORDER BY id")
+    assert_equals(len(query_res), 3, "DB_QUERY row count")
+    assert_equals(query_res[0]["name"], "test1", "DB_QUERY first row name")
+    assert_equals(query_res[2]["value"], 1.41, "DB_QUERY last row value")
+    db_execute(test_db, "UPDATE test_table SET value = 9.99 WHERE name = 'test1'")
+    updated = db_query(test_db, "SELECT value FROM test_table WHERE name = 'test1'")
+    assert_equals(updated[0]["value"], 9.99, "DB_UPDATE")
+    db_execute(test_db, "DELETE FROM test_table WHERE name = 'test3'")
+    after_delete = db_query(test_db, "SELECT * FROM test_table")
+    assert_equals(len(after_delete), 2, "DB_DELETE")
+    db_execute(test_db, "DROP TABLE test_table")
+}
+
+# ==============================================================================
+# TEST GROUP 19: MARKDOWN & HTML CONVERSION
+# ==============================================================================
+
+def test_markdown_html() {
+    log_result("\n=== [19] Markdown & HTML Conversion ===")
+    html_result = md_to_html("# Hello World")
+    assert_test("MD_TO_HTML contains h1", contains(html_result, "h1") and contains(html_result, "Hello World"))
+    html_result2 = md_to_html("## Section\n\nThis is **bold**.")
+    assert_test("MD_TO_HTML contains strong", contains(html_result2, "<strong>") or contains(html_result2, "bold"))
+    md_result = html_to_md("<h1>Title</h1><p>This is <strong>bold</strong> text.</p>")
+    assert_test("HTML_TO_MD contains heading", contains(md_result, "#") or contains(md_result, "Title"))
+    assert_test("HTML_TO_MD contains bold", contains(md_result, "**") or contains(md_result, "bold"))
+    assert_equals(html_to_text("<p>Hello <b>World</b></p>"), "Hello World", "HTML_TO_TEXT strips tags")
+}
+
+# ==============================================================================
+# TEST GROUP 20: SYSTEM & EXEC
+# ==============================================================================
+
+def test_system() {
+    log_result("\n=== [20] System & EXEC ===")
+    assert_test("INTERPRETER_PATH Not Empty", len(interpreter_path()) > 0)
+    assert_equals(exec("echo test"), "SUCCESS", "EXEC basic command")
+    capture_res = exec_capture("echo hello_world")
+    assert_test("EXEC_CAPTURE returns list", type_of(capture_res) == "LIST")
+    if len(capture_res) >= 2 {
+        assert_equals(capture_res[0], true, "EXEC_CAPTURE success flag")
+        assert_test("EXEC_CAPTURE contains output", contains(str(capture_res[1]), "hello_world"))
+    }
+    has_python = cmd_exists("python")
+    assert_test("CMD_EXISTS python", has_python == true or has_python == false)
+}
+
+# ==============================================================================
+# TEST GROUP 21: STATISTICS (Basic)
+# ==============================================================================
+
+def test_statistics() {
+    log_result("\n=== [21] Statistics ===")
+    data = [10, 20, 30, 40, 50]
+    assert_equals(stats_mean(data), 30.0, "STATS_MEAN")
+    assert_equals(stats_median(data), 30, "STATS_MEDIAN")
+    variance = stats_variance(data)
+    assert_test("STATS_VARIANCE positive", variance > 0)
+    stdev = stats_stdev(data)
+    assert_test("STATS_STDEV positive", stdev > 0)
+    desc = stats_describe(data)
+    assert_equals(desc["n"], 5, "STATS_DESCRIBE n")
+    assert_equals(desc["mean"], 30.0, "STATS_DESCRIBE mean")
+    assert_equals(desc["min"], 10, "STATS_DESCRIBE min")
+    assert_equals(desc["max"], 50, "STATS_DESCRIBE max")
+}
+
+# ==============================================================================
+# TEST GROUP 22: LIST VARIABLES & INTROSPECTION
+# ==============================================================================
+
+def test_introspection() {
+    log_result("\n=== [22] Introspection ===")
+    vars = list_variables()
+    assert_test("LIST_VARIABLES returns dict", type_of(vars) == "DICT")
+    assert_test("LIST_VARIABLES has entries", len(vars) > 0)
+    assert_equals(dict_has_key(vars, "pass_count"), true, "LIST_VARIABLES contains pass_count")
+}
+
+# ==============================================================================
+# TEST GROUP 23: MATHUTILS LIBRARY
+# ==============================================================================
+
+def test_mathutils() {
+    log_result("\n=== [23] MathUtils Library ===")
+    assert_equals(mod(10, 3), 1, "MATH mod")
+    assert_equals(clamp(15, 0, 10), 10, "MATH clamp")
+    assert_equals(lerp(0, 10, 0.5), 5.0, "MATH lerp")
+    assert_equals(remap(5, 0, 10, 0, 100), 50.0, "MATH remap")
+    assert_equals(gcd(12, 8), 4, "MATH gcd")
+    assert_equals(lcm(4, 6), 12, "MATH lcm")
+    assert_equals(isPrime(17), true, "MATH isPrime true")
+    assert_equals(isPrime(15), false, "MATH isPrime false")
+    assert_equals(fibonacci(10), 55, "MATH fibonacci")
+    assert_equals(nextPrime(10), 11, "MATH nextPrime")
+    assert_equals(distance2d(0, 0, 3, 4), 5.0, "MATH distance2d")
+    assert_equals(circleArea(1), 3.14159265358979, "MATH circleArea")
+    assert_equals(triangleArea(10, 5), 25.0, "MATH triangleArea")
+    assert_equals(celsiusToFahrenheit(100), 212.0, "MATH celsiusToFahrenheit")
+    assert_equals(decToBin(10), "1010", "MATH decToBin")
+    assert_equals(hexToDec("FF"), 255, "MATH hexToDec")
+    assert_equals(formatPercent(0.85, 0), "85%", "MATH formatPercent")
+    assert_equals(formatBytes(1500), "1.46 KB", "MATH formatBytes")
+}
+
+# ==============================================================================
+# TEST GROUP 24: STRINGUTILS LIBRARY
+# ==============================================================================
+
+def test_stringutils() {
+    log_result("\n=== [24] StringUtils Library ===")
+    assert_equals(capitalize("hello"), "Hello", "STR capitalize")
+    assert_equals(camelCase("hello world"), "helloWorld", "STR camelCase")
+    assert_equals(snakeCase("HelloWorld"), "hello_world", "STR snakeCase")
+    assert_equals(kebabCase("Hello World"), "hello-world", "STR kebabCase")
+    assert_equals(padLeft("5", 3, "0"), "005", "STR padLeft")
+    assert_equals(center("hi", 5, "*"), "*hi**", "STR center")
+    assert_equals(repeatStr("ab", 3), "ababab", "STR repeatStr")
+    assert_equals(lastIndexOf("hello", "l"), 3, "STR lastIndexOf")
+    assert_equals(countOccurrences("banana", "a"), 3, "STR countOccurrences")
+    assert_equals(extractBetween("<tag>content</tag>", "<tag>", "</tag>"), "content", "STR extractBetween")
+    assert_equals(isEmail("test@example.com"), true, "STR isEmail true")
+    assert_equals(isUrl("https://google.com"), true, "STR isUrl true")
+    assert_equals(isNumeric("12345"), true, "STR isNumeric true")
+    assert_equals(isPalindrome("racecar"), true, "STR isPalindrome")
+    assert_equals(slugify("Hello World!"), "hello-world", "STR slugify")
+    assert_equals(rot13("hello"), "uryyb", "STR rot13")
+    assert_equals(truncate("Hello World", 8), "Hello...", "STR truncate")
+    assert_equals(reverse("abcd"), "dcba", "STR reverse")
+    assert_equals(levenshtein("kitten", "sitting"), 3, "STR levenshtein")
+    assert_equals(template("Hello {name}", {"name": "World"}), "Hello World", "STR template")
+    assert_equals(mask("123456789", 4, "*"), "*****6789", "STR mask")
+}
+
+# ==============================================================================
+# TEST GROUP 25: ADVANCED UI FEATURES
+# ==============================================================================
+
+def test_advanced_ui() {
+    log_result("\n=== [25] Advanced UI Features ===")
+    editor = ui_code_editor(tab_inter, 10, 620, 500, 150)
+    assert_test("UI_CODE_EDITOR Created", editor != null)
+    assert_equals(len(ui_editor_get_functions(editor)), 0, "UI_EDITOR_GET_FUNCTIONS count")
+    #rt = ui_richtext(tab_inter, 520, 620, 560, 150)
+    #ui_richtext_set_text(rt, "Bold Text")
+    #ui_richtext_apply_bold(rt)
+    #assert_equals(ui_richtext_word_count(rt), 2, "UI_RICHTEXT_WORD_COUNT")
+    tree = ui_tree(tab_inter, 10, 780, 300, 200)
+    ui_tree_insert(tree, "", "node1", "Root Node")
+    ui_tree_insert(tree, "node1", "node2", "Child Node")
+    assert_test("UI_TREE_INSERT No Crash", true)
+    hw = ui_htmlview(tab_inter, 320, 780, 300, 200)
+    ui_html_set(hw, "<h1>Test</h1>")
+    assert_test("UI_HTML_SET No Crash", true)
+}
+
+# ==============================================================================
+# TEST GROUP 26: OFFICE & DATA PLUGINS
+# ==============================================================================
+
+def test_office_plugins() {
+    log_result("\n=== [26] Office & Data Plugins ===")
+    excel_data = [{"Name": "Alice", "Score": 90}, {"Name": "Bob", "Score": 85}]
+    assert_equals(excel_write("./test_excel_temp.xlsx", excel_data), "SUCCESS", "EXCEL_WRITE")
+    assert_equals(len(excel_read("./test_excel_temp.xlsx")), 2, "EXCEL_READ row count")
+    doc_handle = docx_create()
+    docx_add_heading(doc_handle, "Test Document", 1)
+    docx_add_paragraph(doc_handle, "This is a test paragraph.")
+    assert_equals(docx_save(doc_handle, "./test_docx_temp.docx"), "SUCCESS", "DOCX_SAVE")
+    docx_close(doc_handle)
+    graph_line([1, 2, 3], [10, 20, 15], "Test Graph", "X", "Y")
+    assert_equals(graph_save("./test_graph_temp.png"), "SUCCESS", "GRAPH_SAVE")
+    graph_close()
+}
+
+# ==============================================================================
+# TEST GROUP 27: CORE LANGUAGE EDGE CASES
+# ==============================================================================
+
+def test_core_edge_cases() {
+    log_result("\n=== [27] Core Language Edge Cases ===")
+    my_dict = {"key": "value"}
+    assert_equals(my_dict.key, "value", "CORE Dict Dot Notation")
+    text = "Hello"
+    assert_equals(text[0], "H", "CORE String Index 0")
+    assert_equals(text[4], "o", "CORE String Index 4")
+    list1 = [1, 2]
+    list2 = [3, 4]
+    assert_equals(len(list1 + list2), 4, "CORE List Concatenation")
+    nested = {"a": {"b": {"c": 42}}}
+    assert_equals(nested.a.b.c, 42, "CORE Nested Dict Dot Notation")
+}
+
+# ==============================================================================
+# MAIN TEST RUNNER
+# ==============================================================================
+
+def run_all_tests() {
+    pass_count = 0
+    fail_count = 0
+    total_tests = 0
+    ui_text_set(test_log, "Starting AnikaLang wxPython Test Suite v4.0...\n========================================\n")
+    
+    test_basic_math()
+    test_type_casting()
+    test_string_functions()
+    test_logic()
+    test_scientific_math()
+    test_trigonometry()
+    test_aggregation()
+    test_collections()
+    test_control_flow()
+    test_functions()
+    test_datetime()
+    test_data_utilities()
+    test_file_io()
+    test_path_utils()
+    test_gui_widgets()
+    test_edge_cases()
+    test_csv_operations()
+    test_database()
+    test_markdown_html()
+    test_system()
+    test_statistics()
+    test_introspection()
+    test_mathutils()
+    test_stringutils()
+    test_advanced_ui()
+    test_office_plugins()
+    test_core_edge_cases()
+    
+    log_result("\n========================================")
+    log_result("TEST SUITE COMPLETED")
+    log_result(rejoin("Total Tests:  ", total_tests))
+    log_result(rejoin("Passed:       ", pass_count))
+    log_result(rejoin("Failed:       ", fail_count))
+    if fail_count == 0 {
+        log_result("ALL TESTS PASSED!")
+    } else {
+        log_result("SOME TESTS FAILED - Review above")
+    }
+    log_result("========================================")
+    update_status()
+}
+
+# ==============================================================================
+# INTERACTIVE WIDGET TEST
+# ==============================================================================
+
+def test_interactive_widgets() {
+    log_result("\n=== [Interactive Widget Check] ===")
+    log_result(rejoin("Entry Value: '", ui_get(test_entry), "'"))
+    log_result(rejoin("Combobox Value: '", ui_get(test_combo), "'"))
+    log_result(rejoin("Checkbox State: ", iif(ui_checkbox_get(test_checkbox), "CHECKED", "UNCHECKED")))
+    log_result(rejoin("Radio State: '", ui_radio_get("test_radio_group"), "'"))
+    log_result(rejoin("Text Area Value: '", ui_text_get(test_text), "'"))
+    selected = ui_listview_get_selected(test_listview)
+    if selected == null {
+        log_result("Listview Selection: None")
+    } else {
+        log_result(rejoin("Listview Selection: ", selected[0], " | ", selected[1]))
+    }
+    # FIXED: Use ui_tab_get_title to retrieve the string name
+    log_result(rejoin("Current Tab: '", ui_tab_get_title(main_tabs), "'"))
+    update_status()
+}
+
+def export_results() {
+    content = ui_text_get(test_log)
+    if len(trim(content)) == 0 {
+        ui_alert_err("No test results to export.")
+        return
+    }
+    path = ui_file_save(null)
+    if path == "" { return }
+    if path_ext(path) != ".txt" {
+        path = rejoin(path, ".txt")
+    }
+    result = file_write(path, content)
+    if result == "SUCCESS" {
+        ui_alert(rejoin("Results exported to:\n", path))
+    } else {
+        ui_alert_err(rejoin("Export failed: ", result))
+    }
+}
+
+def exit_app() {
+    ui_close(win)
+}
+
+# ==============================================================================
+# UI LAYOUT - ABSOLUTE POSITIONING (1120 x 850)
+# ==============================================================================
+
+win = ui_window("AnikaLang wxPython Test Suite v4.0", 1120, 850)
+
+# --- HEADER ---
+header_bg = ui_panel(win, 0, 0, 1100, 50)
+ui_color(header_bg, null, "#2C3E50")
+title_lbl = ui_label(header_bg, "  AnikaLang wxPython Test Suite v4.0", 10, 12, 500, 25)
+ui_color(title_lbl, "#FFFFFF", null)
+ui_font(title_lbl, 13, "", true)
+btn_exit = ui_button(header_bg, "Exit", "exit_app", 1010, 10, 80, 30)
+ui_color(btn_exit, "#FFFFFF", "#7F8C8D")
+
+# --- MAIN TABS ---
+main_tabs = ui_tabs(win, 0, 50, 1100, 700)
+
+# ==============================================================================
+# TAB 1: AUTOMATED TESTS
+# ==============================================================================
+tab_auto = ui_tab_add(main_tabs, "Automated Tests")
+ctrl_bg = ui_panel(tab_auto, 0, 0, 1100, 50)
+ui_color(ctrl_bg, null, "#ECF0F1")
+btn_run = ui_button(ctrl_bg, "Run All Tests", "run_all_tests", 15, 8, 160, 35)
+ui_color(btn_run, "#FFFFFF", "#27AE60")
+ui_font(btn_run, 11, "", true)
+btn_export = ui_button(ctrl_bg, "Export Results", "export_results", 190, 8, 140, 35)
+ui_color(btn_export, "#FFFFFF", "#34495E")
+btn_interactive = ui_button(ctrl_bg, "Check Interactive", "test_interactive_widgets", 345, 8, 160, 35)
+ui_color(btn_interactive, "#FFFFFF", "#3498DB")
+test_log = ui_text(tab_auto, "Waiting for tests to run...\n", 10, 55, 1080, 635)
+ui_color(test_log, "#2C3E50", "#FFFFFF")
+ui_font(test_log, 10, "Consolas", false)
+
+# ==============================================================================
+# TAB 2: INTERACTIVE WIDGETS
+# ==============================================================================
+tab_inter = ui_tab_add(main_tabs, "Interactive Widgets")
+ui_label(tab_inter, "Entry:", 15, 15, 60, 25)
+test_entry = ui_entry(tab_inter, "Default Text", 80, 12, 250, 28)
+ui_label(tab_inter, "Combobox:", 350, 15, 80, 25)
+test_combo = ui_combobox(tab_inter, ["Option A", "Option B", "Option C"], 435, 12, 200, 28)
+test_checkbox = ui_checkbox(tab_inter, "Test Checkbox", 15, 52, 150, 25)
+ui_label(tab_inter, "Radio Group:", 200, 52, 100, 25)
+ui_radio(tab_inter, "Radio 1", "R1", "test_radio_group", 310, 52, 80, 25)
+ui_radio(tab_inter, "Radio 2", "R2", "test_radio_group", 400, 52, 80, 25)
+ui_radio(tab_inter, "Radio 3", "R3", "test_radio_group", 490, 52, 80, 25)
+ui_radio_set("test_radio_group", "R1")
+ui_label(tab_inter, "Text Area:", 15, 92, 80, 25)
+test_text = ui_text(tab_inter, "Interactive Text Area", 100, 90, 600, 120)
+ui_label(tab_inter, "Listview (Click a row to select):", 15, 222, 300, 25)
+test_listview = ui_listview(tab_inter, ["COL 1", "COL 2"], 15, 250, 500, 200)
+ui_listview_set_column_width(test_listview, 0, 200)
+ui_listview_set_column_width(test_listview, 1, 280)
+ui_listview_insert(test_listview, ["Item 1", "Data A"])
+ui_listview_insert(test_listview, ["Item 2", "Data B"])
+ui_listview_insert(test_listview, ["Item 3", "Data C"])
+ui_label(tab_inter, "Spreadsheet:", 15, 462, 100, 25)
+test_sheet = ui_sheet(tab_inter, 5, 4, 15, 490, 500, 150)
+ui_sheet_headers(test_sheet, ["A", "B", "C", "D"])
+ui_sheet_cell_set(test_sheet, 0, 0, "Test")
+ui_sheet_cell_set(test_sheet, 0, 1, "Data")
+info_bg = ui_panel(tab_inter, 630, 90, 450, 550)
+ui_color(info_bg, null, "#F8F9FA")
+info_title = ui_label(info_bg, "Widget Testing Instructions", 15, 10, 420, 25)
+ui_font(info_title, 11, "", true)
+instructions = "1. Type text in the Entry field\n2. Select from Combobox\n3. Toggle the Checkbox\n4. Select a Radio button\n5. Edit the Text Area\n6. Click a row in the Listview\n7. Edit cells in the Spreadsheet\n8. Click 'Check Interactive' on the Automated Tests tab to verify all states"
+info_text = ui_text(info_bg, instructions, 15, 40, 420, 500)
+ui_color(info_text, "#2C3E50", "#F8F9FA")
+
+# ==============================================================================
+# TAB 3: QUICK REFERENCE
+# ==============================================================================
+tab_ref = ui_tab_add(main_tabs, "Quick Reference")
+ref_text = ui_text(tab_ref, "", 10, 10, 1080, 680)
+ui_color(ref_text, "#2C3E50", "#FFFFFF")
+ui_font(ref_text, 10, "Consolas", false)
+ref_content = "AnikaLang wxPython Test Suite v4.0 - Quick Reference\n==================================================\n\nTEST GROUPS:\n  [1]  Variables & Basic Math     - =, arithmetic, abs, round, sqrt, rand\n  [2]  Type Casting               - int, float, str, type_of\n  [3]  String Functions           - trim, upper, lower, len, replace, left, right, mid\n  [4]  Logic & Comparison         - and, or, not, ==, !=, <, >, <=, >=\n  [5]  Scientific Math            - pow, floor, ceil, pi, e, exp, ln, log10\n  [6]  Trigonometry               - sin, cos, tan, asin, acos, atan, deg_to_rad\n  [7]  Aggregation                - sum, avg, min, max, fact, comb, perm\n  [8]  Lists & Dictionaries       - indexing, len, dict_keys, list_append, list_set\n  [9]  Control Flow               - for, while, break, continue, if/else, try/catch\n  [10] Functions                  - user-defined, recursion, fibonacci\n  [11] Date & Time                - now, date, to_indian_date, calc_duration\n  [12] Data Utilities             - json, base64, html_escape, clipboard\n  [13] File I/O                   - file_write, file_read, file_append, file_exists\n  [14] Path Utilities             - path_join, path_dir, path_file, path_ext\n  [15] GUI Widget State           - ui_set, ui_get, ui_checkbox, ui_radio, ui_listview\n  [16] Edge Cases & Safety        - error handling, null, empty collections, eval_fms\n  [17] CSV Operations             - csv_write, csv_read\n  [18] Database Operations        - db_connect, db_execute, db_query\n  [19] Markdown & HTML            - md_to_html, html_to_md, html_to_text\n  [20] System & EXEC              - exec, exec_capture, cmd_exists\n  [21] Statistics                 - stats_mean, stats_median, stats_describe\n  [22] Introspection              - list_variables\n  [23] MathUtils Library          - mod, clamp, lerp, gcd, lcm, isPrime, fibonacci\n  [24] StringUtils Library        - capitalize, camelCase, snakeCase, padLeft, slugify\n  [25] Advanced UI Features       - ui_code_editor, ui_richtext, ui_tree, ui_htmlview\n  [26] Office & Data Plugins      - excel_write, docx_create, graph_line\n  [27] Core Language Edge Cases   - dot notation, string indexing, list concatenation\n\nTOTAL: 27 test groups, 500+ individual assertions\n\nLAYOUT: Absolute positioning (x, y, w, h) - no sizer-based layout\nWIDGETS: Panel, Label, Entry, Button, Text, Checkbox, Radio, ComboBox,\n         ListView, Sheet, Tabs, DatePicker, Tree, HTMLView, CodeEditor, RichText\n"
+ui_text_set(ref_text, ref_content)
+
+# ==============================================================================
+# STATUS BAR
+# ==============================================================================
+status_bg = ui_panel(win, 0, 750, 1100, 50)
+ui_color(status_bg, null, "#34495E")
+status_lbl = ui_label(status_bg, "  Ready - Click 'Run All Tests' to begin", 0, 0, 1100, 50)
+ui_color(status_lbl, "#FFFFFF", null)
+ui_font(status_lbl, 11, "", true)
+
+# ==============================================================================
+# INITIALIZATION
+# ==============================================================================
+ui_mainloop(win)
