@@ -3,7 +3,7 @@
 **A powerful, dynamically-typed scripting language with a massive standard library, native GUI framework, Machine Learning, RAG, and Office Document manipulation capabilities.**
 
 ![Version](https://img.shields.io/badge/version-1.2-blue)
-![Python](https://img.shields.io/badge/python-3.8+-green)
+![Python](https://img.shields.io/badge/python-3.12+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 ![Functions](https://img.shields.io/badge/functions-470+-purple)
 
