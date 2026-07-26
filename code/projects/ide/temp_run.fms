@@ -1,7 +1,0 @@
-# New AnikaLang Script
-
-def main() {
-    win = ui_window('My App')
-    ui_mainloop(win)
-}
-main() 
